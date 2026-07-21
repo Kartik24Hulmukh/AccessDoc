@@ -13,9 +13,10 @@ jobs:
         with:
           python-version: '3.13'
           cache: pip
-      - run: pip install --requirement requirements.txt
+      - run: pip install --requirement requirements-dev.txt
       - run: python -m compileall -q app api tests
       - run: python -W error::ResourceWarning -m unittest discover -s tests -v
+      - run: find . -type d -name __pycache__ -exec rm -rf {} +
       - run: python scripts/verify_release.py
       - run: docker build -t accessdoc:${{ github.sha }} .
       - run: |

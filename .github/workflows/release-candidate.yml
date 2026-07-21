@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         with:
           python-version: '3.13'
-      - run: pip install --requirement requirements.txt
+      - run: pip install --requirement requirements-dev.txt
       - run: python scripts/verify_release.py
       - run: python scripts/build_source_bundle.py
       - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
