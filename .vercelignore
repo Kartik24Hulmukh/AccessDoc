@@ -1,0 +1,9 @@
+operator-private
+evidence
+dist
+artifacts
+*.zip
+*.sqlite3
+*.log
+__pycache__
+*.pyc

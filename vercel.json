@@ -1,0 +1,21 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/bundle.py": {
+      "maxDuration": 60,
+      "excludeFiles": "{tests/**,docs/**,evidence/**,scripts/**,.github/**,operator-private/**,dist/**,**/__pycache__/**,**/*.pyc,**/*.zip}"
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {"key": "X-Content-Type-Options", "value": "nosniff"},
+        {"key": "Referrer-Policy", "value": "no-referrer"},
+        {"key": "X-Frame-Options", "value": "DENY"},
+        {"key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()"},
+        {"key": "Content-Security-Policy", "value": "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"}
+      ]
+    }
+  ]
+}

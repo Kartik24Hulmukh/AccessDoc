@@ -1,0 +1,25 @@
+name: accessdoc-ci
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: '3.13'
+          cache: pip
+      - run: pip install --requirement requirements.txt
+      - run: python -m compileall -q app api tests
+      - run: python -W error::ResourceWarning -m unittest discover -s tests -v
+      - run: python scripts/verify_release.py
+      - run: docker build -t accessdoc:${{ github.sha }} .
+      - run: |
+          docker run -d --name accessdoc -p 127.0.0.1:8000:8000 -e ALLOWED_HOSTS=127.0.0.1:8000 accessdoc:${{ github.sha }}
+          python scripts/smoke.py http://127.0.0.1:8000
+          docker logs accessdoc
+          docker rm -f accessdoc

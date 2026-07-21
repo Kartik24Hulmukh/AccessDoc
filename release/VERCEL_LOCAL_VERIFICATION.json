@@ -1,0 +1,27 @@
+{
+  "release": "0.4.0-beta.4",
+  "classification": "locally-repository-verified-vercel-source-candidate",
+  "unit_and_integration_tests": {"passed": 37, "failed": 0},
+  "serverless_stress": {
+    "requests": 200,
+    "workers": 16,
+    "errors": 0,
+    "wall_seconds": 5.247,
+    "throughput_per_second": 38.12,
+    "latency_ms": {"p50": 337.67, "p95": 567.52, "p99": 734.93, "max": 754.41},
+    "bundle_bytes": {"min": 10410, "max": 10435},
+    "peak_rss_kb": {"before": 34104, "after": 49988},
+    "cold_starts": 10,
+    "cold_start_hashes_identical": true,
+    "cross_request_leakage_detected": false
+  },
+  "browser": {"download": "accessdoc-report-bundle.zip", "bytes": 10454, "console_errors": 0, "mobile_scroll_width": 390, "mobile_viewport_width": 390, "repeat_download_network_request": false},
+  "semantic_html": {"h1": 1, "main": 1, "header": 1, "footer": 1, "duplicate_ids": 0, "broken_fragments": 0, "active_nodes": 0, "horizontal_overflow": false},
+  "release_verifier": "PASS",
+  "vercel_adapter": {"entrypoint": "api/bundle.py", "python": "3.13", "max_duration_seconds": 60, "token_store_dependency": false, "long_lived_server_dependency": false},
+  "not_verified_here": ["Vercel build/install", "hosted preview", "hosted headers and logs", "distributed abuse controls", "production promotion", "independent security review", "independent accessibility review", "name/legal clearance"],
+  "confidence": 0.86,
+  "weakest_assumption": "Vercel resolves and runs ReportLab 5.0.0 with the same behavior and within platform limits.",
+  "falsifier": "A clean Vercel build or protected-preview smoke fails against the exact Git commit.",
+  "kill_criteria": ["cross-request leakage", "private evidence in logs", "corrupt bundle or manifest mismatch", "unexpected caching", "sustained timeout or 5xx", "abnormal spend", "misleading accessibility or compliance claims"]
+}

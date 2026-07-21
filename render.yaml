@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: accessdoc
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /readyz
+    autoDeploy: false
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: ALLOW_NETWORK_EXPOSURE
+        value: "true"
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+        value: free
+      - key: REPORT_TTL_SECONDS
+        value: "1800"
