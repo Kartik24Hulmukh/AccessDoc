@@ -1,0 +1,29 @@
+name: Catalog mapping review
+description: Propose or challenge a scanner-rule mapping
+title: "Mapping review: "
+labels: [catalog, needs-evidence]
+body:
+  - type: input
+    id: scanner_rule
+    attributes:
+      label: Scanner and rule identifier
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Authoritative source URL
+    validations:
+      required: true
+  - type: textarea
+    id: reasoning
+    attributes:
+      label: Proposed mapping and reasoning
+    validations:
+      required: true
+  - type: textarea
+    id: counterexample
+    attributes:
+      label: Counterexample or uncertainty
+    validations:
+      required: true

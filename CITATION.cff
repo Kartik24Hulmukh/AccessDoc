@@ -1,0 +1,8 @@
+cff-version: 1.2.0
+message: "If you use AccessDoc, cite the software release and repository URL."
+title: AccessDoc
+type: software
+version: 0.3.0
+date-released: 2026-07-19
+license: Apache-2.0
+# Add repository-code and confirmed author identities before publication.

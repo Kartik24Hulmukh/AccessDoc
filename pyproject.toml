@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "accessdoc"
+version = "0.4.0-beta.4"
+description = "Accessibility evidence to reviewable report"
+requires-python = ">=3.13"
+license = {text = "Apache-2.0"}
+dependencies = ["reportlab==5.0.0"]
+
+[project.scripts]
+accessdoc = "app.main:run"

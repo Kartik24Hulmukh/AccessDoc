@@ -1,0 +1,12 @@
+.git
+.github
+.venv
+__pycache__
+*.pyc
+*.pid
+*.log
+artifacts
+tests
+gumloop
+*.zip
+.env
