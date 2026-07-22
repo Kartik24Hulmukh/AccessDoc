@@ -118,8 +118,8 @@ class Handler(BaseHTTPRequestHandler):
  def do_GET(self):
   if not self._preflight():return
   p=urlparse(self.path);path=p.path
-  if path in ('/health','/livez','/health/live'):return self._json(200,{'status':'ok','service':'accessdoc','version':os.getenv('ACCESSDOC_VERSION','0.4.0-beta.4')})
-  if path=='/version':return self._json(200,{'service':'accessdoc','version':os.getenv('ACCESSDOC_VERSION','0.4.0-beta.4'),'catalog':'wcag-2.2-accessdoc-2026-01'})
+  if path in ('/health','/livez','/health/live'):return self._json(200,{'status':'ok','service':'accessdoc','version':os.getenv('ACCESSDOC_VERSION','0.5.0-beta.1')})
+  if path=='/version':return self._json(200,{'service':'accessdoc','version':os.getenv('ACCESSDOC_VERSION','0.5.0-beta.1'),'catalog':'wcag-2.2-accessdoc-2026-01'})
   if path in ('/readyz','/health/ready'):return self._json(200 if READY else 503,{'status':'ready' if READY else 'not_ready'})
   if path=='/metrics':
    lines=[]
@@ -173,7 +173,7 @@ class Handler(BaseHTTPRequestHandler):
     if width<1 or height<1 or width>4096 or height>4096 or width*height>16_000_000:raise ValueError('Logo dimensions exceed limit')
    branding=Branding(body.get('agency_name','AccessDoc Studio'),body.get('primary_color','#185ABD'),logo)
    input_sha256=hashlib.sha256(scanner.encode('utf-8')).hexdigest()
-   req=AuditRequest(body.get('client_name','Client'),body.get('audit_date',''),branding,findings,body.get('manual_findings',''),detected,body.get('source_filename','pasted-evidence'),input_sha256,os.getenv('ACCESSDOC_VERSION','0.4.0-beta.4'))
+   req=AuditRequest(body.get('client_name','Client'),body.get('audit_date',''),branding,findings,body.get('manual_findings',''),detected,body.get('source_filename','pasted-evidence'),input_sha256,os.getenv('ACCESSDOC_VERSION','0.5.0-beta.1'))
    pdf=generate_pdf(req);filename=slug(req.client_name)+'-accessibility-evidence-report.pdf'
    counts={s:sum(1 for f in findings if f.severity==s) for s in ('critical','high','medium','low','needs-review')};unmapped=sum(1 for f in findings if f.wcag_criterion=='Unmapped')
    receipt={'source_filename':req.source_filename,'submitted_text_sha256':input_sha256,'detected_format':detected,'generator_version':req.generator_version,'catalog_version':'wcag-2.2-accessdoc-2026-01','mapped_findings':len(findings)-unmapped,'unmapped_findings':unmapped,'manual_findings_included':bool(req.manual_findings),'pdf_sha256':hashlib.sha256(pdf).hexdigest(),'scope_statement':'Digest identifies submitted UTF-8 input text; AccessDoc normalized supplied evidence and did not rescan or authenticate its source.'}
@@ -200,7 +200,7 @@ def run(host='127.0.0.1',port=8000):
  def stop(sig,frame):
   global READY;READY=False;threading.Thread(target=server.shutdown,daemon=True).start()
  signal.signal(signal.SIGTERM,stop);signal.signal(signal.SIGINT,stop)
- print(json.dumps({'event':'startup','host':host,'port':port,'version':os.getenv('ACCESSDOC_VERSION','0.4.0-beta.4')}),flush=True)
+ print(json.dumps({'event':'startup','host':host,'port':port,'version':os.getenv('ACCESSDOC_VERSION','0.5.0-beta.1')}),flush=True)
  try:server.serve_forever(poll_interval=.2)
  finally:
   READY=False;deadline=time.monotonic()+float(os.getenv('SHUTDOWN_GRACE_SECONDS','15'))
