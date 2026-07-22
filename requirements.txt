@@ -1,2 +1,1 @@
-reportlab==5.0.0
-# Runtime web server uses Python 3.13 standard library; no network package install required.
+reportlab>=4.0.0

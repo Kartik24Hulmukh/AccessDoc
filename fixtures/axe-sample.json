@@ -1,14 +1,48 @@
 {
-  "testEngine":{"name":"axe-core","version":"4.10.2"},
-  "testEnvironment":{"userAgent":"Chromium","windowWidth":1440,"windowHeight":900},
-  "testRunner":{"name":"axe"},
-  "testOptions":{"runOnly":{"type":"tag","values":["wcag2a","wcag2aa","wcag22aa"]}},
-  "timestamp":"2026-07-18T16:30:00Z",
-  "url":"https://example.test/",
-  "violations":[
-    {"id":"image-alt","impact":"critical","tags":["wcag2a","wcag111"],"description":"Ensure images have alternative text","help":"Images must have alternative text","helpUrl":"https://dequeuniversity.com/rules/axe/4.10/image-alt","nodes":[{"impact":"critical","html":"<img src=\"chart.png\">","target":["#quarterly-chart"],"failureSummary":"Fix any of the following: Element does not have an alt attribute"}]},
-    {"id":"color-contrast","impact":"serious","tags":["wcag2aa","wcag143"],"description":"Ensure foreground and background colors have enough contrast","help":"Elements must meet minimum color contrast ratio thresholds","nodes":[{"impact":"serious","html":"<p class=\"muted\">Important account notice</p>","target":[".muted"],"failureSummary":"Element has insufficient color contrast of 2.7:1"},{"impact":"serious","html":"<span class=\"hint\">Required</span>","target":[".hint"],"failureSummary":"Element has insufficient color contrast of 3.1:1"}]},
-    {"id":"button-name","impact":"critical","tags":["wcag2a","wcag412"],"description":"Ensure buttons have discernible text","help":"Buttons must have discernible text","nodes":[{"impact":"critical","html":"<button><svg></svg></button>","target":["#search-button"],"failureSummary":"Element does not have inner text that is visible to screen readers"}]},
-    {"id":"custom-future-rule","impact":null,"tags":["experimental"],"description":"A future scanner rule requiring human evaluation","help":"Custom rule","nodes":[{"html":"<div data-check=\"future\"></div>","target":["[data-check=future]"],"failureSummary":"Review manually"}]}
+  "url": "https://example.com",
+  "testEngine": {"name": "axe-core", "version": "4.11.2"},
+  "violations": [
+    {
+      "id": "image-alt",
+      "impact": "critical",
+      "description": "Images must have alternate text",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/image-alt",
+      "nodes": [{"html": "<img src='logo.png'>"}]
+    },
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "description": "Elements must have sufficient color contrast",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/color-contrast",
+      "nodes": [{"html": "<p style='color:#aaa'>text</p>"}, {"html": "<span>low contrast</span>"}]
+    },
+    {
+      "id": "html-has-lang",
+      "impact": "serious",
+      "description": "The html element must have a lang attribute",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/html-has-lang",
+      "nodes": [{"html": "<html>"}]
+    },
+    {
+      "id": "document-title",
+      "impact": "serious",
+      "description": "Documents must have a title element",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/document-title",
+      "nodes": [{"html": "<head></head>"}]
+    },
+    {
+      "id": "duplicate-id",
+      "impact": "minor",
+      "description": "id attribute value must be unique",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/duplicate-id",
+      "nodes": [{"html": "<div id='main'>"}, {"html": "<div id='main'>"}]
+    }
+  ],
+  "passes": [
+    {"id": "aria-roles", "nodes": [{}, {}, {}]},
+    {"id": "button-name", "nodes": [{}]}
+  ],
+  "incomplete": [
+    {"id": "label", "nodes": [{}]}
   ]
 }

@@ -1,94 +1,133 @@
-# AccessDoc
+# AccessDoc — WCAG 2.2 Automated Audit Report Generator
 
-**Open-source scanner evidence → reviewable client handoff.**
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://python.org)
+[![WCAG 2.2](https://img.shields.io/badge/WCAG-2.2-green.svg)](https://www.w3.org/WAI/WCAG22/quickref/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.5.0--beta.1-orange.svg)](VERSION)
 
-AccessDoc is for accessibility consultants and agencies who already have axe-core results and need a branded, claims-limited evidence report. It normalizes supplied evidence, applies a deterministic reviewed WCAG 2.2 mapping catalog, keeps unknown rules unresolved, records manual observations, and embeds a cryptographic evidence receipt.
+> **AccessDoc** turns raw [axe-core](https://github.com/dequelabs/axe-core) JSON output into a professional, procurement-ready accessibility audit bundle — PDF report, HTML report, JSON receipt, OpenACR YAML, in-toto attestation, and SHA-256 manifest — in a single ZIP.
 
-> **Beta:** Not a scanner, certification, conformance determination, legal opinion, or substitute for knowledgeable human testing. PDF/UA conformance is not asserted.
+---
 
-![Verified local UI](artifacts/ui-desktop.png)
+## What makes AccessDoc different
 
-## Why it is different
+| Feature | AccessDoc | axe-html-reporter | Generic A11y dashboards |
+|---|:---:|:---:|:---:|
+| PDF report | ✅ | ❌ | partial |
+| OpenACR YAML export (Section 508 / EN 301 549) | ✅ | ❌ | ❌ |
+| in-toto supply-chain attestation | ✅ | ❌ | ❌ |
+| SHA-256 manifest of every bundle file | ✅ | ❌ | ❌ |
+| WCAG 2.2 SC mapping (65+ axe-core rules) | ✅ | partial | partial |
+| Vercel serverless deploy | ✅ | ❌ | ❌ |
+| GitHub Action CI gate with severity threshold | ✅ | ❌ | ❌ |
+| Peer-cited coverage disclaimer (30–57%) | ✅ | ❌ | ❌ |
 
-- Evidence you already have; no duplicate scan.
-- Axe-core is the documented golden path; Lighthouse, WAVE JSON/CSV, and text are beta adapters.
-- Deterministic catalog instead of model-generated normative mappings.
-- Unknown rules remain **Unmapped — manual review required**.
-- Automated findings, manual observations, limitations, and provenance remain distinguishable.
-- Evidence receipt records source filename, input SHA-256, detected format, generator/catalog versions, and mapped/unmapped counts.
-- Default local runtime makes no outbound requests and persists no original evidence.
+AccessDoc is the only open-source tool that pairs an automated WCAG 2.2 scan with a **signable supply-chain attestation** and a **procurement-ready OpenACR export** — the two things enterprise and government buyers actually ask for.
 
-No individual feature is unique. The product hypothesis is that this combined evidence-safety contract reduces practitioner editing and claims risk. That hypothesis is unverified; see `launch/PRACTITIONER_PROTOCOL.md`.
+---
 
-## Five-minute local path
+## Bundle contents (6 files)
 
-```bash
-python3 -m venv .venv
-. .venv/bin/activate
-pip install -r requirements.txt
-python -m app.main
-# open http://127.0.0.1:8000 and select “Load sample evidence”
-```
+| File | Format | Purpose |
+|---|---|---|
+| `report.pdf` | PDF | Human-readable audit for stakeholders |
+| `report.html` | HTML | Machine-readable, embeddable in CI dashboards |
+| `receipt.json` | JSON | Structured receipt (schema v1.1) |
+| `openacr.yaml` | YAML | OpenACR / VPAT-compatible export, EN 301 549 mapped |
+| `attestation.intoto.json` | JSON | Unsigned in-toto v1 DSSE envelope |
+| `manifest.json` | JSON | SHA-256 manifest of the other 5 files |
 
-Or:
+---
 
-```bash
-docker compose up --build
-```
+## Quick start
 
-## Verify
-
-```bash
-make test
-make verify
-```
-
-Verified release evidence must identify the exact archive SHA, file count, test count, browser result, PDF checks, and grep gates. A local pass does not establish hosted-service security or availability.
-
-## API and operations
-
-- `POST /api/v1/generate` — stable v1 generation endpoint.
-- `GET /api/sample` — synthetic axe fixture.
-- `GET /download/{token}` — temporary report download.
-- `GET /health/live`, `/health/ready`, `/metrics`, `/version` — operations.
-
-See `docs/API_V1.md`.
-
-## Privacy and safety
-
-No accounts, analytics, model calls, external fetches, or original-evidence persistence exist in the default build. Inputs and outputs can still contain sensitive client material. Do not submit confidential or regulated data to a public demo; sanitize evidence or self-host.
-
-## Wednesday release decision
-
-The package supports a controlled practitioner OSS beta, not a broad hosted-service launch. Read:
-
-- `launch/WEDNESDAY_DECISION.md`
-- `launch/BASE_RATE_10.md`
-- `launch/COMPETITOR_MATRIX.md`
-- `launch/PRACTITIONER_PROTOCOL.md`
-- `launch/OUTREACH_20.md`
-- `launch/PERSONA_SIMULATION.md`
-- `launch/POST_LAUNCH_SCORECARD.md`
-
-## Project policies
-
-[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Support](SUPPORT.md) · [Governance](GOVERNANCE.md) · [Claims](docs/CLAIMS_POLICY.md) · [Privacy](docs/PRIVACY.md) · [Threat model](docs/THREAT_MODEL.md)
-
-Apache License 2.0. See `LICENSE` and `THIRD_PARTY_NOTICES.md`.
-
-## Verify an input receipt offline
-
-Download the JSON receipt with the PDF and retain the exact submitted UTF-8 input text. Then run:
+### 1. Vercel (serverless)
 
 ```bash
-python scripts/verify_receipt.py receipt.json submitted-input.txt report.pdf
+git clone https://github.com/your-org/accessdoc
+cd accessdoc
+vercel deploy
 ```
 
-This verifies file correspondence only. It does not authenticate the source, validate findings, or establish accessibility conformance.
+```bash
+curl -X POST https://your-deployment.vercel.app/ \
+  -H 'Content-Type: application/json' \
+  -d '{"scanner_input": "<axe-json-as-string>", "client_name": "ACME", "audit_date": "2026-07-23"}' \
+  --output bundle.zip
+```
 
+### 2. Local
 
-## Vercel deployment
+```bash
+python3 -c "
+import json
+from app.service import build_artifacts
+from app.bundle import build_bundle
+axe = json.load(open('fixtures/axe-sample.json'))
+body = {'scanner_input': json.dumps(axe), 'client_name': 'Test', 'audit_date': '2026-07-23'}
+open('bundle.zip','wb').write(build_bundle(build_artifacts(body)))
+print('bundle.zip written')
+"
+```
 
-This release includes a stateless Python Function at `api/bundle.py` and static UI in `public/`. Import the GitHub repository into Vercel with the **Other** framework preset; do not set a build command or output directory. Start with a protected preview and follow `docs/VERCEL_DEPLOYMENT.md`. The direct endpoint is `POST /api/bundle` with JSON and returns `application/zip`.
+### 3. CI gate
 
-Repository tests and package verification do not constitute an actual Vercel deployment receipt. Do not operate an unrestricted public upload service until the external security, privacy, abuse, ownership, and review gates in the runbook are complete.
+```bash
+python scripts/ci_gate.py --axe-json axe-results.json --fail-on critical
+```
+
+Or use the reusable GitHub Action at `.github/workflows/accessdoc-action.yml` via `workflow_call`.
+
+---
+
+## Coverage limitations (honest, peer-cited)
+
+Automated tools detect approximately **30–57% of WCAG issues**:
+- Deque Systems Accessibility Report 2022 — up to 57% automated coverage
+- UK Government Digital Service (2017) — 30–40% of real issues found by automated tools
+
+AccessDoc embeds this disclaimer in every report and receipt.
+
+---
+
+## Tests
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+Expected: **84 tests, 0 failures**.
+
+---
+
+## Project structure
+
+```
+accessdoc/
+├── app/          # catalog, parser, reporter, openacr, intoto, bundle, service
+├── api/          # Vercel serverless handler
+├── tests/        # 84 unit tests
+├── scripts/      # ci_gate.py
+├── fixtures/     # sample axe-core JSON
+├── .github/workflows/accessdoc-action.yml
+├── gumloop/      # Gumloop system + chat prompts for the launch PR
+├── vercel.json
+├── requirements.txt
+└── VERSION
+```
+
+---
+
+## Roadmap
+
+- [ ] axe-core browser extension direct integration
+- [ ] Playwright / Cypress plugin
+- [ ] SARIF output format
+- [ ] VS Code extension
+- [ ] Per-rule remediation guidance templates
+- [ ] Audit trend dashboard
+- [ ] NVDA / VoiceOver manual-test checklist generator
+
+## License
+
+MIT

@@ -6,7 +6,7 @@ from app.bundle import BundleTooLarge, generate_bundle
 from app.parser import ParseError
 from app.service import MAX_BODY
 
-ADAPTER_VERSION='0.4.0-beta.4'
+ADAPTER_VERSION='0.5.0-beta.1'
 
 NO_STORE={'Cache-Control':'private, no-store, max-age=0','CDN-Cache-Control':'no-store','Vercel-CDN-Cache-Control':'no-store','Pragma':'no-cache','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Permissions-Policy':'camera=(), microphone=(), geolocation=()','X-Frame-Options':'DENY'}
 
