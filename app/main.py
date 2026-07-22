@@ -168,7 +168,7 @@ class Handler(BaseHTTPRequestHandler):
   try:
    body=self._read_json()
    if path=='/api/bundle':
-    artifacts=build_artifacts(body);bundle=build_bundle(artifacts);metric('reports_total');return self._send(200,bundle,'application/zip',{'Content-Disposition':'attachment; filename="accessdoc-bundle.zip"','CDN-Cache-Control':'no-store','Vercel-CDN-Cache-Control':'no-store'})
+    artifacts=build_artifacts(body);bundle=build_bundle(artifacts);metric('reports_total');return self._send(200,bundle,'application/zip',{'Content-Disposition':'attachment; filename="accessdoc-report-bundle.zip"','CDN-Cache-Control':'no-store','Vercel-CDN-Cache-Control':'no-store'})
    scanner=str(body.get('scanner_input',''));findings,detected=parse_input(scanner,str(body.get('format_hint','auto')))
    logo=None;data_url=str(body.get('logo_data_url',''))
    if data_url:

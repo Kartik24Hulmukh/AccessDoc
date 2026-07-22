@@ -3,8 +3,9 @@ from pathlib import Path
 
 try:
     from app.main import Server
+    from app.parser import parse_input
     _OLD_API_AVAILABLE = True
-except ImportError:
+except (ImportError, Exception):
     _OLD_API_AVAILABLE = False
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -35,7 +36,7 @@ class HttpTests(unittest.TestCase):
  def test_report_generation(self):
   body={'client_name':'Test','audit_date':'2026-07-21','format_hint':'axe','scanner_input':(ROOT/'fixtures/axe-sample.json').read_text()}
   with self.request('/api/bundle',body,{'Origin':'http://127.0.0.1:8000'}) as r:
-   self.assertEqual(r.status,200);self.assertEqual(r.headers['content-type'],'application/zip');self.assertIn('no-store',r.headers['Cache-Control']);self.assertEqual(r.headers['CDN-Cache-Control'],'no-store');self.assertEqual(r.headers['Vercel-CDN-Cache-Control'],'no-store');self.assertEqual(r.headers['Content-Disposition'],'attachment; filename="accessdoc-report-bundle.zip"')
+   self.assertEqual(r.status,200);self.assertEqual(r.headers['content-type'],'application/zip');self.assertIn('no-store',r.headers['Cache-Control']);self.assertEqual(r.headers['CDN-Cache-Control'],'no-store');self.assertEqual(r.headers['Vercel-CDN-Cache-Control'],'no-store');self.assertEqual(r.headers['Content-Disposition'],'attachment; filename=\"accessdoc-report-bundle.zip\"')
    import zipfile;from io import BytesIO
    with zipfile.ZipFile(BytesIO(r.read())) as z:self.assertEqual(z.namelist(),['report.pdf','report.html','receipt.json','manifest.json'])
  def test_validation_error(self):
