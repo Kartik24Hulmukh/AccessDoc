@@ -12,3 +12,6 @@ dependencies = ["reportlab==5.0.0"]
 
 [project.scripts]
 accessdoc = "app.main:run"
+
+[tool.setuptools]
+packages = ["app", "api"]
