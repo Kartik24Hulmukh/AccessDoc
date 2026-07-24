@@ -86,15 +86,20 @@ audited manually for PDF/UA compliance:
 | Check | Status | Details |
 |-------|--------|---------|
 | Tagged PDF (PDF/UA) | ❌ NO | No `/StructTreeRoot`, no `/MarkInfo` — PDF is untagged |
-| Document title | ⚠️ Poor | Set to `(anonymous)` — not a meaningful title |
-| Document language | ❌ NO | `/Lang` not set |
+| Document title | ✅ YES | Set to "Accessibility Evidence Report — <client> — <date>" (Phase 3.2 fix) |
+| Document language | ✅ YES | `/Lang=en` set via `rl_config.documentLang` (Phase 3.2 fix) |
+| Document author | ✅ YES | Set to "AccessDoc <version>" (Phase 3.2 fix) |
 | Table tagging | ❌ NO | Tables are not tagged as `/Table` structure elements |
 | Reading order | ⚠️ Implicit | No explicit reading order for assistive technology |
 
 **The PDF is NOT accessible.** It is an untagged PDF that screen readers will
-read in implicit order without table structure, headings, or landmarks. This
-is a known limitation documented in `docs/THREAT-MODEL.md` and
-`docs/pdf-ua-plan.md`.
+read in implicit order without table structure, headings, or landmarks.
+However, as of Phase 3.2, the PDF does have a meaningful document title
+("Accessibility Evidence Report — <client> — <date>"), document language
+(`/Lang=en`), and author metadata. The missing piece is the structure tree
+(`/StructTreeRoot`), which requires either ReportLab Plus (commercial) or
+an HTML-to-PDF engine like WeasyPrint (which breaks byte-reproducibility).
+See `docs/pdf-ua-plan.md` for the full decision document.
 
 ## Regression test
 

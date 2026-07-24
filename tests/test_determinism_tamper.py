@@ -72,6 +72,34 @@ class TestDeterminism(unittest.TestCase):
         b2 = build_artifacts(dict(_BODY))
         self.assertEqual(b1.pdf_bytes, b2.pdf_bytes)
 
+    def test_pdf_has_meaningful_title(self):
+        """PDF /Title must be a meaningful string, not '(anonymous)'."""
+        import re
+        b = build_artifacts(dict(_BODY))
+        pdf_text = b.pdf_bytes.decode("latin-1")
+        title = re.search(r"/Title\s*\(([^)]*)\)", pdf_text)
+        self.assertIsNotNone(title, "/Title not set in PDF")
+        self.assertNotIn("anonymous", title.group(1).lower(),
+                         "PDF title is still '(anonymous)'")
+
+    def test_pdf_has_language(self):
+        """PDF /Lang must be set (document language)."""
+        import re
+        b = build_artifacts(dict(_BODY))
+        pdf_text = b.pdf_bytes.decode("latin-1")
+        lang = re.search(r"/Lang\s*\(([^)]*)\)", pdf_text)
+        self.assertIsNotNone(lang, "/Lang not set in PDF")
+        self.assertEqual(lang.group(1), "en")
+
+    def test_pdf_has_author(self):
+        """PDF /Author must be set to AccessDoc version."""
+        import re
+        b = build_artifacts(dict(_BODY))
+        pdf_text = b.pdf_bytes.decode("latin-1")
+        author = re.search(r"/Author\s*\(([^)]*)\)", pdf_text)
+        self.assertIsNotNone(author, "/Author not set in PDF")
+        self.assertIn("AccessDoc", author.group(1))
+
     def test_bundle_byte_identical_end_to_end(self):
         """The FULL bundle (every file including PDF, manifest, in-toto)
         must be byte-identical for same input + fixed date.

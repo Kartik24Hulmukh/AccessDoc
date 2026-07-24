@@ -93,13 +93,17 @@ A signing mechanism (sigstore/cosign) is planned for a future release. See
 ### PDF is not accessible (untagged)
 
 The generated `report.pdf` is an **untagged PDF** — it has no structure tree,
-no PDF/UA compliance, no document language, and no meaningful document title.
-Tables are not tagged as table structures. Screen readers will read the PDF
-in implicit order without semantic structure.
+no PDF/UA compliance, and no table structure elements. Screen readers cannot
+navigate it semantically. The PDF does have a meaningful document title,
+language (`/Lang=en`), author, and subject (set in Phase 3.2).
 
-This is a significant gap for a disability-sector tool. See
-`docs/pdf-ua-plan.md` for the proposed fix. The HTML companion (`report.html`)
-IS accessible (zero axe-core violations at all blocking impact levels).
+**The HTML companion (`report.html`) is the accessible artifact.** It has
+zero axe-core violations at critical/serious/moderate impact levels, tested
+at both default and 320px viewport width (WCAG 1.4.10 reflow).
+
+An experimental WeasyPrint path (`--pdf-engine=weasyprint`) can produce a
+tagged PDF/UA-1, but it is **not byte-reproducible** and is therefore not
+the default. See `docs/pdf-ua-plan.md` for the full decision document.
 
 ### Automated coverage ceiling
 
@@ -149,7 +153,7 @@ included in the bundle.
 | Timezone-dependent output | ✅ | Tested: TZ=UTC vs TZ=Asia/Calcutta → identical |
 | Attacker regenerates entire bundle | ❌ | Attestation is unsigned — no origin proof |
 | Attacker forges the timestamp | ❌ | Timestamp is in the unsigned attestation |
-| PDF accessibility for screen readers | ❌ | PDF is untagged — see docs/pdf-ua-plan.md |
+| PDF accessibility for screen readers | ❌ | PDF is untagged — HTML is the accessible artifact. See docs/pdf-ua-plan.md |
 | Automated scan misses WCAG issues | ⚠️ (documented) | 30-57% coverage ceiling stated in every output |
 | VPAT used as certification | ⚠️ (documented) | Marked DRAFT in red; not a certified VPAT |
 
@@ -157,7 +161,9 @@ included in the bundle.
 
 1. **Signing** (see `docs/signing-plan.md`): sigstore/cosign integration to
    sign the in-toto attestation, providing origin proof and non-repudiation.
-2. **PDF/UA tagging** (see `docs/pdf-ua-plan.md`): tag the PDF with structure
-   elements, document title, language, and table semantics.
+2. **PDF/UA tagging** (see `docs/pdf-ua-plan.md`): three options evaluated
+   with measured results — ReportLab Plus (commercial, preserves determinism),
+   WeasyPrint (open-source, tagged but NOT deterministic), or ship HTML as
+   the accessible artifact (current, pragmatic). Owner decision required.
 3. **axe-core integrity verification**: hash-pin the axe-core version and
    verify it at load time.

@@ -4,16 +4,16 @@
 
 Copy this into a spreadsheet (Google Sheets, Excel, or CSV). The adoption gate requires ≥5 practitioners' feedback, with ≥2 who would "hand the output to a client."
 
-| # | Name | Contact (email/handle) | Sent date | Bundle delivered? | Would hand to client? (Y/N) | Key feedback | Notes |
-|---|------|----------------------|-----------|-------------------|-----------------------------|--------------|-------|
-| 1 | | | | | | | |
-| 2 | | | | | | | |
-| 3 | | | | | | | |
-| 4 | | | | | | | |
-| 5 | | | | | | | |
-| 6 | | | | | | | |
-| 7 | | | | | | | |
-| 8 | | | | | | | |
+| # | Name | Contact (email/handle) | Sent date | Bundle delivered? | Would hand to client? (Y/N) | PDF untagged — blocks you? (Y/N) | Key feedback | Notes |
+|---|------|----------------------|-----------|-------------------|-----------------------------|----------------------------------|--------------|-------|
+| 1 | | | | | | | | |
+| 2 | | | | | | | | |
+| 3 | | | | | | | | |
+| 4 | | | | | | | | |
+| 5 | | | | | | | | |
+| 6 | | | | | | | | |
+| 7 | | | | | | | | |
+| 8 | | | | | | | | |
 
 ## Gate criteria
 
@@ -21,12 +21,13 @@ Copy this into a spreadsheet (Google Sheets, Excel, or CSV). The adoption gate r
 - [ ] ≥2 practitioners answered "Yes" to "Would you hand the output to a client?"
 - [ ] No critical security issues reported by practitioners
 - [ ] No conformance-claim concerns raised by practitioners
+- [ ] Practitioners asked whether untagged PDF blocks them — record Y/N answers
 
 ## CSV version
 
 ```csv
-name,contact,sent_date,bundle_delivered,would_hand_to_client,key_feedback,notes
-,,,,,,,
+name,contact,sent_date,bundle_delivered,would_hand_to_client,pdf_untagged_blocks_you,key_feedback,notes
+,,,,,,,,
 ```
 
 ## How to use
