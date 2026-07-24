@@ -1,8 +1,8 @@
-"""Shared domain models and constants for AccessDoc v0.5.0-beta.1."""
+"""Shared domain models and constants for AccessDoc."""
 from dataclasses import dataclass, field
 from typing import List
 
-VERSION = "0.5.0-beta.1"
+VERSION = "0.6.0-beta.1"
 
 COVERAGE_STATS = {
     "deque_2022": {"pct_range": (30, 57), "source": "Deque Systems Accessibility Report 2022"},
@@ -21,6 +21,12 @@ DISCLAIMER_COMPACT = (
     "Manual review required for legal compliance."
 )
 
+# Provenance labels applied to every finding so a reader can always tell
+# which findings are machine-detected vs. human-verified. This is core to
+# the AccessDoc trust model.
+SOURCE_AUTOMATED = "automated"
+SOURCE_MANUAL = "manual"
+
 
 @dataclass
 class AuditViolation:
@@ -30,6 +36,7 @@ class AuditViolation:
     help_url: str
     wcag_scs: List[str] = field(default_factory=list)
     nodes: int = 0
+    source: str = SOURCE_AUTOMATED  # "automated" | "manual"
 
 
 @dataclass
@@ -43,3 +50,4 @@ class AuditSummary:
     total_incomplete: int = 0
     url: str = ""
     engine_version: str = ""
+    manual_findings: int = 0

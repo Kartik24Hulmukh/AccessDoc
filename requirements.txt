@@ -1,1 +1,9 @@
+# AccessDoc runtime dependencies.
+# The deterministic core is stdlib-only EXCEPT PDF rendering (reportlab).
 reportlab>=4.0.0
+
+# Optional extras (not required for the core evidence pipeline):
+#   PyYAML     - only used by the test-suite to assert openacr.yaml is safe
+#   playwright - only used by the optional `scan` companion (app/scan.py)
+# Install extras explicitly when needed:
+#   pip install PyYAML playwright && playwright install chromium

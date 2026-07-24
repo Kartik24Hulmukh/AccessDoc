@@ -14,6 +14,10 @@ def _sha256(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def _utc_now():
+    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def build_statement(subjects, predicate):
     return {
         "_type": STATEMENT_TYPE,
@@ -39,7 +43,7 @@ def build_intoto_bundle(file_payloads, extra_meta=None):
     predicate = {
         "buildType": "https://accessdoc.dev/build/v1",
         "generator": {"name": "accessdoc", "version": VERSION},
-        "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+        "timestamp": _utc_now(),
         "materials": [
             {"uri": name, "digest": {"sha256": _sha256(data)}}
             for name, data in sorted(file_payloads.items())
