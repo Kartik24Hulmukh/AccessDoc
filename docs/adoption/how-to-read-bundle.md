@@ -8,8 +8,9 @@ An AccessDoc evidence bundle is a ZIP file containing documentation of what an a
 
 | File | What it is | How to read it |
 |------|-----------|---------------|
-| `report.pdf` | Human-readable PDF summary | Open in any PDF viewer |
-| `report.html` | Accessible HTML version of the report | Open in a browser |
+| `report.html` | **Accessible** HTML report (axe-core-audited) | Open in a browser — this is the primary artifact for screen reader users |
+| `report.pdf` | Untagged PDF convenience copy (NOT accessible — no PDF/UA structure tree) | Open in any PDF viewer — for visual reference only |
+| `receipt.json` | Machine-readable scan metadata + summary | JSON viewer or `jq` |
 | `receipt.json` | Machine-readable scan metadata + summary | JSON viewer or `jq` |
 | `openacr.yaml` | EN 301 549-mapped OpenACR (EU procurement format) | YAML viewer |
 | `attestation.intoto.json` | in-toto attestation with SHA-256 digests | JSON viewer |
@@ -77,3 +78,12 @@ The `eaa-evidence.md` file maps findings to EN 301 549 clauses (Chapter 9, Web) 
 - Documentation of a conformance *effort*
 - A starting point for a full accessibility evaluation
 - Verifiable evidence you can share with stakeholders
+
+## What this bundle is NOT (PDF-specific)
+
+- The PDF (`report.pdf`) is **NOT accessible** — it is an untagged PDF without
+  PDF/UA structure. Screen readers cannot navigate it semantically.
+- The **HTML report** (`report.html`) IS accessible (axe-core-audited, zero
+  violations at critical/serious/moderate impact levels).
+- For clients who need an accessible document, share `report.html`, not
+  `report.pdf`.

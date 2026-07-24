@@ -40,6 +40,11 @@ SCHEMA_VERSION = "1.1"
 MAX_BUNDLE_BYTES = 8_000_000
 
 
+# Fixed timestamp for every ZIP entry (1980-01-01, the ZIP format epoch).
+# Chosen because it is the earliest value the format can represent.
+FIXED_ZIP_EPOCH = (1980, 1, 1, 0, 0, 0)
+
+
 def _sha256(data):
     return hashlib.sha256(data).hexdigest()
 
@@ -57,10 +62,18 @@ def build_bundle(artifacts):
     }
     payloads["manifest.json"] = json.dumps(manifest, indent=2).encode()
 
+    # Reproducibility: zipfile.writestr() stamps each entry with the CURRENT
+    # time, so two runs of identical input produced different archive bytes.
+    # Every entry is pinned to a fixed epoch and fixed external attributes so
+    # the archive is a pure function of its contents.
     buf = BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         for name, data in payloads.items():
-            zf.writestr(name, data)
+            info = zipfile.ZipInfo(filename=name, date_time=FIXED_ZIP_EPOCH)
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o644 << 16
+            info.create_system = 3  # unix, so the host OS cannot leak in
+            zf.writestr(info, data)
 
     data = buf.getvalue()
     if len(data) > MAX_BUNDLE_BYTES:

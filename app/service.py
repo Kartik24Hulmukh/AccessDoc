@@ -16,7 +16,7 @@ from .parser import parse_axe_json
 from .reporter import generate_pdf_report
 from .catalog import AXE_CORE_VERIFIED_VERSION, CATALOG_VERSION
 from .openacr import generate_openacr_yaml
-from .intoto import build_intoto_bundle
+from .intoto import build_intoto_bundle, normalize_timestamp
 
 
 @dataclass
@@ -30,6 +30,7 @@ class Artifacts:
     vpat_html: Optional[str] = None
     eaa_markdown: Optional[str] = None
     trend_json: Optional[str] = None
+    due_diligence_md: Optional[str] = None
 
     def payloads(self):
         """Ordered dict of every bundle member except manifest.json.
@@ -50,8 +51,29 @@ class Artifacts:
             p["eaa-evidence.md"] = self.eaa_markdown.encode()
         if self.trend_json is not None:
             p["trend.json"] = self.trend_json.encode()
+        if self.due_diligence_md is not None:
+            p["due-diligence.md"] = self.due_diligence_md.encode()
         p["attestation.intoto.json"] = self.intoto_bytes
         return p
+
+
+def _generate_weasyprint_pdf(summary, violations, client_name, agency_name, audit_date):
+    """Generate a tagged PDF/UA-1 from the accessible HTML report via WeasyPrint.
+
+    Experimental opt-in path (--pdf-engine=weasyprint). Requires optional
+    dependency: pip install weasyprint. The HTML report is already axe-core-
+    clean. WeasyPrint with pdf_variant="pdf/ua-1" produces a tagged PDF with
+    /StructTreeRoot, /Lang, /Title, and table structure elements.
+    """
+    try:
+        from weasyprint import HTML
+    except ImportError:
+        raise ImportError(
+            "WeasyPrint is not installed. Install: pip install weasyprint"
+        )
+    html_content = _build_html(summary, violations, client_name, audit_date)
+    html_obj = HTML(string=html_content)
+    return html_obj.write_pdf(pdf_variant="pdf/ua-1")
 
 
 def _build_html(summary, violations, client_name, audit_date):
@@ -63,13 +85,19 @@ def _build_html(summary, violations, client_name, audit_date):
     )
     return (
         f"<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'>"
+        f"<meta name='viewport' content='width=device-width, initial-scale=1'>"
         f"<title>AccessDoc - {e(client_name)}</title></head><body>"
+        f"<main>"
         f"<h1>WCAG 2.2 Audit: {e(client_name)}</h1>"
         f"<p>Date: {e(audit_date)} | URL: {e(summary.url)}</p>"
         f"<p>axe-core: {e(summary.engine_version)} | catalog: {e(CATALOG_VERSION)} | AccessDoc: {e(VERSION)}</p>"
-        f"<table border='1'><tr><th>Rule</th><th>Impact</th><th>Nodes</th><th>WCAG SC</th><th>Source</th></tr>{rows}</table>"
+        f"<table border='1'><thead><tr>"
+        f"<th scope='col'>Rule</th><th scope='col'>Impact</th><th scope='col'>Nodes</th>"
+        f"<th scope='col'>WCAG SC</th><th scope='col'>Source</th>"
+        f"</tr></thead><tbody>{rows}</tbody></table>"
         f"<p><small>Automated scan detects ~30-57% of WCAG issues (Deque 2022). "
         f"Manual review required for legal compliance.</small></p>"
+        f"</main>"
         f"</body></html>"
     )
 
@@ -106,7 +134,13 @@ def build_artifacts(body):
         manual_viols = parse_manual_findings(manual)
         violations = merge_findings(violations, manual_viols, summary)
 
-    pdf_bytes  = generate_pdf_report(summary, violations, client_name, agency_name, audit_date)
+    pdf_engine = body.get("pdf_engine", "reportlab")
+    if pdf_engine == "weasyprint":
+        pdf_bytes = _generate_weasyprint_pdf(
+            summary, violations, client_name, agency_name, audit_date
+        )
+    else:
+        pdf_bytes  = generate_pdf_report(summary, violations, client_name, agency_name, audit_date)
     html_bytes = _build_html(summary, violations, client_name, audit_date).encode()
 
     receipt = {
@@ -137,6 +171,7 @@ def build_artifacts(body):
 
     # ---- optional exports ----
     sarif_json = vpat_html = eaa_markdown = trend_json = None
+    due_diligence_md = None
 
     if body.get("include_sarif"):
         from .sarif import generate_sarif
@@ -155,6 +190,18 @@ def build_artifacts(body):
         from .timeseries import build_trend
         trend_json = build_trend(prior, receipt, violations)
 
+    # ---- optional: due-diligence record (proof of reasonable steps over time) ----
+    history = body.get("receipt_history")
+    if history:
+        from .duediligence import build_due_diligence, render_due_diligence_md
+        current = dict(receipt)
+        current["violations"] = [
+            {"id": v.id, "target": "", "impact": v.impact, "source": v.source}
+            for v in violations
+        ]
+        chain = list(history) + [current]
+        due_diligence_md = render_due_diligence_md(build_due_diligence(chain))
+
     # ---- attestation over every produced file ----
     attested = {
         "report.pdf":   pdf_bytes,
@@ -170,8 +217,15 @@ def build_artifacts(body):
         attested["eaa-evidence.md"] = eaa_markdown.encode()
     if trend_json is not None:
         attested["trend.json"] = trend_json.encode()
+    if due_diligence_md is not None:
+        attested["due-diligence.md"] = due_diligence_md.encode()
 
-    intoto_bytes = build_intoto_bundle(attested)
+    # Deterministic: the attestation timestamp is derived from the caller-supplied
+    # audit_date, never from the wall clock. This is what makes the bundle
+    # byte-reproducible across runs that straddle a second boundary.
+    intoto_bytes = build_intoto_bundle(
+        attested, timestamp=normalize_timestamp(audit_date)
+    )
 
     return Artifacts(
         pdf_bytes=pdf_bytes,
@@ -183,4 +237,5 @@ def build_artifacts(body):
         vpat_html=vpat_html,
         eaa_markdown=eaa_markdown,
         trend_json=trend_json,
+        due_diligence_md=due_diligence_md,
     )

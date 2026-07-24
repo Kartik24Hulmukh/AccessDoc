@@ -61,6 +61,7 @@ def generate_vpat_html(summary, violations, client_name="Client", audit_date="")
 
     return f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>VPAT DRAFT - {e(client_name)}</title>
 <style>
  body{{font-family:Arial,Helvetica,sans-serif;margin:2rem;color:#1a1a1a}}
@@ -70,6 +71,7 @@ def generate_vpat_html(summary, violations, client_name="Client", audit_date="")
  th{{background:#2C3E50;color:#fff}}
  .note{{color:#555;font-size:12px}}
 </style></head><body>
+<main>
 <span class="draft">DRAFT - AUTOMATED EVIDENCE ONLY - NOT A CERTIFIED VPAT</span>
 <h1>Accessibility Conformance Report (VPAT&reg; 2.x style)</h1>
 <p><strong>Product:</strong> {e(client_name)}<br>
@@ -82,8 +84,11 @@ they require manual and assistive-technology testing before this draft
 becomes a defensible VPAT. This document is not legal advice.</p>
 <h2>WCAG 2.2 Report Tables (Level A / AA)</h2>
 <table>
-<tr><th>Success Criterion</th><th>Conformance Level</th><th>Remarks and Explanations</th></tr>
+<thead><tr><th scope="col">Success Criterion</th><th scope="col">Conformance Level</th><th scope="col">Remarks and Explanations</th></tr></thead>
+<tbody>
 {table_rows}
+</tbody>
 </table>
+</main>
 </body></html>
 """

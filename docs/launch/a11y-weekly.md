@@ -6,7 +6,17 @@
 
 AccessDoc is an open-source tool that transforms raw axe-core JSON into a tamper-evident accessibility **evidence bundle**. Rather than claiming conformance (which automated tools can't do — they detect only ~30–57% of WCAG issues per Deque Systems 2022), AccessDoc documents exactly what a scan found, with explicit coverage limits and chain-of-custody protections.
 
-Each bundle contains a PDF report, an accessible HTML companion, an EN 301 549-mapped OpenACR YAML, SARIF 2.1.0 for GitHub Code Scanning, a VPAT draft (marked DRAFT — not certified), an EAA evidence pack, and an in-toto attestation whose SHA-256 digests cover every file. A manifest.json lets anyone verify the bundle hasn't been altered after generation.
+Each bundle contains an accessible HTML report (axe-core-audited, zero
+violations), an untagged PDF convenience copy, an EN 301 549-mapped OpenACR
+YAML, SARIF 2.1.0 for GitHub Code Scanning, a VPAT draft (marked DRAFT — not
+certified), an EAA evidence pack, and an in-toto attestation whose SHA-256
+digests cover every file. A manifest.json lets anyone verify the bundle hasn't
+been altered after generation.
+
+> **The HTML report is the accessible artifact.** The PDF is currently untagged
+> (no PDF/UA structure tree) and is included as a convenience copy. Screen reader
+> users should use `report.html`. See [PDF/UA Plan](pdf-ua-plan.md) for the
+> roadmap to a tagged PDF.
 
 Key features in v0.6.0-beta.1:
 - Security-hardened: all user-controlled text is HTML-escaped and YAML-safe (regression-tested)

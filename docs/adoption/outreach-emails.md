@@ -17,6 +17,8 @@ You can also merge your manual findings (CSV/Markdown) into the same attested bu
 I'm looking for honest feedback from 5 practitioners before broader launch. Would you be willing to:
 1. Run it on a recent axe-core scan (takes 30 seconds)
 2. Tell me whether you'd hand the output to a client (yes/no, and why)
+3. Note: the HTML report is accessible and tested; the PDF is not yet tagged.
+   Does that block you from handing this to a client?
 
 If yes, I'll send you a quick-start guide. No strings attached.
 
@@ -50,6 +52,8 @@ It states its limitations explicitly: automated scanning detects ~30–57% of WC
 I'm seeking feedback from accessibility practitioners before broader launch. Would you be willing to try it on a real scan and tell me:
 1. Is the output format useful for your workflow?
 2. Would you hand this to a client?
+3. Note: the HTML report is accessible and tested; the PDF is not yet tagged.
+   Does that block you from handing this to a client?
 
 Quick start: `pip install accessdoc && accessdoc bundle axe.json --sarif --vpat --eaa`
 
@@ -80,7 +84,9 @@ It also works as a CLI, a stdio MCP server for AI agents, and a Vercel API.
 
 Important: it doesn't claim conformance. Automated tools detect ~30–57% of WCAG issues. Every bundle states this. It's evidence, not certification.
 
-I'm looking for feedback from 5 practitioners before broader launch. Would you try it on a project and tell me if the output is something you'd hand to a client?
+1. Run it on a project and tell me if the output is something you'd hand to a client?
+2. Note: the HTML report is accessible and tested; the PDF is not yet tagged.
+   Does that block you from handing this to a client?
 
 Repo: https://github.com/Kartik24Hulmukh/AccessDoc
 

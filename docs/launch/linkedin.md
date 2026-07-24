@@ -11,7 +11,8 @@ When a vendor says "we passed an accessibility scan," what does that actually me
 AccessDoc v0.6.0-beta.1 addresses this by turning axe-core scan output into a **tamper-evident evidence bundle** — not a conformance certificate, but a verifiable record of what was actually found.
 
 Each bundle includes:
-📄 A PDF report + accessible HTML
+📄 An untagged PDF report (convenience copy — see note below)
+🌐 An accessible HTML report (axe-core-audited, zero violations)
 📋 An EN 301 549-mapped OpenACR YAML (EU procurement format)
 🔍 SARIF 2.1.0 for GitHub Code Scanning
 📝 A VPAT draft (clearly marked DRAFT)
