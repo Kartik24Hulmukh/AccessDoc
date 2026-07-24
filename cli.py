@@ -42,6 +42,12 @@ def cmd_bundle(args):
     })
     if getattr(args, "prior", None):
         body["prior_receipt"] = _read(args.prior)
+    if getattr(args, "history", None):
+        hist = []
+        for path in args.history:
+            loaded = json.loads(_read(path))
+            hist.extend(loaded if isinstance(loaded, list) else [loaded])
+        body["receipt_history"] = hist
     arts = build_artifacts(body)
     data = build_bundle(arts)
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
@@ -129,47 +135,47 @@ def cmd_doctor(args):
         elif status == "warn":
             warn += 1
 
-    # Python version
     py_ver = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     if sys.version_info >= (3, 10):
         _check("Python", "ok", f"{py_ver} ({platform.python_implementation()})")
     else:
-        _check("Python", "warn", f"{py_ver} — AccessDoc requires >= 3.10")
+        _check("Python", "warn", f"{py_ver} requires >= 3.10")
 
-    # reportlab (required for PDF)
     try:
         import reportlab
-        _check("reportlab", "ok", f"v{reportlab.Version} — PDF generation available")
+        _check("reportlab", "ok", f"v{reportlab.Version} - PDF generation available")
     except ImportError:
-        _check("reportlab", "warn", "not installed — PDF generation will fail. Run: pip install reportlab")
+        _check("reportlab", "warn", "not installed - pip install reportlab")
 
-    # PyYAML (required for tests)
     try:
         import yaml
-        _check("PyYAML", "ok", f"v{yaml.__version__} — YAML validation available (tests)")
+        _check("PyYAML", "ok", f"v{yaml.__version__} - YAML validation available")
     except ImportError:
-        _check("PyYAML", "warn", "not installed — test suite will skip YAML tests. Run: pip install PyYAML")
+        _check("PyYAML", "warn", "not installed - pip install PyYAML")
 
-    # playwright (optional, for scan)
     try:
-        from playwright.sync_api import sync_playwright  # noqa: F401
-        _check("playwright", "ok", "installed — `accessdoc scan` available")
+        from playwright.sync_api import sync_playwright
+        _check("playwright", "ok", "installed - scan available")
     except ImportError:
-        _check("playwright", "warn", "not installed — `accessdoc scan` unavailable. Run: pip install playwright && playwright install chromium")
+        _check("playwright", "warn", "not installed - pip install playwright")
 
-    # Write permissions in current dir
+    try:
+        from weasyprint import HTML
+        _check("weasyprint", "ok", "installed - tagged PDF/UA-1 available")
+    except ImportError:
+        _check("weasyprint", "warn", "not installed - pip install weasyprint (for tagged PDF)")
+
     try:
         tmp = tempfile.NamedTemporaryFile(delete=True, dir=".")
         tmp.close()
         _check("Write permission (cwd)", "ok", f"can write to {os.getcwd()}")
     except (OSError, PermissionError):
-        _check("Write permission (cwd)", "warn", f"cannot write to {os.getcwd()} — use --out to specify a writable path")
+        _check("Write permission (cwd)", "warn", f"cannot write to {os.getcwd()}")
 
-    # AccessDoc version
     from app.models import VERSION
     _check("AccessDoc", "ok", f"v{VERSION}")
 
-    print("AccessDoc doctor — environment check")
+    print("AccessDoc doctor - environment check")
     print("=" * 50)
     for line in checks:
         print(line)
@@ -177,7 +183,6 @@ def cmd_doctor(args):
     print(f"{ok} OK, {warn} warnings")
     if warn > 0:
         print("\nWarnings do not block core functionality (bundle generation).")
-        print("They indicate optional features that will not work without the dependency.")
     return 0
 
 
@@ -199,6 +204,9 @@ def build_parser():
     b.add_argument("--eaa", action="store_true")
     b.add_argument("--enrich", action="store_true")
     b.add_argument("--prior", default=None)
+    b.add_argument("--history", nargs="+", default=None,
+                   help="Prior receipt JSON files (oldest first) -> adds due-diligence.md "
+                        "evidencing reasonable steps taken over time")
     b.add_argument("--pdf-engine", default="reportlab",
                    choices=["reportlab", "weasyprint"],
                    help="PDF engine: reportlab (default, untagged) or "

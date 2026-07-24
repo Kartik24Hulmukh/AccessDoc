@@ -1,16 +1,12 @@
-"""PDF report generator using ReportLab.
-
-DETERMINISM: reportlab.rl_config.invariant MUST be set to 1 before generating
-any PDF. Without it, reportlab embeds a random /ID digest and live
-/CreationDate + /ModDate timestamps, making the PDF (and therefore the entire
-bundle) non-reproducible. With invariant=1, all of these are replaced with
-fixed values, producing byte-identical PDFs for identical input.
-"""
-import reportlab.rl_config as _rlc
-_rlc.invariant = 1
-_rlc.documentLang = "en"  # Document language for the PDF (/Lang)
-
+"""PDF report generator using ReportLab."""
 from io import BytesIO
+
+# Reproducibility: ReportLab stamps /CreationDate, /ModDate and two /ID md5s
+# derived from the current time. invariant=1 pins all of them so identical
+# input yields byte-identical PDF output. This MUST be set before any
+# reportlab canvas/doc object is constructed.
+import reportlab.rl_config
+reportlab.rl_config.invariant = 1
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -22,24 +18,34 @@ from .models import DISCLAIMER_COMPACT, VERSION
 from .catalog import AXE_CORE_VERIFIED_VERSION, CATALOG_VERSION
 
 
+def build_pdf_title(client_name="", audit_date=""):
+    """Build a meaningful PDF /Title with NO empty interpolation.
+
+    Phase 3.2 shipped "Accessibility Evidence Report - - " because the client
+    and date were blank and the separators were emitted unconditionally. Only
+    non-empty parts are joined, so the title degrades gracefully instead of
+    looking like a broken template.
+    """
+    parts = ["Accessibility Evidence Report"]
+    c = (client_name or "").strip()
+    d = (audit_date or "").strip()
+    if c and c.lower() != "client":
+        parts.append(c)
+    if d:
+        parts.append(d)
+    return " - ".join(parts)
+
+
 def generate_pdf_report(summary, violations, client_name="Client", agency_name="Audit Agency", audit_date=""):
     buf = BytesIO()
-
-    # Set meaningful document metadata. These are deterministic (derived from
-    # input parameters, not timestamps) so they do not break byte-reproducibility.
-    _title = f"Accessibility Evidence Report \u2014 {client_name} \u2014 {audit_date}"
-    _author = f"AccessDoc {VERSION}"
-    _subject = "Automated WCAG 2.2 accessibility audit evidence (DRAFT)"
-
-    doc = SimpleDocTemplate(
-        buf, pagesize=A4,
-        leftMargin=2*cm, rightMargin=2*cm,
-        topMargin=2*cm, bottomMargin=2*cm,
-        title=_title,
-        author=_author,
-        subject=_subject,
-        creator=_author,
-    )
+    doc = SimpleDocTemplate(buf, pagesize=A4,
+                            leftMargin=2*cm, rightMargin=2*cm,
+                            topMargin=2*cm, bottomMargin=2*cm,
+                            title=build_pdf_title(client_name, audit_date),
+                            author=f"AccessDoc {VERSION}",
+                            subject=("Automated WCAG 2.2 accessibility audit evidence "
+                                     "(DRAFT - automated coverage only)"),
+                            lang="en")
     styles = getSampleStyleSheet()
     story = []
 

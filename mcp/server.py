@@ -26,7 +26,10 @@ TOOLS = [
          "scanner_input": {"type": "string"}, "client_name": {"type": "string"},
          "audit_date": {"type": "string"}, "include_sarif": {"type": "boolean"},
          "include_vpat": {"type": "boolean"}, "include_eaa": {"type": "boolean"},
-         "enrich": {"type": "boolean"}}, "required": ["scanner_input"]}},
+         "enrich": {"type": "boolean"},
+         "receipt_history": {"type": "array", "items": {"type": "object"},
+             "description": "Prior receipts (oldest first) to build a due-diligence record"}},
+         "required": ["scanner_input"]}},
     {"name": "export_openacr",
      "description": "Return the EN 301 549-mapped OpenACR YAML.",
      "inputSchema": {"type": "object", "properties": {

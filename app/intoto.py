@@ -14,6 +14,21 @@ def _sha256(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def normalize_timestamp(audit_date):
+    """Derive a deterministic RFC3339 timestamp from a caller-supplied audit_date.
+
+    Reproducibility requires that NO wall-clock value enters artifact bytes.
+    A bare date is anchored to midnight UTC so two runs of the same input on
+    different days still produce byte-identical output.
+    """
+    if not audit_date:
+        return None
+    d = str(audit_date).strip()
+    if "T" in d:
+        return d.split(".")[0].rstrip("Z") + "Z"
+    return d + "T00:00:00Z"
+
+
 def _utc_now():
     return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -39,11 +54,11 @@ def build_dsse_envelope(statement):
     }
 
 
-def build_intoto_bundle(file_payloads, extra_meta=None):
+def build_intoto_bundle(file_payloads, extra_meta=None, timestamp=None):
     predicate = {
         "buildType": "https://accessdoc.dev/build/v1",
         "generator": {"name": "accessdoc", "version": VERSION},
-        "timestamp": _utc_now(),
+        "timestamp": timestamp or _utc_now(),
         "materials": [
             {"uri": name, "digest": {"sha256": _sha256(data)}}
             for name, data in sorted(file_payloads.items())
