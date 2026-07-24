@@ -52,9 +52,12 @@ AccessDoc is an evidence tool, not a certification. Read the
   It detects accidental corruption and naive tampering, but does NOT prove
   origin against a motivated attacker. See [Signing Plan](docs/signing-plan.md).
 - **PDF is not accessible:** The generated `report.pdf` is an untagged PDF
-  without PDF/UA compliance, document language, or table structure. Screen
-  readers cannot navigate it semantically. The HTML companion (`report.html`)
-  IS accessible. See [PDF/UA Plan](docs/pdf-ua-plan.md).
+  without PDF/UA compliance. It has a meaningful title, language (`/Lang=en`),
+  and author metadata, but no structure tree for screen reader navigation.
+  The HTML companion (`report.html`) IS accessible (axe-core-audited, zero
+  violations). An experimental WeasyPrint path (`--pdf-engine=weasyprint`)
+  can produce a tagged PDF/UA-1 but is not byte-reproducible. See
+  [PDF/UA Plan](docs/pdf-ua-plan.md).
 - **VPAT output is DRAFT:** The VPAT generator produces a draft input for
   human review, not a certified VPAT.
 - **Not legal advice:** Nothing AccessDoc produces is legal advice or a
@@ -67,8 +70,13 @@ axe-core in a permanent regression test. See
 [Self-Audit Report](docs/self-audit.md).
 
 ## Bundle members
-`report.pdf`, `report.html`, `receipt.json`, `openacr.yaml`,
+`report.html` (accessible, axe-core-audited), `receipt.json`, `openacr.yaml`,
 `attestation.intoto.json`, `manifest.json` (always). Optional when requested:
+`report.pdf` (untagged — see [PDF/UA Plan](docs/pdf-ua-plan.md)),
 `findings.sarif.json`, `vpat-draft.html`, `eaa-evidence.md`, `trend.json`.
+
+> **The HTML report is the accessible artifact.** The PDF is a convenience
+> copy and is currently untagged (no PDF/UA structure tree). Screen reader
+> users should use `report.html`.
 
 Live demo API: `https://access-doc.vercel.app` (GET = health, POST axe JSON = zip).

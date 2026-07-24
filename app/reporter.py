@@ -8,6 +8,7 @@ fixed values, producing byte-identical PDFs for identical input.
 """
 import reportlab.rl_config as _rlc
 _rlc.invariant = 1
+_rlc.documentLang = "en"  # Document language for the PDF (/Lang)
 
 from io import BytesIO
 from reportlab.lib import colors
@@ -23,9 +24,22 @@ from .catalog import AXE_CORE_VERIFIED_VERSION, CATALOG_VERSION
 
 def generate_pdf_report(summary, violations, client_name="Client", agency_name="Audit Agency", audit_date=""):
     buf = BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=A4,
-                            leftMargin=2*cm, rightMargin=2*cm,
-                            topMargin=2*cm, bottomMargin=2*cm)
+
+    # Set meaningful document metadata. These are deterministic (derived from
+    # input parameters, not timestamps) so they do not break byte-reproducibility.
+    _title = f"Accessibility Evidence Report \u2014 {client_name} \u2014 {audit_date}"
+    _author = f"AccessDoc {VERSION}"
+    _subject = "Automated WCAG 2.2 accessibility audit evidence (DRAFT)"
+
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        leftMargin=2*cm, rightMargin=2*cm,
+        topMargin=2*cm, bottomMargin=2*cm,
+        title=_title,
+        author=_author,
+        subject=_subject,
+        creator=_author,
+    )
     styles = getSampleStyleSheet()
     story = []
 

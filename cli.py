@@ -32,11 +32,13 @@ def _body_from_args(args, extra=None):
 
 
 def cmd_bundle(args):
+    pdf_engine = getattr(args, "pdf_engine", "reportlab")
     body = _body_from_args(args, {
         "include_sarif": args.sarif,
         "include_vpat": args.vpat,
         "include_eaa": args.eaa,
         "enrich": args.enrich,
+        "pdf_engine": pdf_engine,
     })
     if getattr(args, "prior", None):
         body["prior_receipt"] = _read(args.prior)
@@ -197,6 +199,11 @@ def build_parser():
     b.add_argument("--eaa", action="store_true")
     b.add_argument("--enrich", action="store_true")
     b.add_argument("--prior", default=None)
+    b.add_argument("--pdf-engine", default="reportlab",
+                   choices=["reportlab", "weasyprint"],
+                   help="PDF engine: reportlab (default, untagged) or "
+                        "weasyprint (experimental, tagged PDF/UA-1, "
+                        "requires: pip install weasyprint)")
     b.set_defaults(func=cmd_bundle)
 
     s = sub.add_parser("sarif")

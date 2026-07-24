@@ -54,6 +54,36 @@ class Artifacts:
         return p
 
 
+def _generate_weasyprint_pdf(summary, violations, client_name, agency_name, audit_date):
+    """Generate a tagged PDF/UA-1 from the accessible HTML report via WeasyPrint.
+
+    This is an EXPERIMENTAL opt-in path (--pdf-engine=weasyprint). It requires
+    the optional dependency `weasyprint` (pip install weasyprint).
+
+    The HTML report is already axe-core-clean (zero violations at
+    critical/serious/moderate). WeasyPrint with pdf_variant="pdf/ua-1"
+    produces a tagged PDF with /StructTreeRoot, /Lang, /Title, and table
+    structure elements (/Table, /TR, /TH, /TD).
+
+    Byte-reproducibility: WeasyPrint output is NOT byte-identical across
+    runs (it embeds a generation timestamp in XMP metadata). This is a
+    known limitation. The reportlab engine (default) IS byte-reproducible.
+    """
+    try:
+        from weasyprint import HTML
+    except ImportError:
+        raise ImportError(
+            "WeasyPrint is not installed. Install the optional dependency: "
+            "pip install weasyprint"
+        )
+
+    html_content = _build_html(summary, violations, client_name, audit_date)
+    # Add PDF-specific metadata via HTML <title> and lang attribute
+    # (already present in the HTML template)
+    html_obj = HTML(string=html_content)
+    return html_obj.write_pdf(pdf_variant="pdf/ua-1")
+
+
 def _build_html(summary, violations, client_name, audit_date):
     e = html.escape
     rows = "".join(
@@ -112,7 +142,15 @@ def build_artifacts(body):
         manual_viols = parse_manual_findings(manual)
         violations = merge_findings(violations, manual_viols, summary)
 
-    pdf_bytes  = generate_pdf_report(summary, violations, client_name, agency_name, audit_date)
+    pdf_engine = body.get("pdf_engine", "reportlab")
+    if pdf_engine == "weasyprint":
+        pdf_bytes = _generate_weasyprint_pdf(
+            summary, violations, client_name, agency_name, audit_date
+        )
+    else:
+        pdf_bytes = generate_pdf_report(
+            summary, violations, client_name, agency_name, audit_date
+        )
     html_bytes = _build_html(summary, violations, client_name, audit_date).encode()
 
     receipt = {
