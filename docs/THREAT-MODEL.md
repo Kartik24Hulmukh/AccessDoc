@@ -178,3 +178,5 @@ included in the bundle.
    the accessible artifact (current, pragmatic). Owner decision required.
 3. **axe-core integrity verification**: hash-pin the axe-core version and
    verify it at load time.
+
+<!-- Updated: three-source reproducibility table -->
