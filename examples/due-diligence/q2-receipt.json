@@ -1,0 +1,1 @@
+{"audit_date":"2026-04-15","accessdoc_version":"0.7.0-beta.1","summary":{"critical":1,"serious":2,"moderate":2,"minor":1},"violations":[{"id":"color-contrast","target":".btn","impact":"serious"},{"id":"label","target":"#email","impact":"serious"}]}
