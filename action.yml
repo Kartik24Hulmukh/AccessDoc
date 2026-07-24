@@ -1,0 +1,61 @@
+name: "AccessDoc Evidence Gate"
+description: "Generate a tamper-evident WCAG accessibility evidence bundle (PDF, OpenACR, SARIF, in-toto receipt) and gate CI on severity."
+author: "AccessDoc"
+branding:
+  icon: "check-circle"
+  color: "blue"
+
+inputs:
+  axe-json:
+    description: "Path to an axe-core results JSON file."
+    required: true
+  fail-on:
+    description: "Severity threshold that fails the build: critical | high | medium | none."
+    required: false
+    default: "critical"
+  client-name:
+    description: "Name used in generated reports."
+    required: false
+    default: "CI Audit"
+  output-dir:
+    description: "Directory for the generated bundle + SARIF."
+    required: false
+    default: "./accessdoc-out"
+  sarif:
+    description: "Also emit findings.sarif.json for GitHub Code Scanning."
+    required: false
+    default: "true"
+  manual-findings:
+    description: "Optional path to a CSV/Markdown file of manual findings to merge."
+    required: false
+    default: ""
+
+outputs:
+  bundle-path:
+    description: "Path to the generated evidence bundle zip."
+    value: ${{ steps.run.outputs.bundle-path }}
+  sarif-path:
+    description: "Path to the generated SARIF file (if enabled)."
+    value: ${{ steps.run.outputs.sarif-path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - name: Install AccessDoc
+      shell: bash
+      run: pip install "reportlab>=4.0.0"
+    - name: Run AccessDoc evidence gate
+      id: run
+      shell: bash
+      run: |
+        set -e
+        ARGS="--axe-json '${{ inputs.axe-json }}' --fail-on '${{ inputs.fail-on }}' --client-name '${{ inputs.client-name }}' --output-dir '${{ inputs.output-dir }}'"
+        if [ "${{ inputs.sarif }}" = "true" ]; then ARGS="$ARGS --sarif"; fi
+        if [ -n "${{ inputs.manual-findings }}" ]; then ARGS="$ARGS --manual-findings '${{ inputs.manual-findings }}'"; fi
+        eval python3 "${{ github.action_path }}/scripts/ci_gate.py" $ARGS
+        echo "bundle-path=${{ inputs.output-dir }}/accessdoc-bundle.zip" >> "$GITHUB_OUTPUT"
+        echo "sarif-path=${{ inputs.output-dir }}/findings.sarif.json" >> "$GITHUB_OUTPUT"
