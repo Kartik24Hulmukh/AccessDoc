@@ -1,17 +1,39 @@
 [build-system]
-requires = ["setuptools>=75"]
+requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "accessdoc"
-version = "0.5.0-beta.1"
-description = "Accessibility evidence to reviewable report"
-requires-python = ">=3.13"
-license = {text = "Apache-2.0"}
-dependencies = ["reportlab==5.0.0"]
+version = "0.6.0-beta.1"
+description = "Tamper-evident WCAG accessibility evidence bundle generator (PDF, OpenACR, SARIF, VPAT, EAA, in-toto)"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [{name = "AccessDoc"}]
+keywords = ["accessibility", "wcag", "axe-core", "evidence", "sarif", "vpat", "openacr", "en-301-549", "eaa", "in-toto"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Legal Industry",
+    "Topic :: Software Development :: Quality Assurance",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "reportlab>=4.0.0",
+]
+
+[project.optional-dependencies]
+scan = ["playwright>=1.40.0"]
+test = ["PyYAML>=6.0"]
+dev = ["PyYAML>=6.0", "playwright>=1.40.0"]
 
 [project.scripts]
-accessdoc = "app.main:run"
+accessdoc = "cli:main"
 
 [tool.setuptools]
-packages = ["app", "api"]
+py-modules = ["cli"]
+
+[tool.setuptools.packages.find]
+include = ["app*", "mcp*", "api*"]
