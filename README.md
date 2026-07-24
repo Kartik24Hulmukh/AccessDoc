@@ -51,6 +51,10 @@ AccessDoc is an evidence tool, not a certification. Read the
 - **Unsigned attestation:** The in-toto attestation is currently unsigned.
   It detects accidental corruption and naive tampering, but does NOT prove
   origin against a motivated attacker. See [Signing Plan](docs/signing-plan.md).
+- **PDF is not accessible:** The generated `report.pdf` is an untagged PDF
+  without PDF/UA compliance, document language, or table structure. Screen
+  readers cannot navigate it semantically. The HTML companion (`report.html`)
+  IS accessible. See [PDF/UA Plan](docs/pdf-ua-plan.md).
 - **VPAT output is DRAFT:** The VPAT generator produces a draft input for
   human review, not a certified VPAT.
 - **Not legal advice:** Nothing AccessDoc produces is legal advice or a

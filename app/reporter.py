@@ -1,4 +1,14 @@
-"""PDF report generator using ReportLab."""
+"""PDF report generator using ReportLab.
+
+DETERMINISM: reportlab.rl_config.invariant MUST be set to 1 before generating
+any PDF. Without it, reportlab embeds a random /ID digest and live
+/CreationDate + /ModDate timestamps, making the PDF (and therefore the entire
+bundle) non-reproducible. With invariant=1, all of these are replaced with
+fixed values, producing byte-identical PDFs for identical input.
+"""
+import reportlab.rl_config as _rlc
+_rlc.invariant = 1
+
 from io import BytesIO
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
