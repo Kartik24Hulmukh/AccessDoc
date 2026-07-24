@@ -31,17 +31,24 @@ The evidence bundle uses two layers of integrity protection:
 
 ### Reproducible bundles (byte-identical output)
 
-With `reportlab.rl_config.invariant = 1` (set in `app/reporter.py`), the PDF
-is fully deterministic: `/CreationDate`, `/ModDate`, and the `/ID` digest are
-replaced with fixed values. Combined with a fixed `audit_date` input, the
-**entire bundle is byte-reproducible end-to-end** — same input produces the
-same SHA-256 for every file including the PDF, manifest, and in-toto
-attestation.
+Three sources of non-determinism were identified and closed in v0.7.0-beta.1:
 
-This has been tested and verified:
-- Same input, same environment: byte-identical bundle ✅
-- Same input, different timezones (TZ=UTC vs TZ=Asia/Calcutta): byte-identical ✅
-- 10,000-violation benchmark: 13.36s, 355 KB bundle, peak RSS 330 MB ✅
+| # | Source | Symptom | Fix |
+|---|--------|---------|-----|
+| 1 | ReportLab `/CreationDate`, `/ModDate`, two `/ID` md5s | PDF bytes differ every run | `reportlab.rl_config.invariant = 1`, set before any canvas is constructed |
+| 2 | in-toto attestation timestamp read from the wall clock (`_utc_now()`) | Attestation differs between runs that straddle a second boundary | Timestamp derived from caller-supplied `audit_date` via `normalize_timestamp()` |
+| 3 | `zipfile.writestr()` stamping each entry with the current time | Archive bytes differ even when every member is identical | Every entry written through a `ZipInfo` pinned to `FIXED_ZIP_EPOCH` (1980-01-01), fixed mode, fixed `create_system` |
+
+Source 3 is the one most projects miss. Members can each be byte-identical
+while the containing archive still differs, because the local file headers
+carry mtimes.
+
+With all three fixed, the **entire bundle is byte-reproducible end-to-end** —
+same input + pinned `audit_date` produces byte-identical output across runs,
+even when runs straddle a second boundary.
+
+This has been tested with `time.sleep(3)` between runs (see
+`tests/test_determinism.py` and `docs/REPRODUCIBILITY.md`).
 
 **What this proves:** That two bundles with the same SHA-256 were generated
 from the same input. This supports the product's core claim of reproducible
@@ -49,7 +56,8 @@ evidence.
 
 **What this does NOT prove:** That a specific person or organisation generated
 the bundle. Without signing, anyone with AccessDoc and the same input can
-produce the same bundle.
+produce the same bundle. See `docs/SIGNING.md` for the Sigstore keyless
+signing workflow.
 
 ### Trend chain (prev_receipt_sha256)
 
