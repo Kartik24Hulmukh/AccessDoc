@@ -11,7 +11,19 @@ pack, and an in-toto attestation whose digests cover every file.
 > (Deque 2022); manual + assistive-technology testing is required for a
 > conformance claim. Not legal advice.
 
-## What's new in v0.6.0-beta.1
+## What's new in v0.7.0-beta.1
+
+- **Due-diligence record** (`due-diligence.md`) - proves *reasonable steps taken
+  over time*, not just a point-in-time score. See `docs/DUE-DILIGENCE.md`.
+- **Reproducibility actually verified.** Three separate sources of
+  non-determinism found and closed (ReportLab timestamps, attestation wall
+  clock, ZIP entry mtimes). Tested across a second boundary, not back to back.
+  See `docs/REPRODUCIBILITY.md`.
+- **Sigstore keyless signing workflow** - publicly verifiable evidence via the
+  Rekor transparency log. See `docs/SIGNING.md`.
+- Meaningful PDF metadata (`/Title`, `/Lang`, `/Author`, `/Subject`).
+
+## Previously in v0.6.0-beta.1
 - **Security hardening:** fixed 2 stored-XSS vectors (client name, URL, and
   violation fields now HTML-escaped) and 1 YAML-injection vector (OpenACR
   scalars are JSON-encoded). Regression-tested in `tests/test_security.py`.
@@ -37,46 +49,33 @@ python3 cli.py catalog                    # rule catalog summary
 
 ## Test
 ```bash
-python3 -m unittest discover -s tests -p 'test_*.py'   # 170+ tests
-python3 scripts/stress_test.py                          # 15 adversarial checks
+python3 -m unittest discover -s tests -p 'test_*.py'   # 63 tests
+python3 scripts/stress_test.py                          # 12 adversarial checks
 ```
 
-## Limitations
-
-AccessDoc is an evidence tool, not a certification. Read the
-[Threat Model](docs/THREAT-MODEL.md) for a full security analysis.
-
-- **Automated coverage ceiling:** axe-core detects ~30-57% of WCAG issues
-  (Deque 2022). Every bundle states this limit.
-- **Unsigned attestation:** The in-toto attestation is currently unsigned.
-  It detects accidental corruption and naive tampering, but does NOT prove
-  origin against a motivated attacker. See [Signing Plan](docs/signing-plan.md).
-- **PDF is not accessible:** The generated `report.pdf` is an untagged PDF
-  without PDF/UA compliance. It has a meaningful title, language (`/Lang=en`),
-  and author metadata, but no structure tree for screen reader navigation.
-  The HTML companion (`report.html`) IS accessible (axe-core-audited, zero
-  violations). An experimental WeasyPrint path (`--pdf-engine=weasyprint`)
-  can produce a tagged PDF/UA-1 and IS byte-reproducible. See
-  [PDF/UA Plan](docs/pdf-ua-plan.md).
-- **VPAT output is DRAFT:** The VPAT generator produces a draft input for
-  human review, not a certified VPAT.
-- **Not legal advice:** Nothing AccessDoc produces is legal advice or a
-  declaration of conformity.
-
-## Self-audit
-
-AccessDoc's own HTML outputs (report.html, vpat-draft.html) are audited with
-axe-core in a permanent regression test. See
-[Self-Audit Report](docs/self-audit.md).
-
 ## Bundle members
-`report.html` (accessible, axe-core-audited), `receipt.json`, `openacr.yaml`,
+`report.html` (**the accessible artifact** - axe-core audited, zero violations
+at critical/serious/moderate, tested at 320px reflow), `report.pdf`
+(**untagged convenience copy - not screen-reader navigable**), `receipt.json`,
+`openacr.yaml`,
 `attestation.intoto.json`, `manifest.json` (always). Optional when requested:
-`report.pdf` (untagged — see [PDF/UA Plan](docs/pdf-ua-plan.md)),
+`due-diligence.md` (via `--history`),
 `findings.sarif.json`, `vpat-draft.html`, `eaa-evidence.md`, `trend.json`.
 
-> **The HTML report is the accessible artifact.** The PDF is a convenience
-> copy and is currently untagged (no PDF/UA structure tree). Screen reader
-> users should use `report.html`.
-
 Live demo API: `https://access-doc.vercel.app` (GET = health, POST axe JSON = zip).
+
+
+## Limitations (read this before making any claim)
+
+- **Automated scanning detects ~30-57% of WCAG issues** (Deque 2022; GDS 2017).
+  Absence of findings is not evidence of conformance.
+- **`report.pdf` is untagged.** No `/StructTreeRoot`, no table tagging, implicit
+  reading order. Screen readers cannot navigate it semantically. `report.html`
+  is the accessible artifact. Do not present the PDF to a client as
+  accessibility conformance evidence.
+- **Locally generated attestations are unsigned.** They are *tamper-evident*,
+  not *signed*. Public verifiability requires the Sigstore workflow
+  (`docs/SIGNING.md`).
+- **VPAT output is a DRAFT.** It requires human review before issuance.
+- Reproducibility requires pinning `--audit-date`. It is an input, not an
+  observation.

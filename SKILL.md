@@ -41,12 +41,7 @@ Run `python3 -m mcp.server` and call tools: `catalog_info`, `generate_bundle`,
 `export_openacr`, `export_sarif`, `export_vpat`, `verify_bundle`.
 
 ## Bundle members
-`report.html` (accessible, axe-core-audited), `receipt.json`, `openacr.yaml`,
+`report.pdf`, `report.html`, `receipt.json`, `openacr.yaml`,
 `attestation.intoto.json`, `manifest.json` (always). Optional when requested:
-`report.pdf` (untagged — see [PDF/UA Plan](docs/pdf-ua-plan.md)),
 `findings.sarif.json`, `vpat-draft.html`, `eaa-evidence.md`, `trend.json`.
-
-> **The HTML report is the accessible artifact.** The PDF is a convenience
-> copy and is currently untagged (no PDF/UA structure tree). Screen reader
-> users should use `report.html`.
 The manifest + in-toto attestation cover the sha256 of every other member.
