@@ -1,7 +1,8 @@
 """Determinism and tamper-evidence regression tests.
 
 Tests that:
-1. Same scanner_input produces byte-identical bundles (excluding timestamps).
+1. Same scanner_input produces byte-identical bundles (end-to-end, including
+   PDF, with reportlab.rl_config.invariant=1 set in app/reporter.py).
 2. validate_bundle detects every form of tampering.
 3. Bundle generation is timezone-independent.
 """
@@ -38,7 +39,12 @@ _BODY = {
 
 
 class TestDeterminism(unittest.TestCase):
-    """Same input must produce same output (excluding in-toto timestamp)."""
+    """Same input must produce byte-identical output end-to-end.
+
+    With reportlab.rl_config.invariant=1 (set in app/reporter.py), the PDF
+    is fully deterministic: /CreationDate, /ModDate, and /ID are replaced
+    with fixed values. This makes the entire bundle byte-reproducible.
+    """
 
     def test_receipt_deterministic(self):
         b1 = build_artifacts(dict(_BODY))
@@ -55,35 +61,25 @@ class TestDeterminism(unittest.TestCase):
         b2 = build_artifacts(dict(_BODY))
         self.assertEqual(b1.html_bytes, b2.html_bytes)
 
-    def test_pdf_content_deterministic(self):
-        """PDF should contain the same key metadata across runs.
-        reportlab injects non-deterministic internal object IDs and compresses
-        content streams, so byte-identity is not achievable. We verify the
-        PDF metadata (Title, Author, Producer) is consistent and both PDFs
-        have the same length structure."""
+    def test_pdf_byte_identical(self):
+        """PDF must be byte-identical for same input + fixed date.
+
+        This is achieved via reportlab.rl_config.invariant=1, which replaces
+        the random /ID digest and live /CreationDate + /ModDate timestamps
+        with fixed values. Without invariant=1, the PDF is non-deterministic.
+        """
         b1 = build_artifacts(dict(_BODY))
         b2 = build_artifacts(dict(_BODY))
-        # Both PDFs should have the same length (structure is deterministic
-        # even if object IDs differ by a few bytes)
-        # The key point: the *content* (what the user sees) is the same.
-        # We verify by checking the PDF metadata fields are present.
-        text1 = b1.pdf_bytes.decode("latin-1")
-        text2 = b2.pdf_bytes.decode("latin-1")
-        # Both should be valid PDFs
-        self.assertTrue(text1.startswith("%PDF"))
-        self.assertTrue(text2.startswith("%PDF"))
-        self.assertIn("ReportLab", text1)
-        self.assertIn("ReportLab", text2)
-        # Both should end with EOF
-        self.assertIn("%%EOF", text1)
-        self.assertIn("%%EOF", text2)
-        # Sizes should be very close (within 50 bytes — object ID differences)
-        self.assertLess(abs(len(b1.pdf_bytes) - len(b2.pdf_bytes)), 50,
-                        "PDF sizes differ significantly across runs")
+        self.assertEqual(b1.pdf_bytes, b2.pdf_bytes)
 
-    def test_bundle_deterministic_except_intoto_timestamp(self):
-        """Bundle zip should be identical except for the in-toto timestamp
-        and reportlab's non-deterministic PDF object IDs."""
+    def test_bundle_byte_identical_end_to_end(self):
+        """The FULL bundle (every file including PDF, manifest, in-toto)
+        must be byte-identical for same input + fixed date.
+
+        This is the product's core claim: reproducible evidence. With
+        invariant=1, the in-toto timestamp is the ONLY non-deterministic
+        field, and it too is fixed when audit_date is provided.
+        """
         zip1 = build_bundle(build_artifacts(dict(_BODY)))
         zip2 = build_bundle(build_artifacts(dict(_BODY)))
 
@@ -94,35 +90,18 @@ class TestDeterminism(unittest.TestCase):
         f1 = _extract(zip1)
         f2 = _extract(zip2)
 
-        # Files that are expected to differ across runs:
-        #   - attestation.intoto.json: contains a timestamp
-        #   - report.pdf: reportlab injects non-deterministic object IDs
-        #   - manifest.json: contains SHA-256 of report.pdf (which differs)
-        #   - receipt.json: contains no timestamp but its SHA-256 in manifest
-        #     changes; receipt itself is deterministic
-        non_deterministic = {"attestation.intoto.json", "report.pdf", "manifest.json"}
-
         for name in f1:
-            if name in non_deterministic:
-                if name == "attestation.intoto.json":
-                    # Parse and compare everything except timestamp
-                    import base64
-                    a1 = json.loads(f1[name])
-                    a2 = json.loads(f2[name])
-                    p1 = json.loads(base64.b64decode(a1["payload"])).get("predicate", {})
-                    p2 = json.loads(base64.b64decode(a2["payload"])).get("predicate", {})
-                    p1_copy = {k: v for k, v in p1.items() if k != "timestamp"}
-                    p2_copy = {k: v for k, v in p2.items() if k != "timestamp"}
-                    # Remove materials that reference report.pdf hash (non-deterministic)
-                    p1_copy.pop("materials", None)
-                    p2_copy.pop("materials", None)
-                    self.assertEqual(p1_copy, p2_copy,
-                                     "in-toto payload differs outside timestamp/materials")
-                # report.pdf and manifest.json: skip byte comparison
-                continue
-            else:
-                self.assertEqual(f1[name], f2[name],
-                                 f"{name} differs across runs")
+            self.assertEqual(f1[name], f2[name],
+                             f"{name} differs across runs — bundle is not "
+                             f"byte-reproducible")
+
+    def test_bundle_sha256_identical(self):
+        """Bundle SHA-256 must be identical across runs."""
+        import hashlib
+        z1 = build_bundle(build_artifacts(dict(_BODY)))
+        z2 = build_bundle(build_artifacts(dict(_BODY)))
+        self.assertEqual(hashlib.sha256(z1).hexdigest(),
+                         hashlib.sha256(z2).hexdigest())
 
     def test_timezone_independence(self):
         """Bundle generation must not depend on the system timezone."""
@@ -132,7 +111,6 @@ class TestDeterminism(unittest.TestCase):
         env_utc = dict(os.environ, TZ="UTC")
         env_ist = dict(os.environ, TZ="Asia/Calcutta")
 
-        # Write the axe JSON to a temp file to avoid quoting issues
         axe_path = os.path.join(repo_dir, "fixtures", "axe-sample.json")
         script = (
             "import json, sys; sys.path.insert(0, %r); "
@@ -150,14 +128,12 @@ class TestDeterminism(unittest.TestCase):
         r_utc = subprocess.run(
             [sys.executable, "-c", script],
             capture_output=True, text=True, env=env_utc,
-            cwd=repo_dir,
-            timeout=30,
+            cwd=repo_dir, timeout=30,
         )
         r_ist = subprocess.run(
             [sys.executable, "-c", script],
             capture_output=True, text=True, env=env_ist,
-            cwd=repo_dir,
-            timeout=30,
+            cwd=repo_dir, timeout=30,
         )
 
         if r_utc.returncode != 0:
@@ -168,14 +144,16 @@ class TestDeterminism(unittest.TestCase):
         files_utc = json.loads(r_utc.stdout.strip())
         files_ist = json.loads(r_ist.stdout.strip())
 
-        # Files that are expected to differ across runs:
-        #   - attestation.intoto.json: timestamp
-        #   - report.pdf: reportlab non-deterministic object IDs
-        #   - manifest.json: contains SHA-256 of report.pdf
-        non_deterministic = {"attestation.intoto.json", "report.pdf", "manifest.json"}
-
+        # The in-toto attestation contains a timestamp (_utc_now()) that
+        # differs between the two subprocess calls (they run at different
+        # seconds). The manifest.json contains the SHA-256 of the in-toto
+        # attestation, so it also differs. We exclude both and verify the
+        # rest is timezone-independent. The timestamp is always UTC
+        # regardless of TZ, so timezone-independence is about the other
+        # fields.
+        _tz_skip = {"attestation.intoto.json", "manifest.json"}
         for name in files_utc:
-            if name in non_deterministic:
+            if name in _tz_skip:
                 if name == "attestation.intoto.json":
                     import base64
                     a1 = json.loads(bytes.fromhex(files_utc[name]))
@@ -184,14 +162,12 @@ class TestDeterminism(unittest.TestCase):
                     p2 = json.loads(base64.b64decode(a2["payload"])).get("predicate", {})
                     p1_c = {k: v for k, v in p1.items() if k != "timestamp"}
                     p2_c = {k: v for k, v in p2.items() if k != "timestamp"}
-                    p1_c.pop("materials", None)
-                    p2_c.pop("materials", None)
                     self.assertEqual(p1_c, p2_c,
-                                     "in-toto differs across timezones (outside timestamp/materials)")
+                                     "in-toto differs across timezones (outside timestamp)")
+                # manifest.json: skip (contains hash of in-toto with timestamp)
                 continue
-            else:
-                self.assertEqual(files_utc[name], files_ist[name],
-                                 f"{name} differs across timezones")
+            self.assertEqual(files_utc[name], files_ist[name],
+                             f"{name} differs across timezones")
 
 
 class TestTamperDetection(unittest.TestCase):
@@ -217,7 +193,6 @@ class TestTamperDetection(unittest.TestCase):
         self.assertTrue(result["valid"], f"Valid bundle failed: {result['errors']}")
 
     def test_tamper_report_pdf(self):
-        """Flipping a byte in report.pdf must be detected."""
         members = self._read_members(self.bundle)
         members["report.pdf"] = members["report.pdf"][:-1] + b"X"
         result = validate_bundle(self._rebuild(members))
@@ -225,7 +200,6 @@ class TestTamperDetection(unittest.TestCase):
         self.assertTrue(any("report.pdf" in e for e in result["errors"]))
 
     def test_tamper_receipt_json(self):
-        """Editing a value in receipt.json must be detected."""
         members = self._read_members(self.bundle)
         receipt = json.loads(members["receipt.json"])
         receipt["client_name"] = "TAMPERED"
@@ -235,28 +209,24 @@ class TestTamperDetection(unittest.TestCase):
         self.assertTrue(any("receipt.json" in e for e in result["errors"]))
 
     def test_remove_manifest_member(self):
-        """Removing a file listed in manifest.json must be detected."""
         members = self._read_members(self.bundle)
         del members["openacr.yaml"]
         result = validate_bundle(self._rebuild(members))
         self.assertFalse(result["valid"])
 
     def test_add_unmanifested_file(self):
-        """Adding a file not in the manifest must be detected."""
         members = self._read_members(self.bundle)
         members["injected.txt"] = b"malicious"
         result = validate_bundle(self._rebuild(members))
         self.assertFalse(result["valid"])
 
     def test_corrupt_manifest(self):
-        """Corrupting the manifest itself must be detected."""
         members = self._read_members(self.bundle)
         members["manifest.json"] = b"{not valid json"
         result = validate_bundle(self._rebuild(members))
         self.assertFalse(result["valid"])
 
     def test_corrupt_intoto_statement(self):
-        """Corrupting the in-toto attestation must be detected (via manifest hash)."""
         members = self._read_members(self.bundle)
         members["attestation.intoto.json"] = b'{"tampered": true}'
         result = validate_bundle(self._rebuild(members))
@@ -264,7 +234,6 @@ class TestTamperDetection(unittest.TestCase):
         self.assertTrue(any("attestation" in e for e in result["errors"]))
 
     def test_missing_manifest(self):
-        """A bundle with no manifest.json must fail."""
         members = self._read_members(self.bundle)
         del members["manifest.json"]
         result = validate_bundle(self._rebuild(members))
