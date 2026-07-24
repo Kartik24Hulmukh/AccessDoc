@@ -109,6 +109,76 @@ def cmd_catalog(args):
     return 0
 
 
+def cmd_doctor(args):
+    """Check environment: Python version, optional deps, write permissions."""
+    import platform
+    import tempfile
+
+    checks = []
+    ok = 0
+    warn = 0
+
+    def _check(name, status, detail=""):
+        nonlocal ok, warn
+        mark = "\u2705" if status == "ok" else ("\u26a0\ufe0f" if status == "warn" else "\u274c")
+        checks.append(f"  {mark} {name}: {detail}")
+        if status == "ok":
+            ok += 1
+        elif status == "warn":
+            warn += 1
+
+    # Python version
+    py_ver = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    if sys.version_info >= (3, 10):
+        _check("Python", "ok", f"{py_ver} ({platform.python_implementation()})")
+    else:
+        _check("Python", "warn", f"{py_ver} — AccessDoc requires >= 3.10")
+
+    # reportlab (required for PDF)
+    try:
+        import reportlab
+        _check("reportlab", "ok", f"v{reportlab.Version} — PDF generation available")
+    except ImportError:
+        _check("reportlab", "warn", "not installed — PDF generation will fail. Run: pip install reportlab")
+
+    # PyYAML (required for tests)
+    try:
+        import yaml
+        _check("PyYAML", "ok", f"v{yaml.__version__} — YAML validation available (tests)")
+    except ImportError:
+        _check("PyYAML", "warn", "not installed — test suite will skip YAML tests. Run: pip install PyYAML")
+
+    # playwright (optional, for scan)
+    try:
+        from playwright.sync_api import sync_playwright  # noqa: F401
+        _check("playwright", "ok", "installed — `accessdoc scan` available")
+    except ImportError:
+        _check("playwright", "warn", "not installed — `accessdoc scan` unavailable. Run: pip install playwright && playwright install chromium")
+
+    # Write permissions in current dir
+    try:
+        tmp = tempfile.NamedTemporaryFile(delete=True, dir=".")
+        tmp.close()
+        _check("Write permission (cwd)", "ok", f"can write to {os.getcwd()}")
+    except (OSError, PermissionError):
+        _check("Write permission (cwd)", "warn", f"cannot write to {os.getcwd()} — use --out to specify a writable path")
+
+    # AccessDoc version
+    from app.models import VERSION
+    _check("AccessDoc", "ok", f"v{VERSION}")
+
+    print("AccessDoc doctor — environment check")
+    print("=" * 50)
+    for line in checks:
+        print(line)
+    print("=" * 50)
+    print(f"{ok} OK, {warn} warnings")
+    if warn > 0:
+        print("\nWarnings do not block core functionality (bundle generation).")
+        print("They indicate optional features that will not work without the dependency.")
+    return 0
+
+
 def build_parser():
     p = argparse.ArgumentParser(prog="accessdoc", description="AccessDoc evidence CLI")
     sub = p.add_subparsers(dest="command", required=True)
@@ -161,6 +231,10 @@ def build_parser():
 
     c = sub.add_parser("catalog")
     c.set_defaults(func=cmd_catalog)
+
+    d = sub.add_parser("doctor")
+    d.set_defaults(func=cmd_doctor)
+
     return p
 
 

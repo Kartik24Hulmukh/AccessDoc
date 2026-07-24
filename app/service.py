@@ -63,13 +63,19 @@ def _build_html(summary, violations, client_name, audit_date):
     )
     return (
         f"<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'>"
+        f"<meta name='viewport' content='width=device-width, initial-scale=1'>"
         f"<title>AccessDoc - {e(client_name)}</title></head><body>"
+        f"<main>"
         f"<h1>WCAG 2.2 Audit: {e(client_name)}</h1>"
         f"<p>Date: {e(audit_date)} | URL: {e(summary.url)}</p>"
         f"<p>axe-core: {e(summary.engine_version)} | catalog: {e(CATALOG_VERSION)} | AccessDoc: {e(VERSION)}</p>"
-        f"<table border='1'><tr><th>Rule</th><th>Impact</th><th>Nodes</th><th>WCAG SC</th><th>Source</th></tr>{rows}</table>"
+        f"<table border='1'><thead><tr>"
+        f"<th scope='col'>Rule</th><th scope='col'>Impact</th><th scope='col'>Nodes</th>"
+        f"<th scope='col'>WCAG SC</th><th scope='col'>Source</th>"
+        f"</tr></thead><tbody>{rows}</tbody></table>"
         f"<p><small>Automated scan detects ~30-57% of WCAG issues (Deque 2022). "
         f"Manual review required for legal compliance.</small></p>"
+        f"</main>"
         f"</body></html>"
     )
 

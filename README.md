@@ -37,9 +37,30 @@ python3 cli.py catalog                    # rule catalog summary
 
 ## Test
 ```bash
-python3 -m unittest discover -s tests -p 'test_*.py'   # 63 tests
-python3 scripts/stress_test.py                          # 12 adversarial checks
+python3 -m unittest discover -s tests -p 'test_*.py'   # 170+ tests
+python3 scripts/stress_test.py                          # 15 adversarial checks
 ```
+
+## Limitations
+
+AccessDoc is an evidence tool, not a certification. Read the
+[Threat Model](docs/THREAT-MODEL.md) for a full security analysis.
+
+- **Automated coverage ceiling:** axe-core detects ~30-57% of WCAG issues
+  (Deque 2022). Every bundle states this limit.
+- **Unsigned attestation:** The in-toto attestation is currently unsigned.
+  It detects accidental corruption and naive tampering, but does NOT prove
+  origin against a motivated attacker. See [Signing Plan](docs/signing-plan.md).
+- **VPAT output is DRAFT:** The VPAT generator produces a draft input for
+  human review, not a certified VPAT.
+- **Not legal advice:** Nothing AccessDoc produces is legal advice or a
+  declaration of conformity.
+
+## Self-audit
+
+AccessDoc's own HTML outputs (report.html, vpat-draft.html) are audited with
+axe-core in a permanent regression test. See
+[Self-Audit Report](docs/self-audit.md).
 
 ## Bundle members
 `report.pdf`, `report.html`, `receipt.json`, `openacr.yaml`,
