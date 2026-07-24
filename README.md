@@ -23,7 +23,7 @@ pack, and an in-toto attestation whose digests cover every file.
   Rekor transparency log. See `docs/SIGNING.md`.
 - Meaningful PDF metadata (`/Title`, `/Lang`, `/Author`, `/Subject`).
 
-## Previously in v0.6.0-beta.1
+## Previously in v0.7.0-beta.1
 - **Security hardening:** fixed 2 stored-XSS vectors (client name, URL, and
   violation fields now HTML-escaped) and 1 YAML-injection vector (OpenACR
   scalars are JSON-encoded). Regression-tested in `tests/test_security.py`.
@@ -79,3 +79,4 @@ Live demo API: `https://access-doc.vercel.app` (GET = health, POST axe JSON = zi
 - **VPAT output is a DRAFT.** It requires human review before issuance.
 - Reproducibility requires pinning `--audit-date`. It is an input, not an
   observation.
+
