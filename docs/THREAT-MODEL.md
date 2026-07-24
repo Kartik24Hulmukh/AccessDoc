@@ -102,8 +102,11 @@ zero axe-core violations at critical/serious/moderate impact levels, tested
 at both default and 320px viewport width (WCAG 1.4.10 reflow).
 
 An experimental WeasyPrint path (`--pdf-engine=weasyprint`) can produce a
-tagged PDF/UA-1, but it is **not byte-reproducible** and is therefore not
-the default. See `docs/pdf-ua-plan.md` for the full decision document.
+tagged PDF/UA-1 with `/StructTreeRoot`, `/MarkInfo`, and table structure
+elements. WeasyPrint output IS byte-reproducible (verified across 3 runs).
+The only non-determinism in the bundle comes from the in-toto `_utc_now()`
+timestamp, which affects both engines equally. See `docs/pdf-ua-plan.md`
+for the full decision document with measured results.
 
 ### Automated coverage ceiling
 

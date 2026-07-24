@@ -56,7 +56,7 @@ AccessDoc is an evidence tool, not a certification. Read the
   and author metadata, but no structure tree for screen reader navigation.
   The HTML companion (`report.html`) IS accessible (axe-core-audited, zero
   violations). An experimental WeasyPrint path (`--pdf-engine=weasyprint`)
-  can produce a tagged PDF/UA-1 but is not byte-reproducible. See
+  can produce a tagged PDF/UA-1 and IS byte-reproducible. See
   [PDF/UA Plan](docs/pdf-ua-plan.md).
 - **VPAT output is DRAFT:** The VPAT generator produces a draft input for
   human review, not a certified VPAT.

@@ -2,6 +2,8 @@
 
 > **Status: RESEARCH COMPLETE — owner decision required.**
 > This document replaces the previous sketch with measured results.
+> **Corrected in Phase 3.2**: WeasyPrint IS byte-reproducible. An earlier
+> version of this document incorrectly stated it was not.
 
 ## Context
 
@@ -22,14 +24,32 @@ regardless of tagging quality.
 
 **Current state (reportlab with `rl_config.invariant=1`):**
 - PDF is byte-identical across runs ✅
-- Full bundle is byte-reproducible end-to-end ✅
+- Full bundle is byte-reproducible end-to-end ✅ (when both runs complete
+  within the same second — see in-toto timestamp note below)
 - PDF is untagged (no `/StructTreeRoot`, no `/MarkInfo`) ❌
+
+### The in-toto timestamp caveat (affects BOTH engines)
+
+The in-toto attestation (`attestation.intoto.json`) contains a timestamp
+from `_utc_now()` in `app/intoto.py`, which has second-level granularity.
+If two `build_artifacts()` calls cross a second boundary, the timestamp
+differs, which cascades to `manifest.json` (which hashes the in-toto file).
+
+This is **not a WeasyPrint issue** — it affects reportlab equally. It is
+masked for reportlab because the fast PDF generation (~10ms) virtually
+always completes within the same second. WeasyPrint is slower (~200ms),
+making second-boundary crossings more likely.
+
+**Fix**: Replace `_utc_now()` with a deterministic timestamp derived from
+`audit_date` (which is already a required input). This would make both
+engines fully deterministic end-to-end regardless of execution speed.
+This fix is recommended regardless of which PDF engine is chosen.
 
 ## Option A: Buy ReportLab Plus (commercial licence)
 
 ReportLab PLUS (the commercial edition) supports PDF auto-tagging via
-`rl_config.canvas_baseFontName` and structure element APIs. The open-source
-toolkit **cannot** emit `/StructTreeRoot` — this is a PLUS-only feature.
+structure element APIs. The open-source toolkit **cannot** emit
+`/StructTreeRoot` — this is a PLUS-only feature.
 
 | Criterion | Assessment |
 |-----------|------------|
@@ -46,7 +66,7 @@ introduces a commercial dependency into an open-source project.
 
 WeasyPrint is an open-source HTML-to-PDF renderer that supports PDF/UA-1
 output via the `pdf_variant` parameter. Since our `report.html` is already
-accessible, rendering the PDF from it would inherit the HTML's semantic
+accessible, rendering the PDF from it inherits the HTML's semantic
 structure.
 
 ### Measured results
@@ -56,7 +76,7 @@ structure.
 | Check | reportlab (current) | WeasyPrint PDF/UA-1 |
 |-------|--------------------|---------------------|
 | `/StructTreeRoot` | ❌ NOT present | ✅ Present |
-| `/MarkInfo` / `/Marked` | ❌ NOT present | ✅ Present |
+| `/MarkInfo` / `/Marked` | ❌ NOT present | ✅ Present (`/Marked: true`) |
 | `/Lang` | ✅ `en` (set via `rl_config.documentLang`) | ✅ `en` (inherited from HTML `lang`) |
 | `/Title` | ✅ Meaningful (set via `SimpleDocTemplate(title=...)`) | ✅ Inherited from HTML `<title>` |
 | `/Table` structure | ❌ NOT tagged | ✅ Tagged |
@@ -64,48 +84,55 @@ structure.
 | `/H1`, `/H2` headings | ❌ NOT present | ✅ Present |
 | XMP metadata | ❌ NOT present | ✅ Present |
 
-**Byte-reproducibility (the deciding factor):**
+**Byte-reproducibility (CORRECTED):**
 
-| Engine | Run 1 SHA-256 | Run 2 SHA-256 | Identical? |
-|--------|--------------|--------------|------------|
-| reportlab (invariant=1) | `e83994e0...` | `e83994e0...` | ✅ YES |
-| WeasyPrint PDF/UA-1 | (varies) | (varies) | ❌ **NO** |
+| Engine | PDF SHA-256 across 3 runs | Identical? |
+|--------|--------------------------|------------|
+| reportlab (invariant=1) | `e83994e0...` × 3 | ✅ YES |
+| WeasyPrint PDF/UA-1 | `8aa9f0f3...` × 3 | ✅ YES |
 
-WeasyPrint embeds a generation timestamp in XMP metadata (`<xmp:MetadataDate>`)
-that differs between runs. **WeasyPrint output is NOT byte-reproducible.**
+**WeasyPrint PDF output IS byte-reproducible.** An earlier version of this
+document incorrectly stated it was not, based on a bundle-level comparison
+that was actually failing due to the in-toto `_utc_now()` timestamp (which
+affects both engines equally — see caveat above).
 
-This is a **disqualifying issue**. AccessDoc's core claim is reproducible
-evidence. Trading reproducibility for tagging would undermine the product's
-fundamental value proposition.
+When the in-toto timestamp is excluded from comparison, **every file in the
+WeasyPrint bundle is byte-identical across runs**, including `report.pdf`.
 
 **veraPDF validation:** veraPDF CLI could not be installed in the test
-environment (Java + download constraints). Structural inspection via pypdf
-confirms the presence of `/StructTreeRoot`, `/MarkInfo`, `/Lang`, `/Title`,
-and table structure elements (`/Table`, `/TR`, `/TH`, `/TD`). A full
-veraPDF validation should be run before claiming PDF/UA-1 conformance. **We
-do not claim PDF/UA-1 conformance based on structural inspection alone.**
+environment (no Java runtime available; GitHub release download returned
+404). Structural inspection via pypdf confirms the presence of
+`/StructTreeRoot`, `/MarkInfo` (`/Marked: true`), `/Lang`, and table
+structure elements. **We do not claim PDF/UA-1 conformance based on
+structural inspection alone** — a full veraPDF validation must be run
+before making any conformance claim. The pypdf results are encouraging but
+not sufficient.
 
 **Visual fidelity:**
 
 | Metric | reportlab | WeasyPrint |
 |--------|-----------|------------|
-| Pages | 1+ (flows naturally) | 1+ (flows naturally) |
+| Pages (stress fixture) | 3 | 2 |
 | Text content | Contains all violation data | Contains all violation data |
-| Table rendering | ReportLab Table flowable | HTML table → PDF table |
-| Styling | ReportLab styles | CSS from HTML template |
+| Table rendering | ReportLab Table flowable | HTML table → tagged PDF table |
+| Styling | ReportLab styles (custom) | CSS from HTML template (simpler) |
+| Unicode handling | Replaces some chars with ■ | Preserves Unicode correctly |
 
-Both render the same content. WeasyPrint inherits the HTML's CSS styling,
-which is simpler but consistent with the HTML report.
+Both render the same content. WeasyPrint inherits the HTML's CSS styling
+and handles Unicode better (reportlab replaces some non-ASCII characters
+with placeholder squares in the PDF metadata).
 
 **Dependency weight:**
 
 | Package | Size |
 |---------|------|
-| ReportLab (current) | ~15 MB |
-| WeasyPrint + dependencies | ~45 MB (weasyprint + pydyf + fonttools + cffi + html5lib + tinycss2 + cssselect2 + pyphen) |
+| ReportLab (current) | ~8 MB |
+| WeasyPrint | ~2.4 MB |
+| WeasyPrint + deps (pydyf, cffi, tinycss2, cssselect2, pyphen) | ~9.4 MB total |
 
-WeasyPrint adds ~30 MB of dependencies and requires system libraries
-(pango, cairo, gdk-pixbuf) that may not be available in all environments.
+WeasyPrint adds ~1.4 MB net over reportlab. It also requires system
+libraries (pango, cairo, gdk-pixbuf) which are pre-installed on most Linux
+systems but may need installation on minimal environments.
 
 ### Rejected option: Chromium `--export-tagged-pdf`
 
@@ -115,10 +142,12 @@ Chromium can export tagged PDFs via headless mode. This was rejected because:
 - Heavy dependency (full Chromium browser)
 - Not suitable for serverless environments (Vercel)
 
-**Verdict:** WeasyPrint produces a properly tagged PDF/UA-1, but it is NOT
-byte-reproducible. This disqualifies it as the default engine. It is
-available as an experimental opt-in (`--pdf-engine=weasyprint`) for users
-who prioritise tagging over reproducibility.
+**Verdict:** WeasyPrint produces a properly tagged PDF with `/StructTreeRoot`,
+`/MarkInfo`, `/Lang`, table structure, and heading hierarchy. It IS byte-
+reproducible. The only non-determinism in the bundle comes from the in-toto
+timestamp, which affects both engines equally and can be fixed by using
+`audit_date` instead of `_utc_now()`. WeasyPrint is a **viable option** for
+the default engine.
 
 ## Option C: Ship HTML as the accessible artifact, PDF as convenience copy
 
@@ -150,18 +179,21 @@ the untagged PDF is a blocker for practitioners.
 convenience copy. This is already implemented and documented. The adoption
 gate will tell us whether practitioners care about the PDF being tagged.
 
-**Medium-term (if adoption gate shows PDF tagging is a blocker): Option A.**
-If practitioners say the untagged PDF blocks them, buy ReportLab Plus. It
-preserves byte-reproducibility (the core claim) and adds full PDF/UA tagging.
-The commercial licence cost is the trade-off.
+**Medium-term (if adoption gate shows PDF tagging is a blocker): Option B
+(WeasyPrint).** WeasyPrint is byte-reproducible, open-source, and produces
+a properly tagged PDF/UA-1 with structure tree, table tagging, and heading
+hierarchy. The in-toto timestamp issue must be fixed first (replace
+`_utc_now()` with `audit_date`-derived timestamp) — but this fix is needed
+regardless of which engine is chosen. Run veraPDF validation before
+claiming PDF/UA-1 conformance.
 
-**Long-term (if WeasyPrint determinism is fixed): Option B.** If WeasyPrint
-adds a deterministic mode (fixed XMP timestamp, like reportlab's
-`invariant=1`), it becomes the best option: open-source, tagged, reproducible.
-File an issue with WeasyPrint if this path is pursued.
+**Long-term (if commercial licence is acceptable): Option A.** ReportLab
+Plus preserves the existing codebase and adds full tagging. Only pursue if
+WeasyPrint's system dependencies prove problematic in deployment
+environments.
 
-**Do NOT use WeasyPrint as the default engine now.** It breaks byte-
-reproducibility, which is the product's core claim.
+**Chromium `--export-tagged-pdf` is rejected** due to cross-version
+non-determinism.
 
 ## What was implemented in Phase 3.2
 
@@ -175,12 +207,20 @@ reproducibility, which is the product's core claim.
 2. **WeasyPrint experimental path:**
    - `--pdf-engine=weasyprint` flag added to CLI
    - `pdf_engine` key accepted by `build_artifacts()`
-   - Produces tagged PDF/UA-1 with `/StructTreeRoot`, `/Lang`, `/Table`
-   - NOT byte-reproducible (documented limitation)
+   - Produces tagged PDF with `/StructTreeRoot`, `/MarkInfo`, `/Lang`, `/Table`
+   - IS byte-reproducible ✅ (corrected from earlier false claim)
 
 3. **Claim guarding:**
    - All docs updated to state HTML is the accessible artifact, PDF is untagged
    - Adoption kit includes the "does untagged PDF block you?" question
+
+## Pre-requisite for either engine: fix in-toto timestamp
+
+Regardless of which PDF engine is chosen, the in-toto `_utc_now()` timestamp
+should be replaced with a deterministic value derived from `audit_date`.
+This would make the **entire bundle** byte-reproducible end-to-end for both
+engines, eliminating the second-boundary race condition that currently
+masks itself for reportlab but surfaces for WeasyPrint.
 
 **This is a decision for the owner. The data is presented above; the GO/NO-GO
 on each option is the owner's call.**
