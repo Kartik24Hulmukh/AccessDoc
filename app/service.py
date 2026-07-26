@@ -203,10 +203,15 @@ def build_artifacts(body):
         due_diligence_md = render_due_diligence_md(build_due_diligence(chain))
 
     # ---- attestation over every produced file ----
+    # IMPORTANT: the bytes attested here MUST be byte-identical to the bytes
+    # placed into the bundle by Artifacts.payloads().  Any formatting
+    # difference (e.g. indent=2 vs compact) causes a manifest/attestation
+    # digest mismatch detected by validate_bundle().
+    receipt_json_str = json.dumps(receipt, indent=2)
     attested = {
         "report.pdf":   pdf_bytes,
         "report.html":  html_bytes,
-        "receipt.json": json.dumps(receipt).encode(),
+        "receipt.json": receipt_json_str.encode(),
         "openacr.yaml": openacr_yaml.encode(),
     }
     if sarif_json is not None:
@@ -230,7 +235,7 @@ def build_artifacts(body):
     return Artifacts(
         pdf_bytes=pdf_bytes,
         html_bytes=html_bytes,
-        receipt_json=json.dumps(receipt, indent=2),
+        receipt_json=receipt_json_str,
         openacr_yaml=openacr_yaml,
         intoto_bytes=intoto_bytes,
         sarif_json=sarif_json,
