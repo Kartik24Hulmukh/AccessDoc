@@ -167,7 +167,7 @@ def cmd_doctor(args):
 
     try:
         from weasyprint import HTML
-        _check("weasyprint", "ok", "installed - tagged PDF/UA-1 available")
+        _check("weasyprint", "ok", "installed - experimental tagged PDF path (no PDF/UA conformance claim)")
     except ImportError:
         _check("weasyprint", "warn", "not installed - pip install weasyprint (for tagged PDF)")
 
@@ -216,7 +216,8 @@ def build_parser():
     b.add_argument("--pdf-engine", default="reportlab",
                    choices=["reportlab", "weasyprint"],
                    help="PDF engine: reportlab (default, untagged) or "
-                        "weasyprint (experimental, tagged PDF/UA-1, "
+                        "weasyprint (experimental tagged PDF path, "
+                        "no PDF/UA conformance claim, "
                         "requires: pip install weasyprint)")
     b.set_defaults(func=cmd_bundle)
 

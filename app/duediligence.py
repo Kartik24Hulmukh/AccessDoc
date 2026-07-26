@@ -159,6 +159,9 @@ def render_due_diligence_md(record):
         a("")
     a("---")
     a("")
-    a("Each audit in this record is backed by a signed-ready in-toto attestation and "
-      "a SHA-256 manifest. Any edit to a prior report breaks the hash chain.")
+    a("Each audit in this record is covered by an in-toto attestation and "
+      "a SHA-256 manifest. Any edit to a prior report breaks the manifest hash. "
+      "Attestations are unsigned by default; signing requires the Sigstore "
+      "workflow. Audit dates are caller-supplied and are not independently "
+      "timestamped.")
     return "\n".join(L) + "\n"

@@ -1,4 +1,4 @@
-# AccessDoc v0.7.0-beta.2
+# AccessDoc v0.7.0-beta.3
 
 **The receipt printer for accessibility.** AccessDoc turns raw automated scan
 output (axe-core JSON) into a defensible, tamper-evident **evidence bundle** in
@@ -10,6 +10,21 @@ pack, and an in-toto attestation whose digests cover every file.
 > never claims conformance. Automated tools detect only ~30-57% of WCAG issues
 > (Deque 2022); manual + assistive-technology testing is required for a
 > conformance claim. Not legal advice.
+
+## What's new in v0.7.0-beta.3
+
+- **Claims and documentation correction.** All overclaims removed: PDF/UA
+  conformance language corrected to "experimental structural tagging path;
+  no PDF/UA conformance claim until veraPDF passes." Due-diligence renderer
+  no longer claims "signed-ready" or "hash chain" — attestation is unsigned
+  by default, audit dates are caller-supplied, and the record is
+  tamper-evident but does not prevent backdating by itself.
+- **Threat model updated.** Signing status changed from "planned" to
+  "implemented (Sigstore keyless via GitHub Actions)." Public API
+  exhaustion, ZIP bombs, Action input injection, and scanner SSRF added to
+  threat list.
+- **Version metadata corrected.** Stress test version updated from
+  v0.6.0-beta.1 to v0.7.0-beta.3.
 
 ## What's new in v0.7.0-beta.2
 
@@ -57,8 +72,8 @@ python3 cli.py catalog                    # rule catalog summary
 
 ## Test
 ```bash
-python3 -m unittest discover -s tests -p 'test_*.py'   # 63 tests
-python3 scripts/stress_test.py                          # 12 adversarial checks
+python3 -m unittest discover -s tests -p 'test_*.py'   # 399 tests
+python3 scripts/stress_test.py                          # 15 adversarial checks
 ```
 
 ## Bundle members
@@ -71,6 +86,8 @@ at critical/serious/moderate, tested at 320px reflow), `report.pdf`
 `findings.sarif.json`, `vpat-draft.html`, `eaa-evidence.md`, `trend.json`.
 
 Live demo API: `https://access-doc.vercel.app` (GET = health, POST axe JSON = zip).
+This is a **bounded demo API** — input size and request rate are limited. It is
+not a production-grade hosted service.
 
 
 ## Limitations (read this before making any claim)

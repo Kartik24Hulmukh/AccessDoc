@@ -58,12 +58,13 @@ class Artifacts:
 
 
 def _generate_weasyprint_pdf(summary, violations, client_name, agency_name, audit_date):
-    """Generate a tagged PDF/UA-1 from the accessible HTML report via WeasyPrint.
+    """Generate a PDF via WeasyPrint's experimental structural tagging path.
 
     Experimental opt-in path (--pdf-engine=weasyprint). Requires optional
     dependency: pip install weasyprint. The HTML report is already axe-core-
-    clean. WeasyPrint with pdf_variant="pdf/ua-1" produces a tagged PDF with
-    /StructTreeRoot, /Lang, /Title, and table structure elements.
+    clean. WeasyPrint with pdf_variant="pdf/ua-1" produces a PDF with
+    /StructTreeRoot, /Lang, /Title, and table structure elements. No PDF/UA
+    conformance claim is made until veraPDF validation passes.
     """
     try:
         from weasyprint import HTML

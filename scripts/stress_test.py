@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Adversarial stress test for AccessDoc v0.6.0-beta.1.
+"""Adversarial stress test for AccessDoc v0.7.0-beta.3.
 
 Throws malformed, hostile, and edge-case inputs at the pipeline to catch
 crashes, injections, and silent data corruption. Exit code is non-zero if any
