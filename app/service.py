@@ -17,6 +17,7 @@ from .reporter import generate_pdf_report
 from .catalog import AXE_CORE_VERIFIED_VERSION, CATALOG_VERSION
 from .openacr import generate_openacr_yaml
 from .intoto import build_intoto_bundle, normalize_timestamp
+from .limits import MAX_HISTORY_RECEIPTS
 
 
 @dataclass
@@ -194,6 +195,12 @@ def build_artifacts(body):
     # ---- optional: due-diligence record (proof of reasonable steps over time) ----
     history = body.get("receipt_history")
     if history:
+        if not isinstance(history, list):
+            raise ValueError("receipt_history must be a list")
+        if len(history) > MAX_HISTORY_RECEIPTS:
+            raise ValueError(
+                f"receipt_history exceeds limit: {len(history)} > {MAX_HISTORY_RECEIPTS}"
+            )
         from .duediligence import build_due_diligence, render_due_diligence_md
         current = dict(receipt)
         current["violations"] = [
