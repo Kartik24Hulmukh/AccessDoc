@@ -1,0 +1,56 @@
+# Keyless signing of an AccessDoc evidence bundle via Sigstore.
+#
+# The in-toto attestation AccessDoc emits is UNSIGNED. Unsigned, it proves
+# internal consistency only -- anyone can regenerate it. Signing it with an
+# ephemeral OIDC-bound Sigstore identity and logging it to the Rekor public
+# transparency log makes the evidence verifiable by a third party who does not
+# trust the issuer. No long-lived secrets are required.
+name: Sign evidence bundle
+
+on:
+  workflow_dispatch:
+    inputs:
+      bundle_path:
+        description: Path to the evidence bundle (.zip)
+        required: true
+        default: evidence.zip
+
+permissions:
+  contents: read
+  id-token: write   # required for Sigstore keyless signing
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    env:
+      BUNDLE_PATH: ${{ inputs.bundle_path }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install sigstore
+        run: python -m pip install --upgrade sigstore
+
+      - name: Sign the bundle (keyless, logged to Rekor)
+        run: |
+          python -m sigstore sign "$BUNDLE_PATH" \
+            --bundle "$BUNDLE_PATH.sigstore.json"
+
+      - name: Verify what we just signed
+        run: |
+          IDENTITY="{{https://github.com/${GITHUB_REPOSITORY}}}/.github/workflows/sign-evidence.yml@${GITHUB_REF}"
+          python -m sigstore verify identity \
+            --bundle "$BUNDLE_PATH.sigstore.json" \
+            --cert-identity "$IDENTITY" \
+            --cert-oidc-issuer https://token.actions.githubusercontent.com \
+            "$BUNDLE_PATH"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: signed-evidence
+          path: |
+            ${{ env.BUNDLE_PATH }}
+            ${{ env.BUNDLE_PATH }}.sigstore.json
