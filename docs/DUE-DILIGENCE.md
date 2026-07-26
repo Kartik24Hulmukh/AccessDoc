@@ -27,9 +27,11 @@ shows, per barrier:
 - whether it was **remediated**, **still present**, or **newly introduced**
 - the trend in blocking issues (critical + serious) across the period
 
-Because each receipt is hash-chained and covered by an in-toto attestation,
-the timeline cannot be back-dated or quietly edited. That is the difference
-between a folder of PDFs and a record.
+Because each receipt is covered by an in-toto attestation and a SHA-256
+manifest, any edit to a prior report breaks the manifest hash. Attestations
+are unsigned by default; signing requires the Sigstore workflow. Audit dates
+are caller-supplied and are not independently timestamped, so the record is
+tamper-evident but cannot by itself prevent backdating.
 
 ## Usage
 

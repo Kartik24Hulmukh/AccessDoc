@@ -1,6 +1,6 @@
 # Signing Plan (Future Release)
 
-> **Status: PLANNED — not implemented in v0.6.0-beta.1.**
+> **Status: IMPLEMENTED in v0.7.0-beta.2+ — Sigstore keyless signing via GitHub Actions. See `docs/SIGNING.md` for the validated workflow. This document retained for historical design context.**
 
 ## Goal
 

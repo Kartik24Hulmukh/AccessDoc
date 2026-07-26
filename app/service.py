@@ -17,6 +17,7 @@ from .reporter import generate_pdf_report
 from .catalog import AXE_CORE_VERIFIED_VERSION, CATALOG_VERSION
 from .openacr import generate_openacr_yaml
 from .intoto import build_intoto_bundle, normalize_timestamp
+from .limits import MAX_HISTORY_RECEIPTS
 
 
 @dataclass
@@ -58,12 +59,13 @@ class Artifacts:
 
 
 def _generate_weasyprint_pdf(summary, violations, client_name, agency_name, audit_date):
-    """Generate a tagged PDF/UA-1 from the accessible HTML report via WeasyPrint.
+    """Generate a PDF via WeasyPrint's experimental structural tagging path.
 
     Experimental opt-in path (--pdf-engine=weasyprint). Requires optional
     dependency: pip install weasyprint. The HTML report is already axe-core-
-    clean. WeasyPrint with pdf_variant="pdf/ua-1" produces a tagged PDF with
-    /StructTreeRoot, /Lang, /Title, and table structure elements.
+    clean. WeasyPrint with pdf_variant="pdf/ua-1" produces a PDF with
+    /StructTreeRoot, /Lang, /Title, and table structure elements. No PDF/UA
+    conformance claim is made until veraPDF validation passes.
     """
     try:
         from weasyprint import HTML
@@ -193,6 +195,12 @@ def build_artifacts(body):
     # ---- optional: due-diligence record (proof of reasonable steps over time) ----
     history = body.get("receipt_history")
     if history:
+        if not isinstance(history, list):
+            raise ValueError("receipt_history must be a list")
+        if len(history) > MAX_HISTORY_RECEIPTS:
+            raise ValueError(
+                f"receipt_history exceeds limit: {len(history)} > {MAX_HISTORY_RECEIPTS}"
+            )
         from .duediligence import build_due_diligence, render_due_diligence_md
         current = dict(receipt)
         current["violations"] = [
@@ -203,10 +211,15 @@ def build_artifacts(body):
         due_diligence_md = render_due_diligence_md(build_due_diligence(chain))
 
     # ---- attestation over every produced file ----
+    # IMPORTANT: the bytes attested here MUST be byte-identical to the bytes
+    # placed into the bundle by Artifacts.payloads().  Any formatting
+    # difference (e.g. indent=2 vs compact) causes a manifest/attestation
+    # digest mismatch detected by validate_bundle().
+    receipt_json_str = json.dumps(receipt, indent=2)
     attested = {
         "report.pdf":   pdf_bytes,
         "report.html":  html_bytes,
-        "receipt.json": json.dumps(receipt).encode(),
+        "receipt.json": receipt_json_str.encode(),
         "openacr.yaml": openacr_yaml.encode(),
     }
     if sarif_json is not None:
@@ -230,7 +243,7 @@ def build_artifacts(body):
     return Artifacts(
         pdf_bytes=pdf_bytes,
         html_bytes=html_bytes,
-        receipt_json=json.dumps(receipt, indent=2),
+        receipt_json=receipt_json_str,
         openacr_yaml=openacr_yaml,
         intoto_bytes=intoto_bytes,
         sarif_json=sarif_json,

@@ -1,4 +1,10 @@
-"""PDF report generator using ReportLab."""
+"""PDF report generator using ReportLab.
+
+SECURITY: every user-controlled value rendered into a Paragraph or PDF
+metadata field passes through safe_text() (app/safe_text.py) so hostile
+input can never inject active ReportLab markup (<font>, <b>, <a>, <img>,
+entities, control characters, etc).
+"""
 from io import BytesIO
 
 # Reproducibility: ReportLab stamps /CreationDate, /ModDate and two /ID md5s
@@ -16,6 +22,7 @@ from reportlab.platypus import (
 )
 from .models import DISCLAIMER_COMPACT, VERSION
 from .catalog import AXE_CORE_VERIFIED_VERSION, CATALOG_VERSION
+from .safe_text import safe_text
 
 
 def build_pdf_title(client_name="", audit_date=""):
@@ -25,10 +32,12 @@ def build_pdf_title(client_name="", audit_date=""):
     and date were blank and the separators were emitted unconditionally. Only
     non-empty parts are joined, so the title degrades gracefully instead of
     looking like a broken template.
+
+    All values are safe_text()-escaped and control-character safe.
     """
     parts = ["Accessibility Evidence Report"]
-    c = (client_name or "").strip()
-    d = (audit_date or "").strip()
+    c = safe_text((client_name or "").strip())
+    d = safe_text((audit_date or "").strip())
     if c and c.lower() != "client":
         parts.append(c)
     if d:
@@ -37,23 +46,41 @@ def build_pdf_title(client_name="", audit_date=""):
 
 
 def generate_pdf_report(summary, violations, client_name="Client", agency_name="Audit Agency", audit_date=""):
+    # All user-controlled values are sanitized before reaching ReportLab.
+    s_client = safe_text(client_name)
+    s_agency = safe_text(agency_name)
+    s_date = safe_text(audit_date)
+    s_url = safe_text(summary.url)
+    s_engine = safe_text(summary.engine_version)
+
     buf = BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4,
                             leftMargin=2*cm, rightMargin=2*cm,
                             topMargin=2*cm, bottomMargin=2*cm,
-                            title=build_pdf_title(client_name, audit_date),
-                            author=f"AccessDoc {VERSION}",
-                            subject=("Automated WCAG 2.2 accessibility audit evidence "
-                                     "(DRAFT - automated coverage only)"),
+                            title=build_pdf_title(s_client, s_date),
+                            author=safe_text(f"AccessDoc {VERSION}"),
+                            subject=safe_text(
+                                "Automated WCAG 2.2 accessibility audit evidence "
+                                "(DRAFT - automated coverage only)"
+                            ),
                             lang="en")
     styles = getSampleStyleSheet()
     story = []
 
     title_style = ParagraphStyle("T", parent=styles["Title"], fontSize=22, spaceAfter=12)
     story.append(Paragraph("WCAG 2.2 Automated Audit Report", title_style))
-    story.append(Paragraph(f"Client: <b>{client_name}</b> | Agency: {agency_name} | Date: {audit_date}", styles["Normal"]))
-    story.append(Paragraph(f"URL: {summary.url or 'N/A'} | axe-core: {summary.engine_version or AXE_CORE_VERIFIED_VERSION}", styles["Normal"]))
-    story.append(Paragraph(f"Catalog: {CATALOG_VERSION} | AccessDoc: {VERSION}", styles["Normal"]))
+    story.append(Paragraph(
+        f"Client: <b>{s_client}</b> | Agency: {s_agency} | Date: {s_date}",
+        styles["Normal"],
+    ))
+    story.append(Paragraph(
+        f"URL: {s_url or 'N/A'} | axe-core: {s_engine or AXE_CORE_VERIFIED_VERSION}",
+        styles["Normal"],
+    ))
+    story.append(Paragraph(
+        f"Catalog: {CATALOG_VERSION} | AccessDoc: {VERSION}",
+        styles["Normal"],
+    ))
     story.append(Spacer(1, 0.3*cm))
     story.append(HRFlowable(width="100%"))
 
@@ -93,8 +120,17 @@ def generate_pdf_report(summary, violations, client_name="Client", agency_name="
         vd = [["Rule ID", "Impact", "Nodes", "WCAG SC", "Description"]]
         order = {"critical":0,"serious":1,"moderate":2,"minor":3}
         for v in sorted(violations, key=lambda x: order.get(x.impact, 4)):
-            desc = v.description[:70] + ("..." if len(v.description) > 70 else "")
-            vd.append([v.id, v.impact, str(v.nodes), ", ".join(v.wcag_scs) or "-", desc])
+            s_id = safe_text(v.id)
+            s_impact = safe_text(v.impact)
+            s_desc_full = safe_text(v.description)
+            s_desc = s_desc_full[:70] + ("..." if len(s_desc_full) > 70 else "")
+            s_wcag = safe_text(", ".join(v.wcag_scs) or "-")
+            s_source = safe_text(v.source)
+            # Combine WCAG SC and source label for the table cell.
+            wcag_cell = s_wcag
+            if s_source and s_source != "automated":
+                wcag_cell = f"{s_wcag} [{s_source}]"
+            vd.append([s_id, s_impact, str(v.nodes), wcag_cell, s_desc])
         vt = Table(vd, colWidths=[3.5*cm, 2*cm, 1.5*cm, 2.5*cm, None])
         vt.setStyle(TableStyle([
             ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#2C3E50")),

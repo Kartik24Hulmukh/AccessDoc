@@ -32,6 +32,14 @@ def _maybe_read(path):
         sys.exit(2)
 
 
+def _validate_fail_on(value):
+    """Explicitly validate fail-on enum to give a clear error before argparse."""
+    allowed = {"critical", "high", "medium", "none"}
+    if value not in allowed:
+        print(f"ERROR: --fail-on must be one of {sorted(allowed)}, got: {value!r}", file=sys.stderr)
+        sys.exit(2)
+
+
 def main():
     parser = argparse.ArgumentParser(description="AccessDoc CI gate")
     parser.add_argument("--axe-json", required=True)
@@ -46,6 +54,8 @@ def main():
     parser.add_argument("--manual-findings", default="")
     parser.add_argument("--prior-receipt", default="")
     args = parser.parse_args()
+
+    _validate_fail_on(args.fail_on)
 
     axe = _maybe_read(args.axe_json)
     if axe is None:
