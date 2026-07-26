@@ -53,9 +53,14 @@ runs:
       shell: bash
       run: |
         set -e
-        ARGS="--axe-json '${{ inputs.axe-json }}' --fail-on '${{ inputs.fail-on }}' --client-name '${{ inputs.client-name }}' --output-dir '${{ inputs.output-dir }}'"
-        if [ "${{ inputs.sarif }}" = "true" ]; then ARGS="$ARGS --sarif"; fi
-        if [ -n "${{ inputs.manual-findings }}" ]; then ARGS="$ARGS --manual-findings '${{ inputs.manual-findings }}'"; fi
-        eval python3 "${{ github.action_path }}/scripts/ci_gate.py" $ARGS
+        args=(
+          --axe-json "${{ inputs.axe-json }}"
+          --fail-on "${{ inputs.fail-on }}"
+          --client-name "${{ inputs.client-name }}"
+          --output-dir "${{ inputs.output-dir }}"
+        )
+        if [ "${{ inputs.sarif }}" = "true" ]; then args+=(--sarif); fi
+        if [ -n "${{ inputs.manual-findings }}" ]; then args+=(--manual-findings "${{ inputs.manual-findings }}"); fi
+        python3 "${{ github.action_path }}/scripts/ci_gate.py" "${args[@]}"
         echo "bundle-path=${{ inputs.output-dir }}/accessdoc-bundle.zip" >> "$GITHUB_OUTPUT"
         echo "sarif-path=${{ inputs.output-dir }}/findings.sarif.json" >> "$GITHUB_OUTPUT"
