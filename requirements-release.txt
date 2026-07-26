@@ -1,0 +1,9 @@
+# Exact pinned versions for CI/release reproducibility.
+# Normal contributors use pyproject.toml ranges; this file is used by
+# release workflows and the Evidence Gate to guarantee byte-for-byte
+# reproducible bundles and signatures.
+#
+# Phase 10 — Dependency and Workflow Reproducibility
+reportlab==4.4.1
+PyYAML==6.0.2
+sigstore==4.4.0
