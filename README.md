@@ -1,4 +1,4 @@
-# AccessDoc v0.7.0-beta.1
+# AccessDoc v0.7.0-beta.2
 
 **The receipt printer for accessibility.** AccessDoc turns raw automated scan
 output (axe-core JSON) into a defensible, tamper-evident **evidence bundle** in
@@ -10,6 +10,14 @@ pack, and an in-toto attestation whose digests cover every file.
 > never claims conformance. Automated tools detect only ~30-57% of WCAG issues
 > (Deque 2022); manual + assistive-technology testing is required for a
 > conformance claim. Not legal advice.
+
+## What's new in v0.7.0-beta.2
+
+- **End-to-end validated Sigstore signing workflow.** The signing workflow now
+  downloads a real Evidence Gate artifact, verifies the AccessDoc bundle before
+  signing, pins sigstore 4.4.0, performs keyless GitHub OIDC signing, verifies
+  the certificate identity and issuer, and uploads the signed ZIP with its
+  Sigstore bundle. No application behavior changed.
 
 ## What's new in v0.7.0-beta.1
 
