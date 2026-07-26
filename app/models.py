@@ -2,7 +2,7 @@
 from dataclasses import dataclass, field
 from typing import List
 
-VERSION = "0.7.0-beta.2"
+VERSION = "0.7.0-beta.3"
 
 COVERAGE_STATS = {
     "deque_2022": {"pct_range": (30, 57), "source": "Deque Systems Accessibility Report 2022"},
