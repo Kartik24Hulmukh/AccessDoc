@@ -20,11 +20,22 @@ jobs:
           python-version: '3.12'
           cache: pip
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install reportlab PyYAML playwright
           python -m playwright install --with-deps chromium
+
+      - name: Install pinned axe-core (local, no CDN)
+        run: |
+          npm install axe-core@4.11.2
+          AXE_PATH=$(node -p "require.resolve('axe-core/axe.min.js')")
+          echo "ACCESSDOC_AXE_PATH=$AXE_PATH" >> "$GITHUB_ENV"
 
       - name: Run unittest suite
         run: python3 -m unittest discover -s tests -p 'test_*.py'
