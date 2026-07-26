@@ -5,6 +5,18 @@
 # ephemeral OIDC-bound Sigstore identity and logging it to the Rekor public
 # transparency log makes the evidence verifiable by a third party who does not
 # trust the issuer. No long-lived secrets are required.
+#
+# Provenance hardening (Phase 8): before downloading or signing, the workflow
+# queries the GitHub Actions API to verify that the source run:
+#   - completed successfully (conclusion=success)
+#   - belongs to Kartik24Hulmukh/AccessDoc
+#   - was triggered by the Evidence Gate workflow (accessdoc-action.yml)
+#   - has a head SHA equal to expected_commit_sha
+#   - ran on refs/heads/main
+#   - contains an artifact whose name exactly matches artifact_name
+# Only after every check passes is the artifact downloaded, verified through
+# AccessDoc, and signed. This binds the signature to an explicitly expected
+# source commit rather than a stale run ID.
 name: Sign evidence bundle
 
 on:
@@ -13,11 +25,13 @@ on:
       source_run_id:
         description: Evidence Gate run ID containing the bundle
         required: true
-        default: "30203362656"
       artifact_name:
         description: Artifact containing the evidence bundle
         required: true
         default: accessdoc-ci-bundle
+      expected_commit_sha:
+        description: Full commit SHA the Evidence Gate run must match
+        required: true
 
 permissions:
   contents: read
@@ -40,6 +54,112 @@ jobs:
           pip install reportlab PyYAML
           pip install sigstore==4.4.0
 
+      - name: Verify source run provenance before download
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          ARTIFACT_NAME: ${{ inputs.artifact_name }}
+          EXPECTED_COMMIT_SHA: ${{ inputs.expected_commit_sha }}
+          EXPECTED_REPO: Kartik24Hulmukh/AccessDoc
+          EXPECTED_WORKFLOW: accessdoc-action.yml
+          EXPECTED_REF: refs/heads/main
+        run: |
+          set -euo pipefail
+
+          if [ -z "$SOURCE_RUN_ID" ]; then
+            echo "ERROR: source_run_id is required"
+            exit 1
+          fi
+          if [ -z "$EXPECTED_COMMIT_SHA" ]; then
+            echo "ERROR: expected_commit_sha is required"
+            exit 1
+          fi
+
+          echo "=== Querying GitHub Actions run $SOURCE_RUN_ID ==="
+          RUN_JSON=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${EXPECTED_REPO}/actions/runs/${SOURCE_RUN_ID}")
+
+          # --- conclusion ---
+          CONCLUSION=$(echo "$RUN_JSON" | jq -r '.conclusion')
+          echo "conclusion: $CONCLUSION"
+          if [ "$CONCLUSION" != "success" ]; then
+            echo "ERROR: run conclusion is '$CONCLUSION', expected 'success'"
+            exit 1
+          fi
+
+          # --- repository ---
+          RUN_REPO=$(echo "$RUN_JSON" | jq -r '.repository.full_name')
+          echo "repository: $RUN_REPO"
+          if [ "$RUN_REPO" != "$EXPECTED_REPO" ]; then
+            echo "ERROR: run repository is '$RUN_REPO', expected '$EXPECTED_REPO'"
+            exit 1
+          fi
+
+          # --- workflow path (e.g. Kartik24Hulmukh/AccessDoc/.github/workflows/accessdoc-action.yml) ---
+          WORKFLOW_PATH=$(echo "$RUN_JSON" | jq -r '.path')
+          WORKFLOW_FILE=$(basename "$WORKFLOW_PATH")
+          echo "workflow file: $WORKFLOW_FILE"
+          if [ "$WORKFLOW_FILE" != "$EXPECTED_WORKFLOW" ]; then
+            echo "ERROR: run workflow is '$WORKFLOW_FILE', expected '$EXPECTED_WORKFLOW'"
+            exit 1
+          fi
+
+          # --- head SHA ---
+          HEAD_SHA=$(echo "$RUN_JSON" | jq -r '.head_sha')
+          echo "head_sha: $HEAD_SHA"
+          if [ "$HEAD_SHA" != "$EXPECTED_COMMIT_SHA" ]; then
+            echo "ERROR: run head_sha is '$HEAD_SHA', expected '$EXPECTED_COMMIT_SHA'"
+            exit 1
+          fi
+
+          # --- branch / ref ---
+          RUN_REF=$(echo "$RUN_JSON" | jq -r '.referenced_workflow_path // ""')
+          # Fall back to head_branch for workflow_dispatch runs
+          if [ -z "$RUN_REF" ] || [ "$RUN_REF" = "null" ]; then
+            RUN_REF=""
+          fi
+          HEAD_BRANCH=$(echo "$RUN_JSON" | jq -r '.head_branch')
+          echo "head_branch: $HEAD_BRANCH"
+          # For workflow_dispatch runs on main, head_branch should be "main"
+          if [ "$HEAD_BRANCH" != "main" ]; then
+            echo "ERROR: run head_branch is '$HEAD_BRANCH', expected 'main'"
+            exit 1
+          fi
+
+          # --- artifact name (exact match) ---
+          echo "=== Checking artifacts for run $SOURCE_RUN_ID ==="
+          ARTIFACTS_JSON=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${EXPECTED_REPO}/actions/runs/${SOURCE_RUN_ID}/artifacts")
+          ARTIFACT_COUNT=$(echo "$ARTIFACTS_JSON" | jq '.artifacts | length')
+          echo "artifact count: $ARTIFACT_COUNT"
+          if [ "$ARTIFACT_COUNT" -eq 0 ]; then
+            echo "ERROR: no artifacts found for run $SOURCE_RUN_ID (expired or missing)"
+            exit 1
+          fi
+
+          EXPIRED_CHECK=$(echo "$ARTIFACTS_JSON" | jq -r \
+            '.artifacts[] | select(.name == env.ARTIFACT_NAME) | .expired')
+          if [ -z "$EXPIRED_CHECK" ] || [ "$EXPIRED_CHECK" = "null" ]; then
+            echo "ERROR: artifact '$ARTIFACT_NAME' not found in run $SOURCE_RUN_ID"
+            echo "Available artifacts:"
+            echo "$ARTIFACTS_JSON" | jq -r '.artifacts[].name'
+            exit 1
+          fi
+          if [ "$EXPIRED_CHECK" = "true" ]; then
+            echo "ERROR: artifact '$ARTIFACT_NAME' has expired and is no longer downloadable"
+            exit 1
+          fi
+
+          echo "=== All provenance checks passed ==="
+          echo "  conclusion:      $CONCLUSION"
+          echo "  repository:      $RUN_REPO"
+          echo "  workflow:        $WORKFLOW_FILE"
+          echo "  head_sha:        $HEAD_SHA"
+          echo "  branch:          $HEAD_BRANCH"
+          echo "  artifact:        $ARTIFACT_NAME (not expired)"
+
       - name: Download evidence artifact
         uses: actions/download-artifact@v4
         with:
@@ -49,6 +169,8 @@ jobs:
           path: signed-input
 
       - name: Locate and verify the evidence bundle
+        env:
+          EXPECTED_COMMIT_SHA: ${{ inputs.expected_commit_sha }}
         run: |
           set -euo pipefail
           # Find ZIP files under signed-input/
@@ -70,6 +192,24 @@ jobs:
           python3 -c "import zipfile,sys; [print(f'  {i.filename}') for i in zipfile.ZipFile(sys.argv[1]).infolist()]" "$BUNDLE_PATH"
           echo "--- AccessDoc bundle verification ---"
           python3 cli.py verify "$BUNDLE_PATH"
+          echo "--- Receipt AccessDoc version check ---"
+          # Extract receipt.json from the bundle and confirm the AccessDoc
+          # version recorded in the receipt matches the expected release
+          # version (read from pyproject.toml in this checkout).
+          EXPECTED_VERSION=$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          echo "Expected AccessDoc version (from pyproject.toml): $EXPECTED_VERSION"
+          RECEIPT_VERSION=$(python3 -c "
+          import zipfile, json, sys
+          zf = zipfile.ZipFile(sys.argv[1])
+          receipt = json.loads(zf.read('receipt.json'))
+          print(receipt.get('accessdoc_version', ''))
+          " "$BUNDLE_PATH")
+          echo "Receipt accessdoc_version: $RECEIPT_VERSION"
+          if [ "$RECEIPT_VERSION" != "$EXPECTED_VERSION" ]; then
+            echo "ERROR: receipt accessdoc_version '$RECEIPT_VERSION' does not match expected '$EXPECTED_VERSION'"
+            exit 1
+          fi
+          echo "Receipt version matches expected release version."
           echo "BUNDLE_PATH=$BUNDLE_PATH" >> "$GITHUB_ENV"
 
       - name: Sign the bundle (keyless, logged to Rekor)
