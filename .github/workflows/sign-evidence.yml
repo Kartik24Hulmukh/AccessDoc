@@ -41,7 +41,7 @@ jobs:
 
       - name: Verify what we just signed
         run: |
-          IDENTITY="{{https://github.com/${GITHUB_REPOSITORY}}}/.github/workflows/sign-evidence.yml@${GITHUB_REF}"
+          IDENTITY="https://github.com/${GITHUB_REPOSITORY}/.github/workflows/sign-evidence.yml@${GITHUB_REF}"
           python -m sigstore verify identity \
             --bundle "$BUNDLE_PATH.sigstore.json" \
             --cert-identity "$IDENTITY" \
