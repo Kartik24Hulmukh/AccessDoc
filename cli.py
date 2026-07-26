@@ -99,9 +99,15 @@ def cmd_trend(args):
 
 
 def cmd_scan(args):
-    from app.scan import run_scan_json, ScanUnavailable
+    from app.scan import run_scan_json, ScanUnavailable, UnsafeTargetError
+    allow_private = getattr(args, "allow_private_network", False)
     try:
-        out = run_scan_json(args.url)
+        out = run_scan_json(
+            args.url, allow_private_network=allow_private
+        )
+    except UnsafeTargetError as exc:
+        print(f"ERROR: unsafe target: {exc}", file=sys.stderr)
+        return 4
     except ScanUnavailable as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 3
@@ -242,6 +248,15 @@ def build_parser():
     sc = sub.add_parser("scan")
     sc.add_argument("url")
     sc.add_argument("--out", default="./axe.json")
+    sc.add_argument(
+        "--allow-private-network",
+        action="store_true",
+        default=False,
+        help="Explicitly allow scanning private/loopback network ranges. "
+             "DANGEROUS: do not use with untrusted URL input. "
+             "Default is to refuse private, loopback, link-local, multicast, "
+             "unspecified, and cloud-metadata addresses.",
+    )
     sc.set_defaults(func=cmd_scan)
 
     c = sub.add_parser("catalog")
