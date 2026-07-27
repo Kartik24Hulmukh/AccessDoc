@@ -37,6 +37,7 @@ class AuditViolation:
     wcag_scs: List[str] = field(default_factory=list)
     nodes: int = 0
     source: str = SOURCE_AUTOMATED  # "automated" | "manual"
+    target: str = ""  # normalized selector / identity for this finding
 
 
 @dataclass

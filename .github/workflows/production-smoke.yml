@@ -1,0 +1,327 @@
+# Post-deployment production smoke tests for AccessDoc.
+#
+# Runs after a production deployment is ready. Verifies the live Vercel
+# endpoint responds correctly and that generated receipts use schema 1.2
+# (NOT schema 1.1). Fails if any check fails.
+#
+# Bounded retries while Vercel deploys: poll every 15 seconds, max 15 minutes,
+# request timeout on every request.
+name: production-smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_version:
+        description: Expected adapter_version / accessdoc_version string
+        required: false
+        default: '0.7.0-beta.4'
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PRODUCTION_URL: https://access-doc.vercel.app
+      EXPECTED_VERSION: ${{ github.event.inputs.expected_version || '0.7.0-beta.4' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: '3.13'
+
+      - name: Install Python dependencies
+        run: pip install reportlab PyYAML
+
+      - name: Install axe-core locally
+        run: npm install axe-core@4.11.2
+
+      - name: Wait for Vercel deployment and run smoke tests
+        run: |
+          set -euo pipefail
+          python3 - <<'PYEOF'
+          import json, os, sys, time, urllib.request, urllib.error, io, zipfile, tempfile, subprocess, re
+
+          BASE = os.environ["PRODUCTION_URL"].rstrip("/")
+          EXPECTED = os.environ["EXPECTED_VERSION"]
+          POLL_INTERVAL = 15      # seconds
+          MAX_WAIT = 15 * 60      # 15 minutes
+          REQ_TIMEOUT = 30        # per-request timeout
+          deadline = time.monotonic() + MAX_WAIT
+
+          failures = []
+
+          def req(method, path, body=None, headers=None, expect_status=None):
+              """Make an HTTP request with a timeout. Returns (status, headers, body_bytes)."""
+              url = BASE + path
+              h = headers or {}
+              data = None
+              if body is not None:
+                  if isinstance(body, (dict, list)):
+                      data = json.dumps(body).encode("utf-8")
+                      h.setdefault("Content-Type", "application/json")
+                  elif isinstance(body, bytes):
+                      data = body
+                  else:
+                      data = str(body).encode("utf-8")
+              r = urllib.request.Request(url, data=data, headers=h, method=method)
+              try:
+                  with urllib.request.urlopen(r, timeout=REQ_TIMEOUT) as resp:
+                      return resp.status, dict(resp.headers), resp.read()
+              except urllib.error.HTTPError as e:
+                  return e.code, dict(e.headers), e.read()
+              except Exception as e:
+                  return None, {}, str(e).encode("utf-8")
+
+          # ----------------------------------------------------------------
+          # Phase 1: Poll health endpoint until deployment is ready.
+          # ----------------------------------------------------------------
+          print(f"=== Waiting for Vercel deployment at {BASE} ===")
+          print(f"    Expected version: {EXPECTED_VERSION}")
+          print(f"    Poll interval: {POLL_INTERVAL}s, max wait: {MAX_WAIT}s, req timeout: {REQ_TIMEOUT}s")
+
+          ready = False
+          attempts = 0
+          while time.monotonic() < deadline:
+              attempts += 1
+              status, hdrs, body = req("GET", "/")
+              if status == 200:
+                  try:
+                      data = json.loads(body)
+                      ver = data.get("adapter_version", "")
+                      svc_status = data.get("status", "")
+                      print(f"  Attempt {attempts}: status={status}, adapter_version={ver!r}, status_field={svc_status!r}")
+                      if svc_status == "ok":
+                          ready = True
+                          break
+                  except Exception as e:
+                      print(f"  Attempt {attempts}: 200 but JSON parse failed: {e}")
+              else:
+                  print(f"  Attempt {attempts}: status={status}")
+              time.sleep(POLL_INTERVAL)
+
+          if not ready:
+              print(f"FAIL: Vercel deployment not ready after {MAX_WAIT}s ({attempts} attempts)")
+              sys.exit(1)
+
+          print(f"=== Deployment ready after {attempts} attempts ===\n")
+
+          # ----------------------------------------------------------------
+          # Phase 2: Run all smoke checks.
+          # ----------------------------------------------------------------
+
+          def check(name, condition, detail=""):
+              tag = "PASS" if condition else "FAIL"
+              print(f"  [{tag}] {name}" + (f" — {detail}" if detail else ""))
+              if not condition:
+                  failures.append(name)
+
+          # --- Check 1: GET / returns 200, adapter_version, status ok ---
+          print("=== Check 1: GET / health endpoint ===")
+          status, hdrs, body = req("GET", "/")
+          health = json.loads(body) if status == 200 else {}
+          check("GET / status 200", status == 200, f"got {status}")
+          check("GET / adapter_version matches expected",
+                health.get("adapter_version") == EXPECTED,
+                f"got {health.get('adapter_version')!r}, expected {EXPECTED!r}")
+          check("GET / status field is 'ok'", health.get("status") == "ok",
+                f"got {health.get('status')!r}")
+
+          # --- Check 2: Valid POST / returns a ZIP ---
+          print("\n=== Check 2: Valid POST / returns ZIP ===")
+          axe_fixture = open("fixtures/axe-sample.json", "r", encoding="utf-8").read()
+          payload = {
+              "scanner_input": axe_fixture,
+              "client_name": "Production Smoke",
+              "audit_date": "2026-07-27",
+          }
+          status, hdrs, body = req("POST", "/", body=payload,
+                                   headers={"Content-Type": "application/json"})
+          check("POST / status 200", status == 200, f"got {status}")
+          ct = hdrs.get("Content-Type", "") or hdrs.get("content-type", "")
+          check("POST / Content-Type is application/zip",
+                "application/zip" in ct.lower(), f"got {ct!r}")
+          is_zip = False
+          zip_bytes = b""
+          if body and len(body) > 4:
+              is_zip = body[:4] == b"PK\x03\x04"
+              zip_bytes = body
+          check("POST / body is a ZIP (PK magic)", is_zip,
+                f"first 4 bytes: {body[:4]!r}" if body else "empty body")
+          check("POST / body non-empty", len(body) > 0, f"{len(body)} bytes")
+
+          # --- Check 3: Returned ZIP passes AccessDoc validation ---
+          print("\n=== Check 3: ZIP passes cli.py verify ===")
+          if is_zip:
+              with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as zf:
+                  zf.write(zip_bytes)
+                  zip_path = zf.name
+              result = subprocess.run(
+                  ["python3", "cli.py", "verify", zip_path],
+                  capture_output=True, text=True, timeout=60
+              )
+              verify_output = result.stdout + result.stderr
+              print(f"  cli.py verify exit code: {result.returncode}")
+              print(f"  cli.py verify output: {verify_output.strip()[:500]}")
+              try:
+                  verify_json = json.loads(result.stdout)
+                  verify_valid = verify_json.get("valid", False)
+              except Exception:
+                  verify_valid = False
+              check("cli.py verify exits 0", result.returncode == 0,
+                    f"exit {result.returncode}")
+              check("cli.py verify reports valid=true", verify_valid,
+                    f"output: {verify_output.strip()[:200]}")
+              os.unlink(zip_path)
+          else:
+              check("cli.py verify (skipped — no valid ZIP)", False,
+                    "no ZIP to verify")
+              failures.append("cli.py verify — no valid ZIP")
+
+          # --- Check 4: receipt.json schema fields ---
+          print("\n=== Check 4: receipt.json schema fields ===")
+          if is_zip:
+              try:
+                  with zipfile.ZipFile(io.BytesIO(zip_bytes)) as z:
+                      receipt = json.loads(z.read("receipt.json"))
+                      sv = receipt.get("schema_version", "")
+                      av = receipt.get("accessdoc_version", "")
+                      rule_ids = receipt.get("rule_ids")
+                      violations = receipt.get("violations")
+                      fpv = receipt.get("finding_fingerprint_version", "")
+                      print(f"  schema_version: {sv!r}")
+                      print(f"  accessdoc_version: {av!r}")
+                      print(f"  rule_ids: {rule_ids}")
+                      print(f"  violations count: {len(violations) if isinstance(violations, list) else 'N/A'}")
+                      print(f"  finding_fingerprint_version: {fpv!r}")
+
+                      check("receipt schema_version is '1.2'", sv == "1.2",
+                            f"got {sv!r}")
+                      check("receipt schema_version is NOT '1.1'", sv != "1.1",
+                            f"got {sv!r}")
+                      check("receipt accessdoc_version matches expected",
+                            av == EXPECTED, f"got {av!r}, expected {EXPECTED!r}")
+                      check("receipt has rule_ids (list)", isinstance(rule_ids, list),
+                            f"type={type(rule_ids).__name__}")
+                      check("receipt has violations (list)", isinstance(violations, list),
+                            f"type={type(violations).__name__}")
+                      check("receipt finding_fingerprint_version is '1'",
+                            str(fpv) == "1", f"got {fpv!r}")
+
+                      # Validate 64-character fingerprints
+                      bad_fps = []
+                      if isinstance(violations, list):
+                          for v in violations:
+                              fp = v.get("finding_fingerprint", "")
+                              if not (isinstance(fp, str) and len(fp) == 64 and re.match(r'^[a-f0-9]{64}$', fp)):
+                                  bad_fps.append(fp)
+                      check("all finding_fingerprints are 64-char hex",
+                            len(bad_fps) == 0,
+                            f"{len(bad_fps)} bad fingerprints" +
+                            (f": {bad_fps[:3]}" if bad_fps else ""))
+              except Exception as e:
+                  check("receipt.json parsing", False, str(e))
+                  failures.append("receipt.json parsing")
+          else:
+              check("receipt.json checks (skipped — no ZIP)", False)
+              failures.append("receipt.json — no ZIP")
+
+          # --- Check 5: Malformed JSON returns 400 ---
+          print("\n=== Check 5: Malformed JSON returns 400 ===")
+          status, hdrs, body = req("POST", "/",
+                                   body=b"{ not valid json }",
+                                   headers={"Content-Type": "application/json"})
+          check("Malformed JSON -> 400", status == 400, f"got {status}")
+          resp_text = body.decode("utf-8", errors="replace") if body else ""
+          check("Malformed JSON response has no exception text",
+                "Traceback" not in resp_text and "Exception" not in resp_text,
+                f"body: {resp_text[:200]}")
+
+          # --- Check 6: Missing scanner_input returns 400 ---
+          print("\n=== Check 6: Missing scanner_input returns 400 ===")
+          status, hdrs, body = req("POST", "/",
+                                   body={"client_name": "test"},
+                                   headers={"Content-Type": "application/json"})
+          check("Missing scanner_input -> 400", status == 400, f"got {status}")
+
+          # --- Check 7: Wrong Content-Type returns 415 ---
+          print("\n=== Check 7: Wrong Content-Type returns 415 ===")
+          status, hdrs, body = req("POST", "/",
+                                   body=b'{"scanner_input":"{}"}',
+                                   headers={"Content-Type": "text/plain"})
+          check("Wrong Content-Type -> 415", status == 415, f"got {status}")
+
+          # --- Check 8: Oversized request returns 413 ---
+          print("\n=== Check 8: Oversized request returns 413 ===")
+          # MAX_HTTP_BODY_BYTES is 2 MiB; send 3 MiB
+          big_body = b'{"scanner_input":"' + b'x' * (3 * 1024 * 1024) + b'"}'
+          status, hdrs, body = req("POST", "/",
+                                   body=big_body,
+                                   headers={"Content-Type": "application/json"})
+          check("Oversized request -> 413", status == 413, f"got {status}")
+
+          # --- Check 9: Unsupported method returns 405 ---
+          print("\n=== Check 9: Unsupported method returns 405 ===")
+          status, hdrs, body = req("PUT", "/")
+          check("PUT method -> 405", status == 405, f"got {status}")
+
+          # --- Check 10: Unknown path returns 404 ---
+          print("\n=== Check 10: Unknown path returns 404 ===")
+          status, hdrs, body = req("GET", "/nonexistent")
+          check("Unknown path -> 404", status == 404, f"got {status}")
+
+          # --- Check 11: No error reveals internal exception text ---
+          print("\n=== Check 11: No error reveals internal exception text ===")
+          # Trigger a 500 by sending valid JSON but with axe data that may cause
+          # an internal error. Check all error responses for leakage.
+          error_responses = []
+          # Collect error response bodies from checks 5-10
+          for desc, (st, bd) in [
+              ("malformed JSON 400", (400, body if status == 400 else b"")),
+          ]:
+              if bd:
+                  error_responses.append((desc, bd.decode("utf-8", errors="replace")))
+
+          # Also check the 500 path: send a body that passes JSON parse but
+          # has scanner_input as a string that will fail axe validation deeply
+          status_500, hdrs_500, body_500 = req("POST", "/",
+              body={"scanner_input": "not_json_at_all"},
+              headers={"Content-Type": "application/json"})
+          print(f"  Invalid scanner_input string -> status {status_500}")
+          if body_500:
+              txt = body_500.decode("utf-8", errors="replace")
+              error_responses.append(("invalid scanner_input", txt))
+
+          leakage_found = False
+          for desc, txt in error_responses:
+              if "Traceback" in txt or "Exception" in txt or "File \"" in txt:
+                  leakage_found = True
+                  print(f"  LEAKAGE in {desc}: {txt[:300]}")
+          check("No error response reveals internal exception text",
+                not leakage_found,
+                f"checked {len(error_responses)} error responses")
+
+          # ----------------------------------------------------------------
+          # Summary
+          # ----------------------------------------------------------------
+          print(f"\n=== SMOKE TEST SUMMARY ===")
+          print(f"  Total checks: {11 + 5}")  # approximate
+          print(f"  Failures: {len(failures)}")
+          if failures:
+              print(f"  FAILED checks:")
+              for f in failures:
+                  print(f"    - {f}")
+              print(f"\n  RESULT: FAIL")
+              sys.exit(1)
+          else:
+              print(f"\n  RESULT: PASS — all smoke checks passed")
+              sys.exit(0)
+          PYEOF

@@ -56,7 +56,7 @@ class BundleTests(unittest.TestCase):
     def test_receipt_json_schema_version(self):
         with zipfile.ZipFile(BytesIO(self.data)) as z:
             receipt = json.loads(z.read("receipt.json"))
-        self.assertEqual(receipt["schema_version"], "1.1")
+        self.assertEqual(receipt["schema_version"], "1.2")
 
     def test_receipt_has_coverage_note(self):
         with zipfile.ZipFile(BytesIO(self.data)) as z:
