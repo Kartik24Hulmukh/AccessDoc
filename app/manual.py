@@ -15,6 +15,7 @@ import io
 from .models import AuditViolation, SOURCE_MANUAL
 
 _VALID_IMPACTS = {"critical", "serious", "moderate", "minor"}
+_MANUAL_NO_TARGET = "manual:no-target"
 
 
 def _norm_impact(value):
@@ -32,6 +33,9 @@ def _split_scs(value):
 
 
 def _row_to_violation(row):
+    target = str(row.get("target") or row.get("selector") or "").strip()
+    if not target:
+        target = _MANUAL_NO_TARGET
     return AuditViolation(
         id=str(row.get("id") or row.get("rule") or "manual-finding").strip(),
         impact=_norm_impact(row.get("impact")),
@@ -40,6 +44,7 @@ def _row_to_violation(row):
         wcag_scs=_split_scs(row.get("wcag_scs") or row.get("wcag") or row.get("sc")),
         nodes=int(row.get("nodes") or 0) if str(row.get("nodes") or "").strip().isdigit() else 0,
         source=SOURCE_MANUAL,
+        target=target,
     )
 
 
