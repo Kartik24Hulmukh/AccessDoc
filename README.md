@@ -1,4 +1,4 @@
-# AccessDoc v0.7.0-beta.3
+# AccessDoc v0.7.0-beta.4
 
 **The receipt printer for accessibility.** AccessDoc turns raw automated scan
 output (axe-core JSON) into a defensible, tamper-evident **evidence bundle** in
