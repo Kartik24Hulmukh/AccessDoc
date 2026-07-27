@@ -18,6 +18,7 @@ from .catalog import AXE_CORE_VERIFIED_VERSION, CATALOG_VERSION
 from .openacr import generate_openacr_yaml
 from .intoto import build_intoto_bundle, normalize_timestamp
 from .limits import MAX_HISTORY_RECEIPTS
+from .receipt_builder import build_receipt, receipt_json_str as _receipt_json_str
 
 
 @dataclass
@@ -145,24 +146,10 @@ def build_artifacts(body):
         pdf_bytes  = generate_pdf_report(summary, violations, client_name, agency_name, audit_date)
     html_bytes = _build_html(summary, violations, client_name, audit_date).encode()
 
-    receipt = {
-        "schema_version": "1.1",
-        "accessdoc_version": VERSION,
-        "axe_core_verified_version": AXE_CORE_VERIFIED_VERSION,
-        "catalog_version": CATALOG_VERSION,
-        "coverage_note": "Automated scan detects ~30-57% of WCAG issues (Deque 2022).",
+    receipt = build_receipt(summary, violations, {
         "audit_date": audit_date,
         "client_name": client_name,
-        "url": summary.url,
-        "engine_version": summary.engine_version,
-        "summary": {
-            "critical": summary.critical, "serious": summary.serious,
-            "moderate": summary.moderate, "minor": summary.minor,
-            "total_violations": summary.total_violations,
-            "total_passes": summary.total_passes,
-            "manual_findings": summary.manual_findings,
-        },
-    }
+    })
 
     # ---- optional: provenance-labeled AI/plain-language enrichment ----
     if body.get("enrich"):
@@ -202,20 +189,19 @@ def build_artifacts(body):
                 f"receipt_history exceeds limit: {len(history)} > {MAX_HISTORY_RECEIPTS}"
             )
         from .duediligence import build_due_diligence, render_due_diligence_md
-        current = dict(receipt)
-        current["violations"] = [
-            {"id": v.id, "target": "", "impact": v.impact, "source": v.source}
-            for v in violations
-        ]
-        chain = list(history) + [current]
+        # Use the actual receipt's violations (with real targets/fingerprints)
+        # rather than reconstructing with target="".
+        chain = list(history) + [receipt]
         due_diligence_md = render_due_diligence_md(build_due_diligence(chain))
 
     # ---- attestation over every produced file ----
-    # IMPORTANT: the bytes attested here MUST be byte-identical to the bytes
+    # CRITICAL: the bytes attested here MUST be byte-identical to the bytes
     # placed into the bundle by Artifacts.payloads().  Any formatting
     # difference (e.g. indent=2 vs compact) causes a manifest/attestation
     # digest mismatch detected by validate_bundle().
-    receipt_json_str = json.dumps(receipt, indent=2)
+    # We compute receipt_json_str ONCE and use it for both the attestation
+    # and the ZIP payload (via Artifacts.receipt_json).
+    receipt_json_str = _receipt_json_str(receipt)
     attested = {
         "report.pdf":   pdf_bytes,
         "report.html":  html_bytes,
