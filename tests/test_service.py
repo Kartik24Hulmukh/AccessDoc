@@ -44,9 +44,9 @@ class TestBuildArtifacts(unittest.TestCase):
         receipt = json.loads(self.arts.receipt_json)
         self.assertIn("schema_version", receipt)
 
-    def test_receipt_schema_version_11(self):
+    def test_receipt_schema_version_12(self):
         receipt = json.loads(self.arts.receipt_json)
-        self.assertEqual(receipt["schema_version"], "1.1")
+        self.assertEqual(receipt["schema_version"], "1.2")
 
     def test_receipt_has_axe_version(self):
         receipt = json.loads(self.arts.receipt_json)
