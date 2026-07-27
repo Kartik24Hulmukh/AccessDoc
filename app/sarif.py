@@ -7,6 +7,16 @@ gitleaks / semgrep distribution playbook applied to accessibility evidence.
 import json
 from .models import VERSION
 from .catalog import AXE_CORE_VERIFIED_VERSION
+from .receipt_builder import (
+    compute_finding_fingerprint,
+    FINDING_FINGERPRINT_VERSION,
+)
+
+# SARIF partialFingerprints key. Code-scanning platforms use partialFingerprints
+# to track "the same finding" across runs; feeding them the AccessDoc finding
+# fingerprint means an unresolved barrier stays one alert instead of being
+# reopened on every scan, and a remediated barrier closes cleanly.
+FINGERPRINT_KEY = f"accessdocFindingFingerprint/v{FINDING_FINGERPRINT_VERSION}"
 
 SARIF_VERSION = "2.1.0"
 SARIF_SCHEMA = "https://json.schemastore.org/sarif-2.1.0.json"
@@ -68,9 +78,24 @@ def generate_sarif(summary, violations):
             "locations": [{
                 "physicalLocation": {
                     "artifactLocation": {"uri": artifact_uri}
-                }
+                },
+                "logicalLocations": [{
+                    "name": v.target or v.id,
+                    "fullyQualifiedName": v.target or v.id,
+                    "kind": "element",
+                }],
             }],
-            "properties": {"nodes": v.nodes, "source": v.source},
+            "partialFingerprints": {
+                FINGERPRINT_KEY: compute_finding_fingerprint(
+                    v.id, v.source, v.target
+                ),
+            },
+            "properties": {
+                "nodes": v.nodes,
+                "source": v.source,
+                "target": v.target,
+                "finding_fingerprint_version": FINDING_FINGERPRINT_VERSION,
+            },
         })
 
     log = {

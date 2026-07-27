@@ -7,35 +7,41 @@
       "impact": "critical",
       "description": "Images must have alternate text",
       "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/image-alt",
-      "nodes": [{"html": "<img src='logo.png'>"}]
+      "nodes": [{"html": "<img src='logo.png'>", "target": ["header > img.logo"]}]
     },
     {
       "id": "color-contrast",
       "impact": "serious",
       "description": "Elements must have sufficient color contrast",
       "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/color-contrast",
-      "nodes": [{"html": "<p style='color:#aaa'>text</p>"}, {"html": "<span>low contrast</span>"}]
+      "nodes": [
+        {"html": "<p style='color:#aaa'>text</p>", "target": ["#intro > p"]},
+        {"html": "<span>low contrast</span>", "target": ["#footer span.muted"]}
+      ]
     },
     {
       "id": "html-has-lang",
       "impact": "serious",
       "description": "The html element must have a lang attribute",
       "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/html-has-lang",
-      "nodes": [{"html": "<html>"}]
+      "nodes": [{"html": "<html>", "target": ["html"]}]
     },
     {
       "id": "document-title",
       "impact": "serious",
       "description": "Documents must have a title element",
       "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/document-title",
-      "nodes": [{"html": "<head></head>"}]
+      "nodes": [{"html": "<head></head>", "target": ["head"]}]
     },
     {
       "id": "duplicate-id",
       "impact": "minor",
       "description": "id attribute value must be unique",
       "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/duplicate-id",
-      "nodes": [{"html": "<div id='main'>"}, {"html": "<div id='main'>"}]
+      "nodes": [
+        {"html": "<div id='main'>", "target": ["body > div#main"]},
+        {"html": "<div id='main'>", "target": ["main > div#main"]}
+      ]
     }
   ],
   "passes": [

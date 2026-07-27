@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://accessdoc.dev/schemas/receipt-1.2.schema.json",
+  "title": "AccessDoc evidence receipt, schema 1.2",
+  "description": "Machine-readable contract for receipt.json inside an AccessDoc evidence bundle. Schema 1.2 adds per-finding identity: rule_ids, violations[] with normalized targets, and a finding_fingerprint derived from the canonical {rule, source, target} triple. A receipt validating against this schema is STRUCTURALLY valid; it is not thereby authentic. Authenticity requires re-deriving every finding_fingerprint (app/receipt_validate.py), verifying the bundle manifest digests, and verifying the Sigstore signature over the bundle. Audit dates are caller-supplied and are NOT independently timestamped.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "accessdoc_version",
+    "axe_core_verified_version",
+    "catalog_version",
+    "coverage_note",
+    "audit_date",
+    "client_name",
+    "url",
+    "engine_version",
+    "summary",
+    "rule_ids",
+    "finding_fingerprint_version",
+    "violations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.2",
+      "description": "Receipt schema version. 1.0 and 1.1 receipts remain readable by verifiers but carry strictly less identity: 1.1 has rule-level identity only, 1.0 is aggregate-only."
+    },
+    "accessdoc_version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Version of the generator that produced this receipt."
+    },
+    "axe_core_verified_version": {
+      "type": "string",
+      "description": "axe-core version this build's WCAG mapping catalog was verified against."
+    },
+    "catalog_version": {
+      "type": "string",
+      "description": "Version of the internal rule to WCAG success-criteria mapping catalog."
+    },
+    "coverage_note": {
+      "type": "string",
+      "description": "Mandatory honesty statement. Automated scanning detects roughly 30-57% of WCAG issues; absence of findings is never evidence of conformance."
+    },
+    "audit_date": {
+      "type": "string",
+      "description": "Caller-supplied audit date. NOT a trusted timestamp."
+    },
+    "client_name": {"type": "string"},
+    "url": {"type": "string"},
+    "engine_version": {"type": "string"},
+    "summary": {
+      "type": "object",
+      "required": [
+        "critical", "serious", "moderate", "minor",
+        "total_violations", "total_passes", "manual_findings"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "critical": {"type": "integer", "minimum": 0},
+        "serious": {"type": "integer", "minimum": 0},
+        "moderate": {"type": "integer", "minimum": 0},
+        "minor": {"type": "integer", "minimum": 0},
+        "total_violations": {"type": "integer", "minimum": 0},
+        "total_passes": {"type": "integer", "minimum": 0},
+        "manual_findings": {"type": "integer", "minimum": 0}
+      }
+    },
+    "rule_ids": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true,
+      "description": "Sorted set of rule ids present in violations[]. Must agree exactly with the ids in violations[]."
+    },
+    "finding_fingerprint_version": {
+      "type": "string",
+      "const": "1",
+      "description": "Fingerprint derivation version. Version 1 = SHA-256 over the canonical JSON encoding of {\"rule\", \"source\", \"target\"} with sorted keys, no whitespace, ensure_ascii=false, UTF-8 encoded. A verifier that does not recognise this version MUST degrade to rule-level comparison rather than guess."
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "impact", "source", "target", "finding_fingerprint"],
+        "additionalProperties": true,
+        "properties": {
+          "id": {"type": "string", "minLength": 1, "description": "Rule id, e.g. color-contrast."},
+          "impact": {
+            "type": "string",
+            "enum": ["critical", "serious", "moderate", "minor"]
+          },
+          "source": {
+            "type": "string",
+            "description": "Origin of the finding, e.g. axe or manual."
+          },
+          "target": {
+            "type": "string",
+            "description": "Normalized element identity: the axe target selector chain joined with ' > ', control characters stripped, bounded to 200 characters. When no usable target exists the deterministic fallback '<rule-id>:no-target' is used, which yields rule-level identity only for that finding."
+          },
+          "finding_fingerprint": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Lowercase SHA-256 hex digest, never truncated. MUST re-derive from this finding's own {rule, source, target}."
+          }
+        }
+      }
+    }
+  }
+}
