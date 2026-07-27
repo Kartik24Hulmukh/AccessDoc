@@ -34,6 +34,10 @@ class HandlerTests(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.server.shutdown()
+        # Release the listening socket too. shutdown() only stops
+        # serve_forever(); without server_close() the fd leaks and the
+        # interpreter emits ResourceWarning at exit.
+        cls.server.server_close()
 
     def test_health_check(self):
         resp = urlopen(f"http://127.0.0.1:{self.port}/")

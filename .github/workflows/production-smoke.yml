@@ -14,10 +14,16 @@ on:
       expected_version:
         description: Expected adapter_version / accessdoc_version string
         required: false
-        default: '0.7.0-beta.4'
+        default: '0.7.0-beta.5'
   push:
     branches:
       - main
+  # Production drift is only real if it is detected without a human
+  # remembering to look. A deploy-time check proves the deploy was good;
+  # a daily check proves it is STILL good after cache rotation, upstream
+  # runtime changes, or a rollback nobody announced.
+  schedule:
+    - cron: '17 6 * * *'
 
 permissions:
   contents: read
@@ -28,7 +34,7 @@ jobs:
     timeout-minutes: 20
     env:
       PRODUCTION_URL: https://access-doc.vercel.app
-      EXPECTED_VERSION: ${{ github.event.inputs.expected_version || '0.7.0-beta.4' }}
+      EXPECTED_VERSION: ${{ github.event.inputs.expected_version || '0.7.0-beta.5' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

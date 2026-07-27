@@ -1,4 +1,4 @@
-# AccessDoc v0.7.0-beta.4
+# AccessDoc v0.7.0-beta.5
 
 **The receipt printer for accessibility.** AccessDoc turns raw automated scan
 output (axe-core JSON) into a defensible, tamper-evident **evidence bundle** in
@@ -72,7 +72,7 @@ python3 cli.py catalog                    # rule catalog summary
 
 ## Test
 ```bash
-python3 -m unittest discover -s tests -p 'test_*.py'   # 444 tests (see beta.3 release notes)
+python3 -m unittest discover -s tests -p 'test_*.py'   # 540 tests
 python3 scripts/stress_test.py                          # 15 adversarial checks
 ```
 

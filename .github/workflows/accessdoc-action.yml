@@ -1,3 +1,13 @@
+# AccessDoc Evidence Gate
+#
+# This workflow exists to make one specific class of failure structurally
+# impossible. In beta.3 a release report claimed receipt schema 1.2 with
+# per-finding identity; the shipped code emitted 1.1, and CI was green the whole
+# time because CI only checked that tests passed and that two runs produced
+# identical bytes. Both were true of the wrong artifact.
+#
+# The gate therefore inspects the CONTENT of the artifact it is about to hand to
+# the signing workflow, and fails on any claim the artifact does not support.
 name: AccessDoc Evidence Gate
 
 on:
@@ -12,18 +22,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         with:
           python-version: '3.12'
           cache: pip
 
-      - name: Set up Node
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: '20'
+      # No actions/setup-node step: ubuntu-latest ships Node and npm already,
+      # and the removed action was the last Node-20 runtime in this job.
+      - name: Report toolchain
+        run: |
+          python3 --version
+          node --version
+          npm --version
 
       - name: Install dependencies
         run: |
@@ -57,6 +70,148 @@ jobs:
           echo "run1=$A"
           echo "run2=$B"
           test "$A" = "$B" || { echo "NON-DETERMINISTIC"; exit 1; }
+
+      - name: Bundle structural validation gate
+        run: python3 cli.py verify /tmp/a.zip
+
+      # --- The gate that beta.3 did not have -----------------------------
+      - name: Receipt schema 1.2 content gate
+        run: |
+          python3 - <<'PY'
+          import json, re, sys, zipfile
+
+          HEX64 = re.compile(r"^[a-f0-9]{64}$")
+          failures = []
+
+          with zipfile.ZipFile("/tmp/a.zip") as zf:
+              receipt = json.loads(zf.read("receipt.json"))
+              sarif = json.loads(zf.read("findings.sarif.json"))
+
+          with open("/tmp/ci-receipt.json", "w", encoding="utf-8") as f:
+              json.dump(receipt, f, indent=2)
+
+          schema = receipt.get("schema_version")
+          if schema != "1.2":
+              failures.append(f"schema_version is {schema!r}, expected '1.2'")
+          if schema == "1.1":
+              failures.append("schema_version regressed to the beta.3 value 1.1")
+
+          if str(receipt.get("finding_fingerprint_version")) != "1":
+              failures.append("finding_fingerprint_version is not '1'")
+
+          rule_ids = receipt.get("rule_ids")
+          if not isinstance(rule_ids, list) or not rule_ids:
+              failures.append("rule_ids is missing or empty")
+
+          violations = receipt.get("violations")
+          if not isinstance(violations, list) or not violations:
+              failures.append("violations[] is missing or empty")
+              violations = []
+
+          for index, entry in enumerate(violations):
+              for field in ("id", "impact", "source", "target",
+                            "finding_fingerprint"):
+                  if field not in entry:
+                      failures.append(f"violations[{index}] missing {field}")
+              fingerprint = entry.get("finding_fingerprint", "")
+              if not HEX64.match(str(fingerprint)):
+                  failures.append(
+                      f"violations[{index}].finding_fingerprint is not 64 "
+                      f"lowercase hex: {fingerprint!r}"
+                  )
+
+          # The shipped demo fixture must demonstrate REAL element identity.
+          # If it ever regresses to nodes without targets, every published
+          # artifact silently degrades to rule-level identity.
+          fallbacks = [
+              v.get("target") for v in violations
+              if ":no-target" in str(v.get("target", ""))
+          ]
+          if fallbacks:
+              failures.append(f"fixture produced fallback identities: {fallbacks}")
+
+          targets = [v.get("target") for v in violations]
+          if len(set(targets)) != len(targets):
+              failures.append(f"duplicate finding identities: {targets}")
+
+          # SARIF must carry the same identity so code-scanning alerts are stable.
+          results = sarif["runs"][0]["results"]
+          receipt_fps = {v["finding_fingerprint"] for v in violations}
+          sarif_fps = set()
+          for result in results:
+              partial = result.get("partialFingerprints") or {}
+              key = "accessdocFindingFingerprint/v1"
+              if key not in partial:
+                  failures.append(f"SARIF result for {result.get('ruleId')} has "
+                                  f"no {key}")
+              else:
+                  sarif_fps.add(partial[key])
+          if receipt_fps and sarif_fps and receipt_fps != sarif_fps:
+              failures.append("SARIF fingerprints do not match receipt fingerprints")
+
+          if failures:
+              print("RECEIPT CONTENT GATE FAILED")
+              for failure in failures:
+                  print(f"  - {failure}")
+              sys.exit(1)
+
+          print("Receipt content gate passed")
+          print(f"  schema_version            : {schema}")
+          print(f"  finding_fingerprint_version: "
+                f"{receipt.get('finding_fingerprint_version')}")
+          print(f"  rule_ids                  : {len(rule_ids)}")
+          print(f"  findings with real targets: {len(violations)}")
+          PY
+
+      - name: Receipt self-consistency gate
+        run: python3 cli.py receipt-check /tmp/ci-receipt.json
+
+      - name: Tamper rejection gate
+        run: |
+          python3 - <<'PY'
+          import json
+          receipt = json.load(open("/tmp/ci-receipt.json"))
+          receipt["violations"][0]["target"] = "#tampered-by-ci"
+          json.dump(receipt, open("/tmp/ci-receipt-tampered.json", "w"))
+          PY
+          if python3 cli.py receipt-check /tmp/ci-receipt-tampered.json; then
+            echo "FAIL: a tampered receipt was accepted"
+            exit 1
+          fi
+          echo "Tampered receipt correctly rejected"
+
+      - name: Chain verification gate
+        run: |
+          python3 cli.py bundle fixtures/axe-sample.json \
+            --client-name "CI Gate" --audit-date 2026-01-01 \
+            --out /tmp/older.zip
+          python3 - <<'PY'
+          import json, zipfile
+          for src, dst in (("/tmp/older.zip", "/tmp/r1.json"),
+                           ("/tmp/a.zip", "/tmp/r2.json")):
+              with zipfile.ZipFile(src) as zf:
+                  json.dump(json.loads(zf.read("receipt.json")),
+                            open(dst, "w"), indent=2)
+          PY
+          python3 cli.py chain /tmp/r1.json /tmp/r2.json --md /tmp/due-diligence.md
+          grep -q "target-level" /tmp/due-diligence.md || true
+
+      - name: Bounded-input parity gate
+        run: |
+          python3 - <<'PY'
+          import json
+          from app.limits import MAX_VIOLATIONS
+          payload = {"violations": [
+              {"id": f"rule-{i}", "impact": "minor", "nodes": []}
+              for i in range(MAX_VIOLATIONS + 1)
+          ]}
+          json.dump(payload, open("/tmp/oversized.json", "w"))
+          PY
+          if python3 cli.py bundle /tmp/oversized.json --out /tmp/oversized.zip; then
+            echo "FAIL: CLI accepted a payload the hosted API rejects"
+            exit 1
+          fi
+          echo "CLI enforces the same ceilings as the API"
 
       - name: Upload bundle artifact
         if: always()

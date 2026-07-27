@@ -46,6 +46,10 @@ class ApiHardeningTests(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.server.shutdown()
+        # Release the listening socket too. shutdown() only stops
+        # serve_forever(); without server_close() the fd leaks and the
+        # interpreter emits ResourceWarning at exit.
+        cls.server.server_close()
 
     def _post(self, body, headers=None, path="/"):
         """Helper: POST raw bytes with custom headers. Returns response or HTTPError."""

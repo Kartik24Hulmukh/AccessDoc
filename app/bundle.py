@@ -452,6 +452,25 @@ def validate_bundle(zip_bytes):
             if _sha256(zf.read(path)) != expected:
                 errors.append(f"{path}: digest mismatch")
 
+        if errors:
+            return {"valid": False, "errors": errors}
+
+        # --- Phase 6.4: receipt self-consistency -------------------------
+        # Digest checks prove the ZIP was not edited after generation. They do
+        # NOT prove the receipt was internally honest when it was generated:
+        # a receipt whose finding_fingerprint disagrees with its own rule /
+        # source / target is either tampered-with-and-resealed or produced by
+        # an incompatible generator. Either way it must not validate.
+        from .receipt_validate import validate_receipt
+        try:
+            receipt = json.loads(zf.read("receipt.json"))
+        except Exception as exc:
+            errors.append(f"receipt.json unreadable: {exc}")
+        else:
+            errors.extend(
+                f"receipt.json: {e}" for e in validate_receipt(receipt)
+            )
+
     except Exception as exc:
         errors.append(f"Read error: {exc}")
     finally:

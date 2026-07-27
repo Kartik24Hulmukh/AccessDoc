@@ -11,6 +11,7 @@ import json
 import re
 from .models import AuditSummary, AuditViolation
 from .catalog import get_wcag_scs
+from .limits import enforce_axe_limits
 
 # --- Target normalization constants -----------------------------------------
 _TARGET_MAX_LEN = 200
@@ -100,6 +101,11 @@ def parse_axe_json(raw):
     incomplete_raw = data.get("incomplete") or []
     if not isinstance(violations_raw, list):
         raise ValueError("'violations' must be a list")
+    # Single-sourced bounded-input contract: every surface (HTTP API, CLI, CI
+    # gate, MCP) funnels through this parser, so the ceilings in app/limits.py
+    # now apply identically everywhere. The HTTP handler additionally rejects
+    # oversized payloads earlier, before the body is even parsed.
+    enforce_axe_limits(violations_raw)
     url            = data.get("url") or ""
     engine         = data.get("testEngine") or {}
     engine_ver     = (engine.get("version") if isinstance(engine, dict) else "") or ""
