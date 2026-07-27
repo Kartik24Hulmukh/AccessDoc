@@ -72,7 +72,7 @@ python3 cli.py catalog                    # rule catalog summary
 
 ## Test
 ```bash
-python3 -m unittest discover -s tests -p 'test_*.py'   # 399 tests
+python3 -m unittest discover -s tests -p 'test_*.py'   # 444 tests (see beta.3 release notes)
 python3 scripts/stress_test.py                          # 15 adversarial checks
 ```
 
