@@ -6,4 +6,4 @@
 # Phase 10 — Dependency and Workflow Reproducibility
 reportlab==4.4.1
 PyYAML==6.0.2
-sigstore==4.4.0
+sigstore==4.5.0
