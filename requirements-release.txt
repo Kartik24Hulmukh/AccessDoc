@@ -4,6 +4,6 @@
 # reproducible bundles and signatures.
 #
 # Phase 10 — Dependency and Workflow Reproducibility
-reportlab==4.4.1
+reportlab==5.0.1
 PyYAML==6.0.2
 sigstore==4.4.0
