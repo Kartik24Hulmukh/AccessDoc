@@ -35,6 +35,7 @@ jobs:
     env:
       PRODUCTION_URL: https://access-doc.vercel.app
       EXPECTED_VERSION: ${{ github.event.inputs.expected_version || '0.7.0-beta.5' }}
+      TARGET_COMMIT: ${{ github.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -58,11 +59,13 @@ jobs:
 
           BASE = os.environ["PRODUCTION_URL"].rstrip("/")
           EXPECTED = os.environ["EXPECTED_VERSION"]
+          TARGET_COMMIT = os.environ.get("TARGET_COMMIT", "").strip()
           POLL_INTERVAL = 15      # seconds
           MAX_WAIT = 15 * 60      # 15 minutes
           REQ_TIMEOUT = 30        # per-request timeout
           deadline = time.monotonic() + MAX_WAIT
 
+          checks_run = []
           failures = []
 
           def req(method, path, body=None, headers=None, expect_status=None):
@@ -92,6 +95,8 @@ jobs:
           # ----------------------------------------------------------------
           print(f"=== Waiting for Vercel deployment at {BASE} ===")
           print(f"    Expected version: {EXPECTED}")
+          if TARGET_COMMIT:
+              print(f"    Target commit: {TARGET_COMMIT[:7]}")
           print(f"    Poll interval: {POLL_INTERVAL}s, max wait: {MAX_WAIT}s, req timeout: {REQ_TIMEOUT}s")
 
           ready = False
@@ -104,8 +109,12 @@ jobs:
                       data = json.loads(body)
                       ver = data.get("adapter_version", "")
                       svc_status = data.get("status", "")
-                      print(f"  Attempt {attempts}: status={status}, adapter_version={ver!r}, status_field={svc_status!r}")
-                      if svc_status == "ok":
+                      deployed_commit = data.get("commit", "")
+                      print(f"  Attempt {attempts}: status={status}, adapter_version={ver!r}, status_field={svc_status!r}, commit={deployed_commit!r}")
+                      commit_matches = True
+                      if TARGET_COMMIT and deployed_commit and deployed_commit != "unknown":
+                          commit_matches = deployed_commit.startswith(TARGET_COMMIT[:7]) or TARGET_COMMIT.startswith(deployed_commit[:7])
+                      if svc_status == "ok" and commit_matches:
                           ready = True
                           break
                   except Exception as e:
@@ -125,9 +134,11 @@ jobs:
           # ----------------------------------------------------------------
 
           def check(name, condition, detail=""):
+              checks_run.append(name)
               tag = "PASS" if condition else "FAIL"
               print(f"  [{tag}] {name}" + (f" — {detail}" if detail else ""))
               if not condition:
+                  failures.append(name)
                   failures.append(name)
 
           # --- Check 1: GET / returns 200, adapter_version, status ok ---
@@ -319,7 +330,8 @@ jobs:
           # Summary
           # ----------------------------------------------------------------
           print(f"\n=== SMOKE TEST SUMMARY ===")
-          print(f"  Total checks: {11 + 5}")  # approximate
+          print(f"  Total checks: {len(checks_run)}")
+          print(f"  Passed: {len(checks_run) - len(failures)}")
           print(f"  Failures: {len(failures)}")
           if failures:
               print(f"  FAILED checks:")
@@ -328,6 +340,6 @@ jobs:
               print(f"\n  RESULT: FAIL")
               sys.exit(1)
           else:
-              print(f"\n  RESULT: PASS — all smoke checks passed")
+              print(f"\n  RESULT: PASS — all {len(checks_run)} smoke checks passed")
               sys.exit(0)
           PYEOF

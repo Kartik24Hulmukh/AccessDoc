@@ -192,12 +192,14 @@ class handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         """Health check on '/', '/readyz', '/healthz', '/api/bundle'."""
+        commit_sha = os.environ.get("VERCEL_GIT_COMMIT_SHA", "unknown")
         path = self.path.split("?")[0].rstrip("/") or "/"
         if path in ("/", "/readyz", "/healthz", "/health"):
             self._send_json(200, {
                 "service": "AccessDoc",
                 "adapter_version": ADAPTER_VERSION,
                 "status": "ok",
+                "commit": commit_sha,
                 "api_note": "Bounded ReportLab demo API. See docs for limitations.",
             })
             return
@@ -207,6 +209,7 @@ class handler(BaseHTTPRequestHandler):
                 "adapter_version": ADAPTER_VERSION,
                 "endpoint": "/api/bundle",
                 "method": "POST",
+                "commit": commit_sha,
                 "description": "Send POST with axe-core JSON in scanner_input to generate an evidence ZIP.",
             })
             return
