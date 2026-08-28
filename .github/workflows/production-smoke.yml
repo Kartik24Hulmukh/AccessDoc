@@ -101,6 +101,7 @@ jobs:
 
           ready = False
           attempts = 0
+          last_observed_commit = None
           while time.monotonic() < deadline:
               attempts += 1
               status, hdrs, body = req("GET", "/")
@@ -110,10 +111,14 @@ jobs:
                       ver = data.get("adapter_version", "")
                       svc_status = data.get("status", "")
                       deployed_commit = data.get("commit", "")
+                      last_observed_commit = deployed_commit
                       print(f"  Attempt {attempts}: status={status}, adapter_version={ver!r}, status_field={svc_status!r}, commit={deployed_commit!r}")
                       commit_matches = True
-                      if TARGET_COMMIT and deployed_commit and deployed_commit != "unknown":
-                          commit_matches = deployed_commit.startswith(TARGET_COMMIT[:7]) or TARGET_COMMIT.startswith(deployed_commit[:7])
+                      if TARGET_COMMIT:
+                          if not deployed_commit or deployed_commit == "unknown":
+                              commit_matches = False
+                          else:
+                              commit_matches = (deployed_commit[:7] == TARGET_COMMIT[:7])
                       if svc_status == "ok" and commit_matches:
                           ready = True
                           break
@@ -124,7 +129,7 @@ jobs:
               time.sleep(POLL_INTERVAL)
 
           if not ready:
-              print(f"FAIL: Vercel deployment not ready after {MAX_WAIT}s ({attempts} attempts)")
+              print(f"FAIL: Vercel deployment not ready after {MAX_WAIT}s ({attempts} attempts). Last observed commit: {last_observed_commit!r}")
               sys.exit(1)
 
           print(f"=== Deployment ready after {attempts} attempts ===\n")
@@ -138,7 +143,6 @@ jobs:
               tag = "PASS" if condition else "FAIL"
               print(f"  [{tag}] {name}" + (f" — {detail}" if detail else ""))
               if not condition:
-                  failures.append(name)
                   failures.append(name)
 
           # --- Check 1: GET / returns 200, adapter_version, status ok ---
