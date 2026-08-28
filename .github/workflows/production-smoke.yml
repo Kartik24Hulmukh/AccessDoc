@@ -91,7 +91,7 @@ jobs:
           # Phase 1: Poll health endpoint until deployment is ready.
           # ----------------------------------------------------------------
           print(f"=== Waiting for Vercel deployment at {BASE} ===")
-          print(f"    Expected version: {EXPECTED_VERSION}")
+          print(f"    Expected version: {EXPECTED}")
           print(f"    Poll interval: {POLL_INTERVAL}s, max wait: {MAX_WAIT}s, req timeout: {REQ_TIMEOUT}s")
 
           ready = False
