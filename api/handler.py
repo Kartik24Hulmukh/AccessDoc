@@ -44,10 +44,7 @@ _SECURITY_HEADERS = {
     "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
     "Pragma": "no-cache",
     "Expires": "0",
-    # Conservative CORS: same-origin only. No wildcard.
-    "Access-Control-Allow-Origin": "null",
-    "Access-Control-Allow-Methods": "GET, POST",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
     # Prevent error pages from being rendered as HTML by browsers.
     "X-Frame-Options": "DENY",
     "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
