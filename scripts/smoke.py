@@ -16,6 +16,6 @@ with zipfile.ZipFile(io.BytesIO(bundle)) as z:
  members=z.namelist()
  assert set(members)=={'report.pdf','report.html','receipt.json','openacr.yaml','attestation.intoto.json','manifest.json'},f'unexpected members: {members}'
  receipt=json.loads(z.read('receipt.json'))
- assert receipt['schema_version']=='1.1'
+ assert receipt['schema_version']=='1.2'
  assert 'coverage_note' in receipt
 print(json.dumps({'status':'PASS','bundle_bytes':len(bundle),'bundle_members':len(members),'members':members}))

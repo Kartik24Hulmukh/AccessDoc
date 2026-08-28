@@ -1,2 +1,4 @@
 -r requirements.txt
 pypdf==6.14.2
+PyYAML>=6.0
+jsonschema>=4.0.0

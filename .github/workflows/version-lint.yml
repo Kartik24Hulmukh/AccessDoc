@@ -1,0 +1,18 @@
+﻿# .github/workflows/version-lint.yml
+# This job makes VERSION canonical and fails the build on any disagreement.
+name: version-lint
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: '3.13'
+      - name: Every declared version must equal VERSION
+        run: python scripts/version_lint.py

@@ -107,6 +107,7 @@ class TestSelfAccessibility(unittest.TestCase):
         import tempfile, time
         from playwright.sync_api import sync_playwright
 
+        from pathlib import Path
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".html", delete=False, encoding="utf-8"
         ) as f:
@@ -124,7 +125,7 @@ class TestSelfAccessibility(unittest.TestCase):
                         "width": viewport_width,
                         "height": 800,
                     })
-                page.goto(f"file://{tmp_path}", wait_until="load",
+                page.goto(Path(tmp_path).as_uri(), wait_until="load",
                           timeout=10000)
                 if axe_source:
                     page.add_script_tag(content=axe_source)

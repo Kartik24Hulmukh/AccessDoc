@@ -201,7 +201,7 @@ def cmd_doctor(args):
 
     def _check(name, status, detail=""):
         nonlocal ok, warn
-        mark = "\u2705" if status == "ok" else ("\u26a0\ufe0f" if status == "warn" else "\u274c")
+        mark = "[OK]" if status == "ok" else ("[WARN]" if status == "warn" else "[FAIL]")
         checks.append(f"  {mark} {name}: {detail}")
         if status == "ok":
             ok += 1
@@ -235,8 +235,8 @@ def cmd_doctor(args):
     try:
         from weasyprint import HTML
         _check("weasyprint", "ok", "installed - experimental tagged PDF path (no PDF/UA conformance claim)")
-    except ImportError:
-        _check("weasyprint", "warn", "not installed - pip install weasyprint (for tagged PDF)")
+    except Exception:
+        _check("weasyprint", "warn", "not installed/functional - pip install weasyprint (for tagged PDF)")
 
     try:
         tmp = tempfile.NamedTemporaryFile(delete=True, dir=".")

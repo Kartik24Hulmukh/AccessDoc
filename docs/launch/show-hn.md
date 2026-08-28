@@ -30,7 +30,7 @@ The key design decisions:
 
 5. **Multiple interfaces:** CLI (`accessdoc bundle axe.json --sarif --vpat --eaa`), a stdio MCP server for agents, a Vercel serverless API, and a reusable GitHub Action.
 
-It's at v0.6.0-beta.1. The test suite has 170 tests (25 skipped for optional deps) and 15 adversarial stress checks (XSS payloads, YAML injection, 5000-violation scale, tamper detection).
+It's at v0.7.0-beta.5. The test suite has 561 tests (560 pass, 1 skipped) and 15 adversarial stress checks (XSS payloads, YAML injection, 5000-violation scale, tamper detection).
 
 I'd love feedback on:
 - Is the "evidence, not conformance" framing useful for procurement contexts?

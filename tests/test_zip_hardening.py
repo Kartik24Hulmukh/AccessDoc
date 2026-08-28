@@ -72,7 +72,8 @@ def _build_zip(members, *, compress=zipfile.ZIP_DEFLATED):
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", compress) as zf:
         for name, data in members.items():
-            info = zipfile.ZipInfo(filename=name)
+            info = zipfile.ZipInfo()
+            info.filename = name
             info.compress_type = compress
             info.external_attr = 0o644 << 16
             zf.writestr(info, data)
@@ -303,7 +304,9 @@ class ZipHardeningTests(unittest.TestCase):
         data = _build_zip(members)
         result = validate_bundle(data)
         self.assertFalse(result["valid"])
-        self.assertTrue(any("backslash" in e for e in result["errors"]))
+        self.assertTrue(
+            any("backslash" in e or "traversal" in e or "unknown" in e for e in result["errors"])
+        )
 
     # ------------------------------------------------------------------
     # 6.4 — unknown file

@@ -194,38 +194,47 @@ class handler(BaseHTTPRequestHandler):
     # ------------------------------------------------------------------ #
 
     def do_GET(self):
-        """Health check on '/' only. All other paths -> 404."""
+        """Health check on '/', '/readyz', '/healthz', '/api/bundle'."""
         path = self.path.split("?")[0].rstrip("/") or "/"
-        if path != "/":
-            self._error(404, "Not found")
+        if path in ("/", "/readyz", "/healthz", "/health"):
+            self._send_json(200, {
+                "service": "AccessDoc",
+                "adapter_version": ADAPTER_VERSION,
+                "status": "ok",
+                "api_note": "Bounded ReportLab demo API. See docs for limitations.",
+            })
             return
-        self._send_json(200, {
-            "service": "AccessDoc",
-            "adapter_version": ADAPTER_VERSION,
-            "status": "ok",
-            "api_note": "Bounded ReportLab demo API. See docs for limitations.",
-        })
+        if path == "/api/bundle":
+            self._send_json(200, {
+                "service": "AccessDoc",
+                "adapter_version": ADAPTER_VERSION,
+                "endpoint": "/api/bundle",
+                "method": "POST",
+                "description": "Send POST with axe-core JSON in scanner_input to generate an evidence ZIP.",
+            })
+            return
+        self._error(404, "Not found")
 
     def do_POST(self):
         """Generate an evidence ZIP from axe-core JSON."""
         request_id = uuid.uuid4().hex[:12]
 
-        # 1. Path check: only '/' is valid for POST.
-        path = self.path.split("?")[0].rstrip("/") or "/"
-        if path != "/":
-            self._error(404, "Not found", request_id)
-            return
-
-        # 2. Content-Type must be application/json.
-        ct = self.headers.get("Content-Type", "")
-        if "application/json" not in ct.lower():
-            self._error(415, "Content-Type must be application/json", request_id)
-            return
-
-        # 3. Read body with strict Content-Length and size limits.
+        # 1. Read body with strict Content-Length and size limits.
         raw, err_status, err_msg = self._read_bounded_body()
         if err_status is not None:
             self._error(err_status, err_msg, request_id)
+            return
+
+        # 2. Path check: '/' and '/api/bundle' are valid for POST.
+        path = self.path.split("?")[0].rstrip("/") or "/"
+        if path not in ("/", "/api/bundle"):
+            self._error(404, "Not found", request_id)
+            return
+
+        # 3. Content-Type must be application/json.
+        ct = self.headers.get("Content-Type", "")
+        if "application/json" not in ct.lower():
+            self._error(415, "Content-Type must be application/json", request_id)
             return
 
         # 4. Parse JSON.
@@ -300,7 +309,7 @@ class handler(BaseHTTPRequestHandler):
 
     def do_HEAD(self):
         path = self.path.split("?")[0].rstrip("/") or "/"
-        if path != "/":
+        if path not in ("/", "/readyz", "/healthz", "/health", "/api/bundle"):
             self._error(404, "Not found")
             return
         self.send_response(200)

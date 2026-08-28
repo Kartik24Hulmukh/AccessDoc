@@ -41,7 +41,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install reportlab PyYAML playwright
+          pip install reportlab PyYAML playwright jsonschema
           python -m playwright install --with-deps chromium
 
       - name: Install pinned axe-core (local, no CDN)

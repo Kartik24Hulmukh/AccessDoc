@@ -14,6 +14,36 @@ jobs:
           python-version: '3.13'
           cache: pip
       - run: pip install --requirement requirements-dev.txt
+      - name: Install Playwright & axe-core for Required Self-Audit
+        run: |
+          pip install playwright
+          playwright install chromium --with-deps
+          npm install axe-core
+      - name: Run axe-core self-audit against AccessDoc HTML outputs
+        run: python scripts/self_audit.py
+      - name: Archive axe-core self-audit JSON report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: axe-self-audit
+          path: axe-self-audit.json
+      - name: Validate generated OpenACR against GSA CLI validator
+        run: |
+          git clone --depth 1 https://github.com/GSA/openacr.git /tmp/openacr-upstream
+          cd /tmp/openacr-upstream && npm ci && cd $GITHUB_WORKSPACE
+          python -c "from app.service import build_artifacts; open('/tmp/test_acr.yaml', 'w', encoding='utf-8').write(build_artifacts({'scanner_input': open('fixtures/axe-sample.json', encoding='utf-8').read(), 'client_name': 'CI Test Client'}).openacr_yaml)"
+          npx --prefix /tmp/openacr-upstream ts-node /tmp/openacr-upstream/src/openacr.ts validate -f /tmp/test_acr.yaml 2>&1 | tee /tmp/gsa.out
+          grep -q "Invalid" /tmp/gsa.out && { echo "GATE FAIL: GSA validator reported Invalid"; exit 1; }
+          grep -q "Valid\!" /tmp/gsa.out || { echo "GATE FAIL: GSA validator did not report Valid!"; exit 1; }
+      - name: Verify generated bundle and hostile fixtures with shipped verifier
+        run: |
+          python -c "from app.service import build_artifacts; from app.bundle import build_bundle; open('/tmp/fresh_bundle.zip', 'wb').write(build_bundle(build_artifacts({'scanner_input': open('fixtures/axe-sample.json', encoding='utf-8').read(), 'client_name': 'Fresh CI Client'})))"
+          python scripts/verify_bundle.py /tmp/fresh_bundle.zip || { echo "GATE FAIL: fresh bundle failed shipped verifier"; exit 1; }
+          for fix in tests/fixtures/hostile/*.zip; do
+            echo "Testing hostile fixture $fix..."
+            python scripts/verify_bundle.py "$fix" && { echo "GATE FAIL: hostile fixture $fix unexpectedly passed (exit 0)"; exit 1; }
+          done
+          echo "All hostile fixtures rejected by shipped verifier with non-zero exits."
       - run: python -m compileall -q app api tests
       - run: python -W error::ResourceWarning -m unittest discover -s tests -v
       - run: find . -type d -name __pycache__ -exec rm -rf {} +

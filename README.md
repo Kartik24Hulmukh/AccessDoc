@@ -11,7 +11,7 @@ pack, and an in-toto attestation whose digests cover every file.
 > (Deque 2022); manual + assistive-technology testing is required for a
 > conformance claim. Not legal advice.
 
-## What's new in v0.7.0-beta.3
+## What's new in v0.7.0-beta.5
 
 - **Claims and documentation correction.** All overclaims removed: PDF/UA
   conformance language corrected to "experimental structural tagging path;
@@ -24,9 +24,9 @@ pack, and an in-toto attestation whose digests cover every file.
   exhaustion, ZIP bombs, Action input injection, and scanner SSRF added to
   threat list.
 - **Version metadata corrected.** Stress test version updated from
-  v0.6.0-beta.1 to v0.7.0-beta.3.
+  v0.7.0-beta.5 to v0.7.0-beta.5.
 
-## What's new in v0.7.0-beta.2
+## What's new in v0.7.0-beta.5
 
 - **End-to-end validated Sigstore signing workflow.** The signing workflow now
   downloads a real Evidence Gate artifact, verifies the AccessDoc bundle before
@@ -34,7 +34,7 @@ pack, and an in-toto attestation whose digests cover every file.
   the certificate identity and issuer, and uploads the signed ZIP with its
   Sigstore bundle. No application behavior changed.
 
-## What's new in v0.7.0-beta.1
+## What's new in v0.7.0-beta.5
 
 - **Due-diligence record** (`due-diligence.md`) - proves *reasonable steps taken
   over time*, not just a point-in-time score. See `docs/DUE-DILIGENCE.md`.
@@ -46,7 +46,7 @@ pack, and an in-toto attestation whose digests cover every file.
   Rekor transparency log. See `docs/SIGNING.md`.
 - Meaningful PDF metadata (`/Title`, `/Lang`, `/Author`, `/Subject`).
 
-## Previously in v0.7.0-beta.1
+## Previously in v0.7.0-beta.5
 - **Security hardening:** fixed 2 stored-XSS vectors (client name, URL, and
   violation fields now HTML-escaped) and 1 YAML-injection vector (OpenACR
   scalars are JSON-encoded). Regression-tested in `tests/test_security.py`.

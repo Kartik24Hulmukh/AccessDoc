@@ -66,7 +66,7 @@ class BundleTests(unittest.TestCase):
     def test_openacr_yaml_present(self):
         with zipfile.ZipFile(BytesIO(self.data)) as z:
             yaml_content = z.read("openacr.yaml").decode()
-        self.assertIn("schema_version", yaml_content)
+        self.assertIn("chapters", yaml_content)
 
     def test_intoto_json_is_dsse(self):
         with zipfile.ZipFile(BytesIO(self.data)) as z:

@@ -1,4 +1,4 @@
-__pycache__/
+﻿__pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
@@ -7,3 +7,9 @@ dist/
 .env
 .vercel/
 node_modules/
+axe-self-audit.json
+package.json
+package-lock.json
+*.diff
+
+docs/plan/
