@@ -86,6 +86,7 @@ class TestActionInjection(unittest.TestCase):
             text=True,
             timeout=30,
             env=env,
+            cwd=self.tmpdir,
         )
         return proc
 
