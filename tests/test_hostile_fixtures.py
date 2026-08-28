@@ -1,4 +1,4 @@
-﻿"""Hostile-fixture tests for scripts/verify_bundle.py per 03-VERIFY-PRIMITIVE.md.
+"""Hostile-fixture tests for scripts/verify_bundle.py per 03-VERIFY-PRIMITIVE.md.
 
 Eight hostile fixtures assert exact distinct exit codes:
   - tampered_member.zip          -> exit code 20 (INTEGRITY)

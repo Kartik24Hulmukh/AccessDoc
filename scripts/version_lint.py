@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Enforce that every version reference across active tracked files equals VERSION."""
 import os
 import re

@@ -1,4 +1,4 @@
-﻿"""Vercel serverless bundle handler alias.
+"""Vercel serverless bundle handler alias.
 
 Routes /api/bundle requests to the canonical AccessDoc handler.
 Version: 0.7.0-beta.5

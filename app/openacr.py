@@ -1,4 +1,4 @@
-﻿"""OpenACR-compatible YAML exporter for AccessDoc (GSA OpenACR 0.1.0 schema).
+"""OpenACR-compatible YAML exporter for AccessDoc (GSA OpenACR 0.1.0 schema).
 
 SECURITY: all user-controlled values are emitted through _yq(), which produces
 a safe YAML double-quoted scalar (escapes backslash/quote, strips control chars

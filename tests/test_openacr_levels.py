@@ -1,4 +1,4 @@
-﻿"""The conformance level of a criterion is a fact about WCAG, not a string shape.
+"""The conformance level of a criterion is a fact about WCAG, not a string shape.
 
 Regression for the 28 Aug defect: the emitter's Level A/AA heuristic misfiled Level A criteria
 into the Level AA chapter, and put Level AAA criteria in AA while emitting the AAA chapter as disabled.

@@ -1,4 +1,4 @@
-﻿"""WCAG conformance level for each success criterion AccessDoc can report.
+"""WCAG conformance level for each success criterion AccessDoc can report.
 
 WHY THIS FILE EXISTS
 --------------------

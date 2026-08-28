@@ -1,4 +1,4 @@
-﻿# .github/workflows/version-lint.yml
+# .github/workflows/version-lint.yml
 # This job makes VERSION canonical and fails the build on any disagreement.
 name: version-lint
 on:
@@ -16,3 +16,7 @@ jobs:
           python-version: '3.13'
       - name: Every declared version must equal VERSION
         run: python scripts/version_lint.py
+      - name: No UTF-8 BOM in any tracked file
+        run: python scripts/bom_lint.py
+      - name: Config files parse as strict JSON
+        run: python scripts/config_lint.py

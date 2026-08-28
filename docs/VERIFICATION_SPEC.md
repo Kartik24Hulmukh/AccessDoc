@@ -1,4 +1,4 @@
-﻿# AccessDoc Verification Specification
+# AccessDoc Verification Specification
 
 This specification defines the behavior, exit codes, and threat model boundaries of the standalone offline verifier (`scripts/verify_bundle.py`).
 

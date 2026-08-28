@@ -1,4 +1,4 @@
-﻿"""Run axe-core self-audit against AccessDoc's own report.html and vpat-draft.html."""
+"""Run axe-core self-audit against AccessDoc's own report.html and vpat-draft.html."""
 from __future__ import annotations
 import json
 import os
