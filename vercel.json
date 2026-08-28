@@ -1,9 +1,11 @@
-{
+﻿{
   "version": 2,
   "builds": [
-    { "src": "api/handler.py", "use": "@vercel/python" }
+    { "src": "api/handler.py", "use": "@vercel/python" },
+    { "src": "api/bundle.py", "use": "@vercel/python" }
   ],
   "routes": [
+    { "src": "/api/bundle", "dest": "api/bundle.py" },
     { "src": "/(.*)", "dest": "api/handler.py" }
   ]
 }

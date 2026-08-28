@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Adversarial stress test for AccessDoc v0.7.0-beta.3.
+"""Adversarial stress test for AccessDoc v0.7.0-beta.5.
 
 Throws malformed, hostile, and edge-case inputs at the pipeline to catch
 crashes, injections, and silent data corruption. Exit code is non-zero if any
@@ -159,7 +159,7 @@ expect_ok("determinism: receipt/openacr/html identical across runs", _determinis
 fails = [r for r in RESULTS if r[0] == "FAIL"]
 print("=" * 60)
 for status, name, detail in RESULTS:
-    mark = "\u2713" if status == "PASS" else "\u2717"
+    mark = "[+]" if status == "PASS" else "[-]"
     print(f"{mark} [{status}] {name}" + (f" -- {detail}" if detail else ""))
 print("=" * 60)
 print(f"{len(RESULTS)} checks run, {len(fails)} failures")

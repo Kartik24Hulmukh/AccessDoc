@@ -1,13 +1,23 @@
 {
   "url": "https://example.com",
-  "testEngine": {"name": "axe-core", "version": "4.11.2"},
+  "testEngine": {
+    "name": "axe-core",
+    "version": "4.11.2"
+  },
   "violations": [
     {
       "id": "image-alt",
       "impact": "critical",
       "description": "Images must have alternate text",
       "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/image-alt",
-      "nodes": [{"html": "<img src='logo.png'>", "target": ["header > img.logo"]}]
+      "nodes": [
+        {
+          "html": "<img src='logo.png'>",
+          "target": [
+            "header > img.logo"
+          ]
+        }
+      ]
     },
     {
       "id": "color-contrast",
@@ -15,8 +25,18 @@
       "description": "Elements must have sufficient color contrast",
       "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/color-contrast",
       "nodes": [
-        {"html": "<p style='color:#aaa'>text</p>", "target": ["#intro > p"]},
-        {"html": "<span>low contrast</span>", "target": ["#footer span.muted"]}
+        {
+          "html": "<p style='color:#aaa'>text</p>",
+          "target": [
+            "#intro > p"
+          ]
+        },
+        {
+          "html": "<span>low contrast</span>",
+          "target": [
+            "#footer span.muted"
+          ]
+        }
       ]
     },
     {
@@ -24,14 +44,28 @@
       "impact": "serious",
       "description": "The html element must have a lang attribute",
       "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/html-has-lang",
-      "nodes": [{"html": "<html>", "target": ["html"]}]
+      "nodes": [
+        {
+          "html": "<html>",
+          "target": [
+            "html"
+          ]
+        }
+      ]
     },
     {
       "id": "document-title",
       "impact": "serious",
       "description": "Documents must have a title element",
       "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/document-title",
-      "nodes": [{"html": "<head></head>", "target": ["head"]}]
+      "nodes": [
+        {
+          "html": "<head></head>",
+          "target": [
+            "head"
+          ]
+        }
+      ]
     },
     {
       "id": "duplicate-id",
@@ -39,16 +73,99 @@
       "description": "id attribute value must be unique",
       "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/duplicate-id",
       "nodes": [
-        {"html": "<div id='main'>", "target": ["body > div#main"]},
-        {"html": "<div id='main'>", "target": ["main > div#main"]}
+        {
+          "html": "<div id='main'>",
+          "target": [
+            "body > div#main"
+          ]
+        },
+        {
+          "html": "<div id='main'>",
+          "target": [
+            "main > div#main"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "list",
+      "impact": "serious",
+      "description": "List items must be contained in a parent list",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/list",
+      "nodes": [
+        {
+          "html": "<li>Item</li>",
+          "target": [
+            "li"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bypass",
+      "impact": "serious",
+      "description": "Page must have means to bypass repeated blocks",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/bypass",
+      "nodes": [
+        {
+          "html": "<body>",
+          "target": [
+            "body"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "label",
+      "impact": "critical",
+      "description": "Form elements must have labels",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/label",
+      "nodes": [
+        {
+          "html": "<input>",
+          "target": [
+            "input"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "button-name",
+      "impact": "critical",
+      "description": "Buttons must have discernible text",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/button-name",
+      "nodes": [
+        {
+          "html": "<button></button>",
+          "target": [
+            "button"
+          ]
+        }
       ]
     }
   ],
   "passes": [
-    {"id": "aria-roles", "nodes": [{}, {}, {}]},
-    {"id": "button-name", "nodes": [{}]}
+    {
+      "id": "aria-roles",
+      "nodes": [
+        {},
+        {},
+        {}
+      ]
+    },
+    {
+      "id": "button-name",
+      "nodes": [
+        {}
+      ]
+    }
   ],
   "incomplete": [
-    {"id": "label", "nodes": [{}]}
+    {
+      "id": "label",
+      "nodes": [
+        {}
+      ]
+    }
   ]
 }

@@ -1,4 +1,4 @@
-"""Tests for the Vercel HTTP handler."""
+"""Tests for the Vercel HTTP handler (v0.7.0-beta.5)."""
 import json
 import unittest
 import zipfile
