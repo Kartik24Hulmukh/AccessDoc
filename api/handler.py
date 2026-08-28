@@ -8,6 +8,7 @@ paths. All inputs are size-limited before expensive work begins.
 Security headers, strict content-type/length validation, and bounded reads
 ensure hostile payloads cannot exhaust resources or leak internal errors.
 """
+# Bounded serverless endpoint for ReportLab PDF & OpenACR evidence generation.
 import json
 import sys
 import os
