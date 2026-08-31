@@ -95,26 +95,24 @@ def parse_axe_json(raw):
     data = json.loads(raw) if isinstance(raw, str) else raw
     if not isinstance(data, dict):
         raise ValueError("axe-core input must be a JSON object")
-    recognizable = {"violations", "passes", "incomplete", "testEngine", "url"}
-    if not any(key in data for key in recognizable):
-        raise ValueError(
-            "axe-core input must include recognizable axe result fields "
-            "(for example: violations/passes/incomplete/testEngine/url)"
-        )
 
-    violations_raw = data.get("violations") or []
-    passes_raw     = data.get("passes") or []
-    incomplete_raw = data.get("incomplete") or []
+    # Every result returned by axe.run contains a violations array, including a
+    # legitimate zero-violation scan. Metadata-only objects must not be sealed
+    # as clean accessibility evidence.
+    violations_raw = data.get("violations")
     if not isinstance(violations_raw, list):
-        raise ValueError("'violations' must be a list")
+        raise ValueError("axe-core input must include a 'violations' list")
+
+    passes_raw = data.get("passes") or []
+    incomplete_raw = data.get("incomplete") or []
     # Single-sourced bounded-input contract: every surface (HTTP API, CLI, CI
     # gate, MCP) funnels through this parser, so the ceilings in app/limits.py
     # now apply identically everywhere. The HTTP handler additionally rejects
     # oversized payloads earlier, before the body is even parsed.
     enforce_axe_limits(violations_raw)
-    url            = data.get("url") or ""
-    engine         = data.get("testEngine") or {}
-    engine_ver     = (engine.get("version") if isinstance(engine, dict) else "") or ""
+    url = data.get("url") or ""
+    engine = data.get("testEngine") or {}
+    engine_ver = (engine.get("version") if isinstance(engine, dict) else "") or ""
 
     impact_counts = {"critical": 0, "serious": 0, "moderate": 0, "minor": 0}
     violations = []
