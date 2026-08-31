@@ -95,6 +95,12 @@ def parse_axe_json(raw):
     data = json.loads(raw) if isinstance(raw, str) else raw
     if not isinstance(data, dict):
         raise ValueError("axe-core input must be a JSON object")
+    recognizable = {"violations", "passes", "incomplete", "testEngine", "url"}
+    if not any(key in data for key in recognizable):
+        raise ValueError(
+            "axe-core input must include recognizable axe result fields "
+            "(for example: violations/passes/incomplete/testEngine/url)"
+        )
 
     violations_raw = data.get("violations") or []
     passes_raw     = data.get("passes") or []

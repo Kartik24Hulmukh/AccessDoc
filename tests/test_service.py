@@ -70,7 +70,7 @@ class TestBuildArtifacts(unittest.TestCase):
         self.assertIn("payloadType", parsed)
 
     def test_default_client_name(self):
-        arts = build_artifacts({"scanner_input": "{}"})
+        arts = build_artifacts({"scanner_input": '{"violations":[]}'})
         receipt = json.loads(arts.receipt_json)
         self.assertEqual(receipt["client_name"], "Client")
 

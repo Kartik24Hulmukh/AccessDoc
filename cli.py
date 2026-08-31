@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import sys
+import tempfile
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 if ROOT not in sys.path:
@@ -17,6 +18,26 @@ from app.limits import OVERSIZE_ENV_VAR, limits_summary
 def _read(path):
     with open(path, "r", encoding="utf-8") as f:
         return f.read()
+
+
+def _write_atomic(path, data):
+    dest_dir = os.path.dirname(path) or "."
+    os.makedirs(dest_dir, exist_ok=True)
+    fd, tmp_path = tempfile.mkstemp(
+        prefix=".accessdoc-", suffix=".tmp", dir=dest_dir
+    )
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, path)
+    except Exception:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
 
 
 def _apply_oversize_opt_out(args):
@@ -50,27 +71,29 @@ def _body_from_args(args, extra=None):
 
 
 def cmd_bundle(args):
-    pdf_engine = getattr(args, "pdf_engine", "reportlab")
-    body = _body_from_args(args, {
-        "include_sarif": args.sarif,
-        "include_vpat": args.vpat,
-        "include_eaa": args.eaa,
-        "enrich": args.enrich,
-        "pdf_engine": pdf_engine,
-    })
-    if getattr(args, "prior", None):
-        body["prior_receipt"] = _read(args.prior)
-    if getattr(args, "history", None):
-        hist = []
-        for path in args.history:
-            loaded = json.loads(_read(path))
-            hist.extend(loaded if isinstance(loaded, list) else [loaded])
-        body["receipt_history"] = hist
-    arts = build_artifacts(body)
-    data = build_bundle(arts)
-    os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
-    with open(args.out, "wb") as f:
-        f.write(data)
+    try:
+        pdf_engine = getattr(args, "pdf_engine", "reportlab")
+        body = _body_from_args(args, {
+            "include_sarif": args.sarif,
+            "include_vpat": args.vpat,
+            "include_eaa": args.eaa,
+            "enrich": args.enrich,
+            "pdf_engine": pdf_engine,
+        })
+        if getattr(args, "prior", None):
+            body["prior_receipt"] = _read(args.prior)
+        if getattr(args, "history", None):
+            hist = []
+            for path in args.history:
+                loaded = json.loads(_read(path))
+                hist.extend(loaded if isinstance(loaded, list) else [loaded])
+            body["receipt_history"] = hist
+        arts = build_artifacts(body)
+        data = build_bundle(arts)
+        _write_atomic(args.out, data)
+    except Exception as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
     print(f"Wrote {args.out} ({len(data):,} bytes)")
     return 0
 
@@ -100,11 +123,27 @@ def cmd_eaa(args):
 
 
 def cmd_verify(args):
-    with open(args.bundle, "rb") as f:
-        data = f.read()
-    result = validate_bundle(data)
+    try:
+        with open(args.bundle, "rb") as f:
+            data = f.read()
+        result = validate_bundle(data)
+    except Exception as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
     print(json.dumps(result, indent=2))
-    return 0 if result["valid"] else 1
+    if result["valid"]:
+        print(
+            "NOTE: Validity proves only ZIP members match recorded generation-time hashes. "
+            "It does NOT prove scan truthfulness/completeness, accessibility or legal "
+            "compliance, signer identity (unless separately verified), or procurement/legal "
+            "approval."
+        )
+        return 0
+    print(
+        "WARNING: bundle validation failed; content may be tampered, malformed, or not an AccessDoc bundle.",
+        file=sys.stderr,
+    )
+    return 1
 
 
 def cmd_receipt_check(args):
