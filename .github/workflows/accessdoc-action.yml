@@ -46,7 +46,7 @@ jobs:
 
       - name: Install pinned axe-core (local, no CDN)
         run: |
-          npm install axe-core@4.11.2
+          npm install axe-core@4.11.0
           AXE_PATH=$(node -p "require.resolve('axe-core/axe.min.js')")
           echo "ACCESSDOC_AXE_PATH=$AXE_PATH" >> "$GITHUB_ENV"
 
