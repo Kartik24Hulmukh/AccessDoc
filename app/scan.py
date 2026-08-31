@@ -77,7 +77,11 @@ import urllib.parse
 
 # axe-core UMD is fetched from a CDN at scan time OR loaded from a local path
 # via ACCESSDOC_AXE_PATH. We never bundle axe-core source (license hygiene).
-AXE_CDN = "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.11.2/axe.min.js"
+AXE_FALLBACK_VERSION = "4.11.0"
+AXE_CDN = (
+    "https://cdnjs.cloudflare.com/ajax/libs/axe-core/"
+    f"{AXE_FALLBACK_VERSION}/axe.min.js"
+)
 
 # Schemes the scanner is allowed to navigate to by default.
 ALLOWED_SCHEMES = frozenset({"http", "https"})
@@ -269,6 +273,21 @@ def _load_axe_source():
     return None  # signal: inject from CDN via add_script_tag(url=...)
 
 
+def _require_axe_runtime(page):
+    """Return loaded axe version or raise ScanUnavailable with actionable steps."""
+    version = page.evaluate(
+        "() => (typeof axe !== 'undefined' && axe && axe.version) "
+        "? String(axe.version) : null"
+    )
+    if not version:
+        raise ScanUnavailable(
+            "axe-core failed to initialize after script injection. "
+            "Set ACCESSDOC_AXE_PATH to a local axe.min.js for hermetic scans, "
+            f"or ensure CDN access to {AXE_CDN}."
+        )
+    return version
+
+
 # ---------------------------------------------------------------------------
 # Public scan entry points
 # ---------------------------------------------------------------------------
@@ -328,6 +347,7 @@ def run_scan(url, timeout_ms=30000, allow_private_network=False):
                 page.add_script_tag(content=axe_source)
             else:
                 page.add_script_tag(url=AXE_CDN)
+            axe_version = _require_axe_runtime(page)
             result = page.evaluate(
                 "async () => { return await axe.run(document, "
                 "{resultTypes:['violations','passes','incomplete']}); }"
@@ -344,7 +364,7 @@ def run_scan(url, timeout_ms=30000, allow_private_network=False):
     if "url" not in result:
         result["url"] = url
     if "testEngine" not in result:
-        result["testEngine"] = {"name": "axe-core", "version": "4.11.2"}
+        result["testEngine"] = {"name": "axe-core", "version": axe_version}
     return result
 
 

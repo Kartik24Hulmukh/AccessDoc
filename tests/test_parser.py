@@ -64,8 +64,35 @@ class TestParser(unittest.TestCase):
         summary, violations = parse_axe_json(json.dumps(SAMPLE_AXE))
         self.assertEqual(summary.total_violations, 2)
 
-    def test_empty_axe_json(self):
-        summary, violations = parse_axe_json({})
+    def test_non_axe_objects_are_rejected(self):
+        for payload in (
+            {},
+            {"foo": "bar"},
+            {"url": "https://example.com"},
+            {"testEngine": {}},
+        ):
+            with self.subTest(payload=payload):
+                with self.assertRaises(ValueError):
+                    parse_axe_json(payload)
+
+    def test_minimal_zero_violations_shape_is_accepted(self):
+        summary, violations = parse_axe_json({"violations": []})
+        self.assertEqual(summary.total_violations, 0)
+        self.assertEqual(violations, [])
+
+    def test_explicit_null_violations_is_tolerated(self):
+        summary, violations = parse_axe_json({"violations": None})
+        self.assertEqual(summary.total_violations, 0)
+        self.assertEqual(violations, [])
+
+    def test_full_zero_violations_shape_is_accepted(self):
+        summary, violations = parse_axe_json({
+            "url": "https://example.com",
+            "testEngine": {"name": "axe-core", "version": "4.11.0"},
+            "violations": [],
+            "passes": [],
+            "incomplete": [],
+        })
         self.assertEqual(summary.total_violations, 0)
         self.assertEqual(violations, [])
 

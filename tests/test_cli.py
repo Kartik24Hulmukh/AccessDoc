@@ -6,6 +6,8 @@ import sys
 import tempfile
 import unittest
 import zipfile
+from contextlib import redirect_stderr, redirect_stdout
+from unittest import mock
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import cli
 
@@ -56,12 +58,49 @@ class TestCli(unittest.TestCase):
         with zipfile.ZipFile(out, "w") as z:
             for n, d in items.items():
                 z.writestr(n, d)
-        self.assertEqual(cli.main(["verify", out]), 1)
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            self.assertEqual(cli.main(["verify", out]), 1)
+        self.assertIn("WARNING: bundle validation failed", stderr.getvalue())
 
     def test_verify_passes_intact(self):
         out = os.path.join(self.tmp, "i.zip")
         cli.main(["bundle", self.axe, "--out", out])
-        self.assertEqual(cli.main(["verify", out]), 0)
+        stdout = io.StringIO()
+        with redirect_stdout(stdout):
+            self.assertEqual(cli.main(["verify", out]), 0)
+        self.assertIn("Validity proves only ZIP members", stdout.getvalue())
+
+    def test_verify_non_bundle_fails_cleanly(self):
+        bad = os.path.join(self.tmp, "not-a-bundle.zip")
+        with open(bad, "wb") as f:
+            f.write(b"not a zip")
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            self.assertEqual(cli.main(["verify", bad]), 1)
+        self.assertIn("WARNING: bundle validation failed", stderr.getvalue())
+
+    def test_bundle_invalid_input_returns_2_and_no_output(self):
+        bad_axe = os.path.join(self.tmp, "bad-axe.json")
+        with open(bad_axe, "w", encoding="utf-8") as f:
+            f.write("{")
+        out = os.path.join(self.tmp, "bad.zip")
+        stderr = io.StringIO()
+        with redirect_stderr(stderr):
+            self.assertEqual(cli.main(["bundle", bad_axe, "--out", out]), 2)
+        self.assertIn("ERROR:", stderr.getvalue())
+        self.assertFalse(os.path.exists(out))
+
+    def test_bundle_atomic_write_cleanup_on_replace_error(self):
+        out = os.path.join(self.tmp, "atomic.zip")
+        with mock.patch("cli.os.replace", side_effect=OSError("replace failed")):
+            stderr = io.StringIO()
+            with redirect_stderr(stderr):
+                self.assertEqual(cli.main(["bundle", self.axe, "--out", out]), 2)
+        self.assertIn("ERROR: replace failed", stderr.getvalue())
+        self.assertFalse(os.path.exists(out))
+        leftovers = [n for n in os.listdir(self.tmp) if n.startswith(".accessdoc-")]
+        self.assertEqual(leftovers, [])
 
 
 if __name__ == "__main__":

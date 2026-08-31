@@ -131,7 +131,7 @@ class TestSelfAccessibility(unittest.TestCase):
                     page.add_script_tag(content=axe_source)
                 else:
                     page.add_script_tag(
-                        url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.11.2/axe.min.js"
+                        url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.11.0/axe.min.js"
                     )
                 time.sleep(1)
                 result = page.evaluate(
