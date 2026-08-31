@@ -136,7 +136,8 @@ def cmd_verify(args):
             "NOTE: Validity proves only ZIP members match recorded generation-time hashes. "
             "It does NOT prove scan truthfulness/completeness, accessibility or legal "
             "compliance, signer identity (unless separately verified), or procurement/legal "
-            "approval."
+            "approval.",
+            file=sys.stderr,
         )
         return 0
     print(

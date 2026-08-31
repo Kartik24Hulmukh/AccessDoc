@@ -67,9 +67,11 @@ class TestCli(unittest.TestCase):
         out = os.path.join(self.tmp, "i.zip")
         cli.main(["bundle", self.axe, "--out", out])
         stdout = io.StringIO()
-        with redirect_stdout(stdout):
+        stderr = io.StringIO()
+        with redirect_stdout(stdout), redirect_stderr(stderr):
             self.assertEqual(cli.main(["verify", out]), 0)
-        self.assertIn("Validity proves only ZIP members", stdout.getvalue())
+        self.assertTrue(json.loads(stdout.getvalue())["valid"])
+        self.assertIn("Validity proves only ZIP members", stderr.getvalue())
 
     def test_verify_non_bundle_fails_cleanly(self):
         bad = os.path.join(self.tmp, "not-a-bundle.zip")
