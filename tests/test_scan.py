@@ -64,9 +64,12 @@ class TestRunScanFallback(unittest.TestCase):
     def _run_with_fake_playwright(self, page):
         fake_sync = lambda: _FakePlaywrightContext(page)
         fake_module = types.SimpleNamespace(sync_playwright=fake_sync)
-        with mock.patch.dict("sys.modules", {"playwright.sync_api": fake_module}):
-            with mock.patch("app.scan._resolve_host", return_value=["93.184.216.34"]):
-                return run_scan("https://93.184.216.34/")
+        with (
+            mock.patch.dict("sys.modules", {"playwright.sync_api": fake_module}),
+            mock.patch("app.scan._load_axe_source", return_value=None),
+            mock.patch("app.scan._resolve_host", return_value=["93.184.216.34"]),
+        ):
+            return run_scan("https://93.184.216.34/")
 
     def test_uses_published_cdn_fallback_version(self):
         page = _FakePage(axe_version="4.11.0")
@@ -89,4 +92,3 @@ class TestRunScanFallback(unittest.TestCase):
         page = _FakePage(axe_version="4.11.0", axe_result={"violations": []})
         result = self._run_with_fake_playwright(page)
         self.assertEqual(result["testEngine"]["version"], "4.11.0")
-
