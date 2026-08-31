@@ -96,12 +96,15 @@ def parse_axe_json(raw):
     if not isinstance(data, dict):
         raise ValueError("axe-core input must be a JSON object")
 
-    # Every result returned by axe.run contains a violations array, including a
+    # Every result returned by axe.run contains a violations key, including a
     # legitimate zero-violation scan. Metadata-only objects must not be sealed
-    # as clean accessibility evidence.
-    violations_raw = data.get("violations")
-    if not isinstance(violations_raw, list):
+    # as clean accessibility evidence. Preserve the established null-array
+    # compatibility contract by normalizing an explicit null to an empty list.
+    if "violations" not in data:
         raise ValueError("axe-core input must include a 'violations' list")
+    violations_raw = data.get("violations") or []
+    if not isinstance(violations_raw, list):
+        raise ValueError("'violations' must be a list or null")
 
     passes_raw = data.get("passes") or []
     incomplete_raw = data.get("incomplete") or []

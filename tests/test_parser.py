@@ -70,7 +70,6 @@ class TestParser(unittest.TestCase):
             {"foo": "bar"},
             {"url": "https://example.com"},
             {"testEngine": {}},
-            {"violations": None},
         ):
             with self.subTest(payload=payload):
                 with self.assertRaises(ValueError):
@@ -78,6 +77,11 @@ class TestParser(unittest.TestCase):
 
     def test_minimal_zero_violations_shape_is_accepted(self):
         summary, violations = parse_axe_json({"violations": []})
+        self.assertEqual(summary.total_violations, 0)
+        self.assertEqual(violations, [])
+
+    def test_explicit_null_violations_is_tolerated(self):
+        summary, violations = parse_axe_json({"violations": None})
         self.assertEqual(summary.total_violations, 0)
         self.assertEqual(violations, [])
 
