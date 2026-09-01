@@ -21,7 +21,7 @@ from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
 )
 from .models import DISCLAIMER_COMPACT, VERSION
-from .catalog import AXE_CORE_VERIFIED_VERSION, CATALOG_VERSION
+from .catalog import CATALOG_VERSION
 from .safe_text import safe_text
 
 
@@ -45,13 +45,19 @@ def build_pdf_title(client_name="", audit_date=""):
     return " - ".join(parts)
 
 
+def display_engine_version(engine_version):
+    """Keep absent scanner provenance unknown; never substitute catalog data."""
+    value = safe_text(engine_version).strip()
+    return value or "unknown / not supplied"
+
+
 def generate_pdf_report(summary, violations, client_name="Client", agency_name="Audit Agency", audit_date=""):
     # All user-controlled values are sanitized before reaching ReportLab.
     s_client = safe_text(client_name)
     s_agency = safe_text(agency_name)
     s_date = safe_text(audit_date)
     s_url = safe_text(summary.url)
-    s_engine = safe_text(summary.engine_version)
+    s_engine = display_engine_version(summary.engine_version)
 
     buf = BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4,
@@ -74,7 +80,7 @@ def generate_pdf_report(summary, violations, client_name="Client", agency_name="
         styles["Normal"],
     ))
     story.append(Paragraph(
-        f"URL: {s_url or 'N/A'} | axe-core: {s_engine or AXE_CORE_VERIFIED_VERSION}",
+        f"URL: {s_url or 'N/A'} | axe-core: {s_engine}",
         styles["Normal"],
     ))
     story.append(Paragraph(

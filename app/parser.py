@@ -11,7 +11,10 @@ import json
 import re
 from .models import AuditSummary, AuditViolation
 from .catalog import get_wcag_scs
-from .limits import enforce_axe_limits
+from .limits import (
+    enforce_axe_limits,
+    enforce_scanner_input_size,
+)
 
 # --- Target normalization constants -----------------------------------------
 _TARGET_MAX_LEN = 200
@@ -91,8 +94,22 @@ def _extract_node_targets(node):
     return _normalize_target_value(raw)
 
 
-def parse_axe_json(raw):
-    data = json.loads(raw) if isinstance(raw, str) else raw
+def _array_or_empty(data, field):
+    """Normalize an explicit null array while rejecting other wrong types."""
+    value = data.get(field)
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ValueError(f"'{field}' must be a list or null")
+    return value
+
+
+def parse_axe_json(raw, allow_oversized=None):
+    if isinstance(raw, str):
+        enforce_scanner_input_size(raw, allow_oversized=allow_oversized)
+        data = json.loads(raw)
+    else:
+        data = raw
     if not isinstance(data, dict):
         raise ValueError("axe-core input must be a JSON object")
 
@@ -102,38 +119,62 @@ def parse_axe_json(raw):
     # compatibility contract by normalizing an explicit null to an empty list.
     if "violations" not in data:
         raise ValueError("axe-core input must include a 'violations' list")
-    violations_raw = data.get("violations") or []
-    if not isinstance(violations_raw, list):
-        raise ValueError("'violations' must be a list or null")
-
-    passes_raw = data.get("passes") or []
-    incomplete_raw = data.get("incomplete") or []
-    # Single-sourced bounded-input contract: every surface (HTTP API, CLI, CI
-    # gate, MCP) funnels through this parser, so the ceilings in app/limits.py
-    # now apply identically everywhere. The HTTP handler additionally rejects
-    # oversized payloads earlier, before the body is even parsed.
-    enforce_axe_limits(violations_raw)
+    violations_raw = _array_or_empty(data, "violations")
+    passes_raw = _array_or_empty(data, "passes")
+    incomplete_raw = _array_or_empty(data, "incomplete")
+    # The parser is the shared semantic validation boundary for every surface.
+    # HTTP additionally bounds the whole transport body before parsing.
+    enforce_axe_limits(
+        violations_raw,
+        allow_oversized=allow_oversized,
+        scanner_data=data,
+    )
     url = data.get("url") or ""
+    if not isinstance(url, str):
+        raise ValueError("'url' must be a string or null")
     engine = data.get("testEngine") or {}
-    engine_ver = (engine.get("version") if isinstance(engine, dict) else "") or ""
+    if not isinstance(engine, dict):
+        raise ValueError("'testEngine' must be an object or null")
+    engine_ver = engine.get("version") or ""
+    if not isinstance(engine_ver, str):
+        raise ValueError("'testEngine.version' must be a string or null")
 
     impact_counts = {"critical": 0, "serious": 0, "moderate": 0, "minor": 0}
     violations = []
-    for v in violations_raw:
+    for index, v in enumerate(violations_raw):
         if not isinstance(v, dict):
-            continue
+            raise ValueError(f"violations[{index}] must be an object")
+        rule_id = v.get("id")
+        if not isinstance(rule_id, str) or not rule_id.strip():
+            raise ValueError(
+                f"violations[{index}].id must be a non-empty string"
+            )
+        rule_id = rule_id.strip()
         impact = v.get("impact") or "minor"
+        if not isinstance(impact, str):
+            raise ValueError(
+                f"violations[{index}].impact must be a string or null"
+            )
         impact_counts[impact] = impact_counts.get(impact, 0) + 1
-        rule_id = v.get("id", "")
         wcag_scs = get_wcag_scs(rule_id)
-        nodes = v.get("nodes") or []
+        nodes = v.get("nodes")
+        if nodes is None:
+            nodes = []
+        if not isinstance(nodes, list):
+            raise ValueError(
+                f"violations[{index}].nodes must be a list or null"
+            )
+        for node_index, node in enumerate(nodes):
+            if not isinstance(node, dict):
+                raise ValueError(
+                    f"violations[{index}].nodes[{node_index}] "
+                    "must be an object"
+                )
 
         # Extract unique normalized targets from nodes.
         seen_targets = set()
         normalized_targets = []
         for node in nodes:
-            if not isinstance(node, dict):
-                continue
             tgt = _extract_node_targets(node)
             tgt = _bound_target(tgt)
             if tgt and tgt not in seen_targets:
