@@ -28,6 +28,18 @@ class TestScannerEvidenceValidation(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     parse_axe_json(payload)
 
+    def test_falsy_wrong_metadata_types_are_rejected(self):
+        payloads = (
+            {"violations": [], "url": 0},
+            {"violations": [], "testEngine": []},
+            {"violations": [], "testEngine": {"version": []}},
+            {"violations": [{"id": "image-alt", "impact": [], "nodes": []}]},
+        )
+        for payload in payloads:
+            with self.subTest(payload=payload):
+                with self.assertRaises(ValueError):
+                    parse_axe_json(payload)
+
     def test_explicit_null_violations_compatibility_is_preserved(self):
         summary, violations = parse_axe_json({"violations": None})
         self.assertEqual(summary.total_violations, 0)

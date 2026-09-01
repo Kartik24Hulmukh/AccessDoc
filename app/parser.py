@@ -129,14 +129,20 @@ def parse_axe_json(raw, allow_oversized=None):
         allow_oversized=allow_oversized,
         scanner_data=data,
     )
-    url = data.get("url") or ""
-    if not isinstance(url, str):
+    url = data.get("url")
+    if url is None:
+        url = ""
+    elif not isinstance(url, str):
         raise ValueError("'url' must be a string or null")
-    engine = data.get("testEngine") or {}
-    if not isinstance(engine, dict):
+    engine = data.get("testEngine")
+    if engine is None:
+        engine = {}
+    elif not isinstance(engine, dict):
         raise ValueError("'testEngine' must be an object or null")
-    engine_ver = engine.get("version") or ""
-    if not isinstance(engine_ver, str):
+    engine_ver = engine.get("version")
+    if engine_ver is None:
+        engine_ver = ""
+    elif not isinstance(engine_ver, str):
         raise ValueError("'testEngine.version' must be a string or null")
 
     impact_counts = {"critical": 0, "serious": 0, "moderate": 0, "minor": 0}
@@ -150,8 +156,10 @@ def parse_axe_json(raw, allow_oversized=None):
                 f"violations[{index}].id must be a non-empty string"
             )
         rule_id = rule_id.strip()
-        impact = v.get("impact") or "minor"
-        if not isinstance(impact, str):
+        impact = v.get("impact")
+        if impact is None or impact == "":
+            impact = "minor"
+        elif not isinstance(impact, str):
             raise ValueError(
                 f"violations[{index}].impact must be a string or null"
             )
