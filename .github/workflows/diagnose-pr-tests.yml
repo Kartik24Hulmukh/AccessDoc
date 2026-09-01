@@ -1,0 +1,45 @@
+name: diagnose-pr-tests
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  affected-unit-file:
+    name: affected-${{ matrix.file }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        file:
+          - test_api_hardening.py
+          - test_cli.py
+          - test_handler.py
+          - test_human_stress_regressions.py
+          - test_parser.py
+          - test_pdf_hardening.py
+          - test_receipt_integrity.py
+          - test_receipt_schema.py
+          - test_reporter.py
+          - test_robustness.py
+          - test_service.py
+          - test_stress_matrix.py
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.12"
+      - run: pip install reportlab PyYAML jsonschema
+      - run: python -W error::ResourceWarning -m unittest discover -s tests -p "${{ matrix.file }}" -v
+
+  stress-script:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: "3.12"
+      - run: pip install reportlab PyYAML jsonschema
+      - run: python scripts/stress_test.py
