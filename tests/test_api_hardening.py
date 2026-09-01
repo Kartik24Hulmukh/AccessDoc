@@ -6,7 +6,7 @@ Tests cover:
   - malformed JSON -> 400
   - missing scanner_input -> 400
   - unsupported content type -> 415
-  - internal exception -> 500 with no detail leakage
+  - invalid scanner metadata -> bounded 422
   - unknown path -> 404
   - unsupported method -> 405
   - valid request -> 200 with ZIP
@@ -115,17 +115,8 @@ class ApiHardeningTests(unittest.TestCase):
             self._post(body, {"Content-Type": "text/plain"})
         self.assertEqual(ctx.exception.code, 415)
 
-    # ---- 500: internal exception with no detail leakage ----
-    def test_internal_exception_returns_500_no_leakage(self):
-        # Send a scanner_input that is valid JSON but will cause build_artifacts
-        # to fail in a way that is NOT a ValueError — we use a dict that passes
-        # structural validation but has a 'url' that is a non-string type,
-        # which may cause an unexpected error downstream.
-        # Actually, let's trigger a real internal error by making the parser
-        # receive a structurally-valid but semantically broken input.
-        # We use a scanner_input that is a dict with violations but the
-        # testEngine is a list (not dict) — this should cause an unexpected
-        # error path.
+    # ---- 422: malformed scanner metadata, no detail leakage ----
+    def test_invalid_engine_metadata_returns_422_without_leakage(self):
         body = json.dumps({
             "scanner_input": {
                 "url": "https://example.com",
@@ -136,23 +127,16 @@ class ApiHardeningTests(unittest.TestCase):
                 ],
             },
         }).encode()
-        # This should either succeed (parser is tolerant) or return 422/500.
-        # If it returns 500, verify no exception text is leaked.
-        try:
-            resp = self._post(body, {"Content-Type": "application/json"})
-            # If it succeeds, that's fine — the parser is tolerant.
-            self.assertEqual(resp.status, 200)
-        except HTTPError as ctx:
-            self.assertIn(ctx.exception.code, (422, 500))
-            error_body = json.loads(ctx.exception.read())
-            self.assertIn("error", error_body)
-            self.assertIn("request_id", error_body)
-            # The error message must NOT contain raw exception text, traceback,
-            # file paths, or class names.
-            msg = error_body["error"]
-            self.assertNotIn("Traceback", msg)
-            self.assertNotIn(".py", msg)
-            self.assertNotIn("Exception", msg)
+        with self.assertRaises(HTTPError) as ctx:
+            self._post(body, {"Content-Type": "application/json"})
+        self.assertEqual(ctx.exception.code, 422)
+        error_body = json.loads(ctx.exception.read())
+        self.assertIn("error", error_body)
+        self.assertIn("request_id", error_body)
+        msg = error_body["error"]
+        self.assertNotIn("Traceback", msg)
+        self.assertNotIn(".py", msg)
+        self.assertNotIn("Exception", msg)
 
     # ---- 404: unknown path ----
     def test_unknown_path_returns_404(self):

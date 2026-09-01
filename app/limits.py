@@ -2,16 +2,8 @@
 
 Every value is a hard ceiling. Inputs at or below these limits are accepted;
 anything above is rejected with a 413 (HTTP) or LimitExceeded (internal) before
-expensive work begins. The goal is to prevent resource exhaustion from hostile
-or accidentally-large payloads while leaving generous headroom for real audits.
-
-Parity contract (beta.5+)
--------------------------
-Before beta.5 these ceilings were enforced ONLY by the public HTTP handler, so
-the CLI silently accepted payloads the API rejected. That is a validation
-contract split: two surfaces of the same product disagreed about what a valid
-audit input is. `enforce_axe_limits()` is now called from `parse_axe_json()`,
-which every surface goes through, so the contract is single-sourced.
+expensive artifact generation. HTTP bounds the complete transport body before
+parsing; the shared parser independently bounds scanner strings and arrays.
 
 Operators who genuinely need to process an oversized local corpus can opt out
 explicitly and audibly:
@@ -19,12 +11,11 @@ explicitly and audibly:
     accessdoc bundle huge.json --allow-oversized      # CLI flag
     ACCESSDOC_ALLOW_OVERSIZED=1 accessdoc bundle ...  # environment
 
-The opt-out is deliberately unavailable to the HTTP API: the public surface has
-no mechanism to set it, so no remote caller can lift the ceilings.
+The opt-out is deliberately unavailable to the HTTP API.
 """
 import os
 
-MAX_HTTP_BODY_BYTES = 2 * 1024 * 1024          # 2 MiB total request body
+MAX_HTTP_BODY_BYTES = 2 * 1024 * 1024          # 2 MiB total request/input body
 MAX_VIOLATIONS = 10_000                        # axe-core violations array
 MAX_TOTAL_NODES = 100_000                      # sum of nodes across violations
 MAX_NODES_PER_VIOLATION = 5_000                # nodes in a single violation
@@ -58,22 +49,67 @@ def oversized_allowed():
     )
 
 
-def enforce_axe_limits(violations_raw, allow_oversized=None):
-    """Enforce the shared ceilings on a parsed axe `violations` list.
-
-    Args:
-        violations_raw: the raw `violations` list from axe-core JSON.
-        allow_oversized: tri-state. None consults the environment opt-out;
-            True skips enforcement; False forces enforcement regardless of the
-            environment (used by the HTTP surface).
-
-    Raises:
-        LimitExceeded: when any ceiling is exceeded.
-    """
+def _oversized_is_allowed(allow_oversized):
     if allow_oversized is None:
-        allow_oversized = oversized_allowed()
-    if allow_oversized:
+        return oversized_allowed()
+    return bool(allow_oversized)
+
+
+def enforce_scanner_input_size(raw, allow_oversized=None):
+    """Reject an oversized serialized scanner payload before JSON decoding."""
+    if _oversized_is_allowed(allow_oversized):
         return
+    if isinstance(raw, str):
+        actual = len(raw.encode("utf-8"))
+    elif isinstance(raw, (bytes, bytearray)):
+        actual = len(raw)
+    else:
+        return
+    if actual > MAX_HTTP_BODY_BYTES:
+        raise LimitExceeded(
+            f"Scanner input too large "
+            f"(limit {MAX_HTTP_BODY_BYTES} bytes, got {actual})",
+            limit_name="MAX_HTTP_BODY_BYTES",
+            limit=MAX_HTTP_BODY_BYTES,
+            actual=actual,
+        )
+
+
+def _enforce_string_limits(scanner_data):
+    """Iteratively enforce MAX_STRING_CHARS across a parsed payload."""
+    stack = [("$", scanner_data)]
+    while stack:
+        path, value = stack.pop()
+        if isinstance(value, str):
+            actual = len(value)
+            if actual > MAX_STRING_CHARS:
+                raise LimitExceeded(
+                    f"Scanner string at {path} exceeds "
+                    f"{MAX_STRING_CHARS} characters",
+                    limit_name="MAX_STRING_CHARS",
+                    limit=MAX_STRING_CHARS,
+                    actual=actual,
+                )
+        elif isinstance(value, dict):
+            for key, child in value.items():
+                stack.append((f"{path}.{key}", child))
+        elif isinstance(value, list):
+            for index, child in enumerate(value):
+                stack.append((f"{path}[{index}]", child))
+
+
+def enforce_axe_limits(
+    violations_raw,
+    allow_oversized=None,
+    scanner_data=None,
+):
+    """Enforce the shared ceilings on parsed axe scanner evidence."""
+    if _oversized_is_allowed(allow_oversized):
+        return
+
+    if scanner_data is not None:
+        _enforce_string_limits(scanner_data)
+
     if not isinstance(violations_raw, list):
         return
 
