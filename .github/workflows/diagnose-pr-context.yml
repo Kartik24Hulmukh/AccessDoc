@@ -1,0 +1,96 @@
+name: diagnose-pr-context
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: '3.13'
+          cache: pip
+      - run: pip install --requirement requirements-dev.txt
+      - run: python -m compileall -q app api tests
+      - run: python -W error::ResourceWarning -m unittest discover -s tests -v
+
+  self-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: '3.13'
+          cache: pip
+      - run: pip install --requirement requirements-dev.txt
+      - run: |
+          pip install playwright
+          playwright install chromium --with-deps
+          npm install axe-core
+      - run: python scripts/self_audit.py
+
+  openacr-validator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: '3.13'
+          cache: pip
+      - run: pip install --requirement requirements-dev.txt
+      - run: |
+          git clone --depth 1 https://github.com/GSA/openacr.git /tmp/openacr-upstream
+          cd /tmp/openacr-upstream && npm ci && cd $GITHUB_WORKSPACE
+          python -c "from app.service import build_artifacts; open('/tmp/test_acr.yaml', 'w', encoding='utf-8').write(build_artifacts({'scanner_input': open('fixtures/axe-sample.json', encoding='utf-8').read(), 'client_name': 'CI Test Client'}).openacr_yaml)"
+          npx --prefix /tmp/openacr-upstream ts-node /tmp/openacr-upstream/src/openacr.ts validate -f /tmp/test_acr.yaml 2>&1 | tee /tmp/gsa.out
+          grep -q "Invalid" /tmp/gsa.out && { echo "GATE FAIL: GSA validator reported Invalid"; exit 1; }
+          grep -q "Valid\!" /tmp/gsa.out || { echo "GATE FAIL: GSA validator did not report Valid!"; exit 1; }
+
+  bundle-verifier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: '3.13'
+          cache: pip
+      - run: pip install --requirement requirements-dev.txt
+      - run: |
+          python -c "from app.service import build_artifacts; from app.bundle import build_bundle; open('/tmp/fresh_bundle.zip', 'wb').write(build_bundle(build_artifacts({'scanner_input': open('fixtures/axe-sample.json', encoding='utf-8').read(), 'client_name': 'Fresh CI Client'})))"
+          python scripts/verify_bundle.py /tmp/fresh_bundle.zip || { echo "GATE FAIL: fresh bundle failed shipped verifier"; exit 1; }
+          for fix in tests/fixtures/hostile/*.zip; do
+            echo "Testing hostile fixture $fix..."
+            python scripts/verify_bundle.py "$fix" && { echo "GATE FAIL: hostile fixture $fix unexpectedly passed (exit 0)"; exit 1; }
+          done
+
+  release-verifier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: '3.13'
+          cache: pip
+      - run: pip install --requirement requirements-dev.txt
+      - run: python scripts/verify_release.py
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: '3.13'
+          cache: pip
+      - run: pip install --requirement requirements-dev.txt
+      - run: docker build -t accessdoc:${{ github.sha }} .
+      - run: |
+          docker run -d --name accessdoc -p 127.0.0.1:8000:8000 -e ALLOWED_HOSTS=127.0.0.1:8000 accessdoc:${{ github.sha }}
+          python scripts/smoke.py http://127.0.0.1:8000
+          docker logs accessdoc
+          docker rm -f accessdoc
