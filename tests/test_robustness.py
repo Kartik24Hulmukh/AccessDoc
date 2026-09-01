@@ -63,25 +63,24 @@ class TestMalformedInput(unittest.TestCase):
         with self.assertRaises(ValueError):
             build_artifacts({"scanner_input": '42'})
 
-    def test_violations_missing_required_keys(self):
-        """Violations missing 'id' or 'impact' should not crash."""
-        # Should tolerate missing keys gracefully
+    def test_violations_missing_required_keys_are_rejected(self):
+        """A missing rule identity must not become believable evidence."""
         body = {"scanner_input": _axe(violations=[
             {"description": "no id or impact", "helpUrl": "h", "nodes": [{}]},
         ])}
-        arts = build_artifacts(body)  # should not raise
-        self.assertIsNotNone(arts)
+        with self.assertRaises(ValueError):
+            build_artifacts(body)
 
-    def test_deeply_nested_junk(self):
-        """Deeply nested structures should not crash."""
+    def test_deeply_nested_junk_is_rejected(self):
+        """Structurally invalid scanner evidence must fail closed."""
         nested = {"a": {"b": {"c": {"d": {"e": {"f": {"g": {"h": "deep"}}}}}}}}
         body = {"scanner_input": json.dumps({
             "url": "https://x.com",
             "testEngine": nested,
             "violations": [nested],
         })}
-        arts = build_artifacts(body)
-        self.assertIsNotNone(arts)
+        with self.assertRaises(ValueError):
+            build_artifacts(body)
 
     def test_unicode_rtl_emoji_client_name(self):
         """Unicode, RTL text, and emoji in client_name must not crash."""
