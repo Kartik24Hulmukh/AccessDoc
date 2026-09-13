@@ -1,13 +1,14 @@
 from __future__ import annotations
 # Version: 0.7.0-beta.5
-import base64,hashlib,json,mimetypes,os,re,secrets,signal,struct,sys,threading,time
+import json,mimetypes,os,re,secrets,signal,threading,time
 from http.server import ThreadingHTTPServer,BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse
 from .models import VERSION
-from .service import build_artifacts, Artifacts
-from .bundle import build_bundle, validate_bundle, MEMBERS
-from .limits import limits_summary
+from .http_policy import auth_error, public_body, auth_required
+from .limits import LimitExceeded, MAX_HTTP_BODY_BYTES, limits_summary
+from .service import build_artifacts
+from .bundle import build_bundle
 try:
     from .store import TTLReportStore
     _STORE_AVAILABLE = True
@@ -22,7 +23,7 @@ except Exception:
 
 ROOT=Path(__file__).resolve().parent.parent
 STORE=TTLReportStore(ttl_seconds=int(os.getenv('REPORT_TTL_SECONDS','1800')),max_items=int(os.getenv('REPORT_MAX_ITEMS','100')),max_bytes=int(os.getenv('REPORT_MAX_BYTES','50000000')))
-MAX_BODY=2_700_000
+MAX_BODY=MAX_HTTP_BODY_BYTES
 GENERATION_CAPACITY=threading.BoundedSemaphore(int(os.getenv('MAX_CONCURRENT_REQUESTS','2')))
 CONNECTION_CAPACITY=threading.BoundedSemaphore(int(os.getenv('MAX_CONNECTIONS','64')))
 RATE={};RATE_LOCK=threading.Lock();METRICS={'requests_total':0,'errors_total':0,'reports_total':0,'overload_rejections_total':0,'client_disconnects_total':0};METRICS_LOCK=threading.Lock()
@@ -48,16 +49,6 @@ def allowed(ip):
    for k in list(RATE)[:1000]:
     if not RATE[k] or now-RATE[k][-1]>=window:RATE.pop(k,None)
   return True
-
-def api_keys():
- raw=os.getenv('ACCESSDOC_API_KEYS','')
- return {k.strip() for k in raw.split(',') if k.strip()}
-
-def api_key_ok(provided):
- keys=api_keys()
- if not keys:return True
- if not provided:return False
- return any(secrets.compare_digest(provided,k) for k in keys)
 
 class Server(ThreadingHTTPServer):
  daemon_threads=True;allow_reuse_address=True;request_queue_size=int(os.getenv('LISTEN_BACKLOG','128'))
@@ -95,12 +86,13 @@ class Handler(BaseHTTPRequestHandler):
  def setup(self):super().setup();self.connection.settimeout(float(os.getenv('SOCKET_TIMEOUT_SECONDS','15')))
  def log_message(self,fmt,*args):pass
  def _log(self,status,start):
-  print(json.dumps({'ts':time.time(),'request_id':self.request_id,'ip':safe_external(self.client_address[0]),'method':self.command,'route':safe_external(urlparse(self.path).path),'status':status,'duration_ms':round((time.monotonic()-start)*1000,2)},separators=(',',':')),flush=True)
+  print(json.dumps({'ts':time.time(),'request_id':self.request_id,'ip':safe_external(self.client_address[0]),'method':self.command,'route':('/download/[token]' if urlparse(self.path).path.startswith(('/download/','/download-html/','/download-receipt/')) else safe_external(urlparse(self.path).path)),'status':status,'duration_ms':round((time.monotonic()-start)*1000,2)},separators=(',',':')),flush=True)
  def _security(self,ctype):
   self.send_header('Content-Type',ctype);self.send_header('X-Content-Type-Options','nosniff');self.send_header('X-Frame-Options','DENY');self.send_header('Referrer-Policy','no-referrer');self.send_header('Permissions-Policy','camera=(), microphone=(), geolocation=()');self.send_header('Cross-Origin-Resource-Policy','same-origin');self.send_header('Cross-Origin-Opener-Policy','same-origin');self.send_header('Cache-Control','no-store');self.send_header('Pragma','no-cache');self.send_header('X-Request-ID',self.request_id);self.send_header('Content-Security-Policy',"default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
  def _send(self,status,body=b'',ctype='application/json; charset=utf-8',extra=None):
   self.send_response(status);self._security(ctype)
   for k,v in (extra or {}).items():self.send_header(k,safe_external(v,300))
+  if self.close_connection:self.send_header('Connection','close')
   self.send_header('Content-Length',str(len(body)));self.end_headers()
   if self.command!='HEAD':self.wfile.write(body)
   self._status=status
@@ -160,8 +152,8 @@ class Handler(BaseHTTPRequestHandler):
     for k,v in METRICS.items():lines.append(f'accessdoc_{k} {v}')
    for k,v in STORE.stats.items():lines.append(f'accessdoc_store_{k} {v}')
    return self._send(200,('\n'.join(lines)+'\n').encode(),'text/plain; version=0.0.4; charset=utf-8')
+  if path=='/limits':return self._json(200,dict(limits_summary(),api_key_required=auth_required(),rate_limit_per_minute=int(os.getenv('RATE_LIMIT_PER_MINUTE','30'))))
   if path=='/api/sample':return self._send(200,(ROOT/'public/sample/axe-sample.json').read_bytes(),'application/json; charset=utf-8')
-  if path=='/limits':return self._json(200,dict(limits_summary(),api_key_required=bool(api_keys()),rate_limit_per_minute=int(os.getenv('RATE_LIMIT_PER_MINUTE','30'))))
   match=re.fullmatch(r'/(download|download-html|download-receipt)/([A-Za-z0-9_-]{32})',path)
   if match:
    kind,token=match.groups();item=STORE.get(token)
@@ -174,18 +166,22 @@ class Handler(BaseHTTPRequestHandler):
   if path=='/':file_path=ROOT/'public'/'index.html'
   elif path.startswith('/static/') or path.startswith('/sample/'):
    candidate=(ROOT/'public'/path.lstrip('/')).resolve()
-   if str(candidate).startswith(str((ROOT/'public').resolve())) and candidate.is_file():file_path=candidate
+   if candidate.is_relative_to((ROOT/'public').resolve()) and candidate.is_file():file_path=candidate
   if file_path and file_path.is_file():
    data=file_path.read_bytes();ctype=mimetypes.guess_type(str(file_path))[0] or 'application/octet-stream'
    if ctype.startswith('text/') or ctype in ('application/javascript','application/json'):ctype+='; charset=utf-8'
    return self._send(200,data,ctype)
   self._json(404,{'error':{'code':'NOT_FOUND','message':'Not found'}})
  def do_POST(self):
+  # Every POST closes: unread rejected bodies must never become another request.
+  self.close_connection=True
   if not self._preflight():return
   path=urlparse(self.path).path
   if path not in ('/api/generate','/api/v1/generate','/api/bundle'):return self._json(404,{'error':{'code':'NOT_FOUND','message':'Not found'}})
+  denied=auth_error(self.headers)
+  if denied:
+   status,code=denied;return self._json(status,{'error':{'code':code,'message':'API access denied'}})
   if not self._validate_origin():return self._json(403,{'error':{'code':'CROSS_SITE_REQUEST','message':'Cross-site requests are not allowed'}})
-  if not api_key_ok(self.headers.get('X-API-Key')):return self._json(401,{'error':{'code':'UNAUTHORIZED','message':'A valid X-API-Key header is required'}})
   if not READY:return self._json(503,{'error':{'code':'DRAINING','message':'Server is shutting down. Try again shortly.'}})
   if not allowed(self.client_address[0]):return self._json(429,{'error':{'code':'RATE_LIMITED','message':'Too many requests. Try again shortly.'}})
   if not GENERATION_CAPACITY.acquire(timeout=float(os.getenv('GENERATION_QUEUE_TIMEOUT_SECONDS','0.05'))):
@@ -193,24 +189,20 @@ class Handler(BaseHTTPRequestHandler):
   global ACTIVE_GENERATIONS
   with ACTIVE_CONDITION:ACTIVE_GENERATIONS+=1
   try:
-   body=self._read_json()
+   body=public_body(self._read_json())
+   artifacts=build_artifacts(body)
+   receipt_bytes=artifacts.receipt_json.encode('utf-8')
+   receipt=json.loads(artifacts.receipt_json)
    if path=='/api/bundle':
-    artifacts=build_artifacts(body);bundle=build_bundle(artifacts);metric('reports_total');return self._send(200,bundle,'application/zip',{'Content-Disposition':'attachment; filename="accessdoc-report-bundle.zip"','CDN-Cache-Control':'no-store','Vercel-CDN-Cache-Control':'no-store'})
-   # /api/generate and /api/v1/generate: single-file PDF+receipt flow backed
-   # by the same canonical pipeline as /api/bundle (build_artifacts), stored
-   # behind short-lived tokens. Previously this branch referenced Branding/
-   # AuditRequest/parse_input/generate_pdf/generate_html, none of which exist
-   # in this codebase any more after the evidence-bundle refactor -- every
-   # call unconditionally raised NameError, caught by the generic handler
-   # below and returned as an opaque 500 GENERATION_FAILED. That made the
-   # documented API_V1.md contract 100% non-functional. Fixed by routing
-   # through build_artifacts(), the same tested/hardened path as /api/bundle.
-   artifacts=build_artifacts(body);receipt=json.loads(artifacts.receipt_json)
-   summary=receipt['summary'];filename=slug(receipt.get('client_name','Client'))+'-accessibility-evidence-report.pdf'
+    bundle=build_bundle(artifacts);metric('reports_total');return self._send(200,bundle,'application/zip',{'Content-Disposition':'attachment; filename="accessdoc-report-bundle.zip"','CDN-Cache-Control':'no-store','Vercel-CDN-Cache-Control':'no-store'})
    if not READY:return self._json(503,{'error':{'code':'DRAINING','message':'Server is shutting down; report was not stored'}})
-   token=STORE.put(artifacts.pdf_bytes,artifacts.html_bytes,artifacts.receipt_json.encode(),filename)
-   metric('reports_total')
-   self._json(201,{'report_token':token,'download_url':f'/download/{token}','html_companion_url':f'/download-html/{token}','receipt_url':f'/download-receipt/{token}','finding_count':summary['total_violations'],'severity_counts':{'critical':summary['critical'],'serious':summary['serious'],'moderate':summary['moderate'],'minor':summary['minor'],'unknown':summary['unknown']},'catalog_review_required':summary['unknown'],'expires_in_seconds':STORE.ttl_seconds,'input_evidence_receipt':receipt})
+   filename=slug(body.get('client_name','Client'))+'-accessibility-evidence-report.pdf'
+   token=STORE.put(artifacts.pdf_bytes,artifacts.html_bytes,receipt_bytes,filename)
+   summary=receipt['summary']
+   counts={k:summary.get(k,0) for k in ('critical','serious','moderate','minor','unknown')}
+   metric('reports_total');self._json(201,{'report_token':token,'download_url':f'/download/{token}','html_companion_url':f'/download-html/{token}','receipt_url':f'/download-receipt/{token}','detected_format':'axe','finding_count':summary['total_violations'],'instance_count':summary['total_violations'],'severity_counts':counts,'catalog_review_required':summary.get('unknown',0),'expires_in_seconds':STORE.ttl_seconds,'input_evidence_receipt':receipt})
+  except LimitExceeded:self._json(413,{'error':{'code':'INPUT_TOO_LARGE','message':'Input exceeds resource limits'}})
+  except (RecursionError,UnicodeDecodeError):self._json(422,{'error':{'code':'INVALID_INPUT','message':'Invalid JSON request'}})
   except ValueError as e:self._json(422,{'error':{'code':'INVALID_INPUT','message':str(e)}})
   except (TimeoutError,ConnectionError,BrokenPipeError,OSError):
    self.close_connection=True;metric('client_disconnects_total')

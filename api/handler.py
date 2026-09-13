@@ -13,6 +13,8 @@ import json
 import sys
 import os
 import uuid
+import threading
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -20,6 +22,7 @@ from http.server import BaseHTTPRequestHandler
 from app.service import build_artifacts
 from app.bundle import build_bundle
 from app.models import VERSION
+from app.http_policy import auth_error, public_body
 from app.limits import (
     LimitExceeded,
     MAX_HTTP_BODY_BYTES,
@@ -31,6 +34,8 @@ from app.limits import (
 )
 
 ADAPTER_VERSION = VERSION
+# Per-process only: serverless replicas require an external global quota.
+GENERATION_CAPACITY = threading.BoundedSemaphore(max(1, int(os.getenv("MAX_CONCURRENT_REQUESTS", "2"))))
 
 # Only these keys from the request body are forwarded to build_artifacts.
 # pdf_engine and receipt_history are deliberately excluded from the public API.
@@ -62,6 +67,10 @@ class handler(BaseHTTPRequestHandler):
     """
 
     # Suppress default stderr logging (Vercel captures stdout/stderr separately).
+    def setup(self):
+        super().setup()
+        self.connection.settimeout(float(os.getenv("SOCKET_TIMEOUT_SECONDS", "15")))
+
     def log_message(self, fmt, *args):
         pass
 
@@ -72,7 +81,10 @@ class handler(BaseHTTPRequestHandler):
     def _send_json(self, status, payload, extra_headers=None):
         """Send a JSON response with security headers. Never renders HTML."""
         body = json.dumps(payload).encode("utf-8")
+        self._status = status
         self.send_response(status)
+        if hasattr(self, "request_id"):
+            self.send_header("X-Request-ID", self.request_id)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         for k, v in _SECURITY_HEADERS.items():
@@ -98,6 +110,9 @@ class handler(BaseHTTPRequestHandler):
         Returns (raw_bytes, error_status, error_message).
         If error_status is not None, the caller should send the error response.
         """
+        lengths = self.headers.get_all("Content-Length") or []
+        if len(lengths) > 1 or self.headers.get("Transfer-Encoding") or self.headers.get("Content-Encoding"):
+            return None, 400, "Ambiguous or unsupported request framing"
         cl_header = self.headers.get("Content-Length")
 
         # Content-Length is required for POST.
@@ -227,8 +242,32 @@ class handler(BaseHTTPRequestHandler):
         self._error(404, "Not found")
 
     def do_POST(self):
+        self.close_connection = True
+        self.request_id = uuid.uuid4().hex[:12]
+        self._status = 500
+        start = time.monotonic()
+        acquired = GENERATION_CAPACITY.acquire(blocking=False)
+        try:
+            if not acquired:
+                self._send_json(503, {"error": "Generation capacity exhausted", "request_id": self.request_id}, {"Retry-After": "1"})
+                return
+            self._post()
+        finally:
+            if acquired:
+                GENERATION_CAPACITY.release()
+            print(json.dumps({"event": "request", "request_id": self.request_id,
+                              "method": "POST", "status": self._status,
+                              "duration_ms": round((time.monotonic() - start) * 1000, 2)}), flush=True)
+
+    def _post(self):
         """Generate an evidence ZIP from axe-core JSON."""
-        request_id = uuid.uuid4().hex[:12]
+        self.close_connection = True
+        request_id = self.request_id
+        denied = auth_error(self.headers)
+        if denied:
+            status, code = denied
+            self._error(status, code, request_id)
+            return
 
         # 1. Read body with strict Content-Length and size limits.
         raw, err_status, err_msg = self._read_bounded_body()
@@ -284,7 +323,7 @@ class handler(BaseHTTPRequestHandler):
         safe_body = {k: v for k, v in body.items() if k in _PASSTHROUGH}
 
         try:
-            artifacts = build_artifacts(safe_body)
+            artifacts = build_artifacts(public_body(safe_body))
             zip_bytes = build_bundle(artifacts)
         except LimitExceeded:
             self._error(413, "Input exceeds resource limits", request_id)
@@ -300,7 +339,9 @@ class handler(BaseHTTPRequestHandler):
             return
 
         # 9. Send the ZIP.
+        self._status = 200
         self.send_response(200)
+        self.send_header("X-Request-ID", request_id)
         self.send_header("Content-Type", "application/zip")
         self.send_header(
             "Content-Disposition",

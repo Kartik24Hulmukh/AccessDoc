@@ -18,6 +18,7 @@ import time
 from http.server import ThreadingHTTPServer
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import api.handler as adapter
 from api.handler import handler
 from app.bundle import validate_bundle
 from app.service import build_artifacts
@@ -28,6 +29,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", default="hardening-load.json")
     args = parser.parse_args()
+    adapter.GENERATION_CAPACITY = threading.BoundedSemaphore(8)
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
