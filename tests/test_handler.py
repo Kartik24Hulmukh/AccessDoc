@@ -39,6 +39,23 @@ class HandlerTests(unittest.TestCase):
         # interpreter emits ResourceWarning at exit.
         cls.server.server_close()
 
+    def test_generate_alias_returns_actionable_hint(self):
+        """Serverless has no artifact store; /api/generate must point to /api/bundle."""
+        for path in ("/api/generate", "/api/v1/generate"):
+            req = Request(f"http://127.0.0.1:{self.port}{path}",
+                          data=json.dumps({"scanner_input": SAMPLE_AXE}).encode(),
+                          headers={"Content-Type": "application/json"}, method="POST")
+            with self.assertRaises(HTTPError) as cm:
+                urlopen(req)
+            self.assertEqual(cm.exception.code, 404)
+            body = json.loads(cm.exception.read())
+            self.assertIn("/api/bundle", body["error"])
+            self.assertIn("request_id", body)
+            with self.assertRaises(HTTPError) as cm2:
+                urlopen(f"http://127.0.0.1:{self.port}{path}")
+            self.assertEqual(cm2.exception.code, 404)
+            self.assertIn("/api/bundle", json.loads(cm2.exception.read())["error"])
+
     def test_health_check(self):
         resp = urlopen(f"http://127.0.0.1:{self.port}/")
         data = json.loads(resp.read())

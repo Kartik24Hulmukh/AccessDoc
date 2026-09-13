@@ -43,6 +43,27 @@ class TestEaa(unittest.TestCase):
         out = generate_eaa_pack(AuditSummary(url="https://x.com"), [])
         self.assertIn("No automated failures detected", out)
 
+    def test_html_injection_neutralised(self):
+        """Markdown renderers pass raw HTML through; the EAA pack must not."""
+        s, v = self._data()
+        hostile = '<script>alert(1)</script>"onmouseover="x'
+        out = generate_eaa_pack(s, v, client_name=hostile)
+        self.assertNotIn('<script>', out)
+        self.assertIn('&lt;script&gt;alert(1)&lt;/script&gt;', out)
+
+    def test_markdown_control_chars_escaped(self):
+        out = _md('# H1 *b* _i_ [l](x) `c` ~s~')
+        self.assertEqual(out, '\\# H1 \\*b\\* \\_i\\_ \\[l\\](x) \\`c\\` \\~s\\~')
+        self.assertEqual(_md('A&B'), 'A&amp;B')
+        self.assertEqual(_md('a<b>c'), 'a&lt;b&gt;c')
+
+    def test_hostile_url_cannot_break_table(self):
+        s, v = self._data()
+        s.url = 'https://x.com/|<img src=x onerror=alert(1)>\n## injected'
+        out = generate_eaa_pack(s, v)
+        self.assertNotIn('<img', out)
+        self.assertNotIn('\n## injected', out)
+
 
 if __name__ == "__main__":
     unittest.main()
