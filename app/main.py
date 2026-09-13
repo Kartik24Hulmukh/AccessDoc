@@ -119,7 +119,8 @@ class Handler(BaseHTTPRequestHandler):
   if len(vals)!=1:raise ValueError('A single Content-Length is required')
   try:n=int(vals[0])
   except:raise ValueError('Invalid Content-Length')
-  if n<=0 or n>limit:raise ValueError('Request body exceeds limit')
+  if n>limit:raise LimitExceeded('Request body exceeds limit',limit_name='MAX_HTTP_BODY_BYTES',limit=limit,actual=n)
+  if n<=0:raise ValueError('Invalid Content-Length')
   raw=self.rfile.read(n)
   if len(raw)!=n:raise ValueError('Truncated request body')
   return raw
@@ -148,7 +149,7 @@ class Handler(BaseHTTPRequestHandler):
  def do_GET(self):
   if not self._preflight():return
   p=urlparse(self.path);path=p.path
-  if path in ('/health','/livez','/health/live'):return self._json(200,{'status':'ok','service':'accessdoc','version':os.getenv('ACCESSDOC_VERSION',VERSION),'commit':_commit_sha()})
+  if path in ('/health','/healthz','/livez','/health/live'):return self._json(200,{'status':'ok','service':'accessdoc','version':os.getenv('ACCESSDOC_VERSION',VERSION),'commit':_commit_sha()})
   if path=='/version':return self._json(200,{'service':'accessdoc','version':os.getenv('ACCESSDOC_VERSION',VERSION),'catalog':'wcag-2.2-accessdoc-2026-01','commit':_commit_sha()})
   if path in ('/readyz','/health/ready'):return self._json(200 if READY else 503,{'status':'ready' if READY else 'not_ready','commit':_commit_sha()})
   if path=='/metrics':

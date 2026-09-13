@@ -1,0 +1,51 @@
+{
+  "models": {
+    "glm-5.3": {
+      "ok": 3,
+      "n": 3,
+      "p50_ms": 1370.37,
+      "p95_ms": 1398.88,
+      "p99_ms": 1398.88,
+      "avg_tokens": 305
+    },
+    "glm-5.3-flash": {
+      "ok": 3,
+      "n": 3,
+      "p50_ms": 4225.36,
+      "p95_ms": 4452.05,
+      "p99_ms": 4452.05,
+      "avg_tokens": 308
+    },
+    "qwen3.8-27b": {
+      "ok": 3,
+      "n": 3,
+      "p50_ms": 3116.27,
+      "p95_ms": 3181.66,
+      "p99_ms": 3181.66,
+      "avg_tokens": 307
+    },
+    "kimi-k3": {
+      "ok": 3,
+      "n": 3,
+      "p50_ms": 4630.62,
+      "p95_ms": 4919.37,
+      "p99_ms": 4919.37,
+      "avg_tokens": 425
+    }
+  },
+  "resilience": {
+    "429_storm_fallback": {
+      "served_by": "glm-5.3-flash",
+      "attempts": 1,
+      "pass": true
+    },
+    "outage_fail_fast": {
+      "pass": true,
+      "ms": 234.1
+    },
+    "static_kb_last_resort": {
+      "pass": true,
+      "model": "static-kb"
+    }
+  }
+}
