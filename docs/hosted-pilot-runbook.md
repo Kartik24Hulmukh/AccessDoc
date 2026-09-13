@@ -80,3 +80,14 @@ Serverless logs now emit a generated request ID, status and duration for POSTs;
 the same ID appears in the response header. Payloads and Authorization are never
 logged. A managed log sink, alert ownership, incident drill and rollback remain
 operator tasks; they have not been provisioned by these code changes.
+
+## Concurrent main integration (PR #35)
+
+PR #35 was merged by another actor during this work. Its `/limits` endpoint,
+API documentation and 11 regression tests are preserved. Legacy
+`ACCESSDOC_API_KEYS` (comma-separated) with `X-API-Key` remains supported and is
+now enforced by both adapters. If `ACCESSDOC_API_KEY` is also set, the single
+Bearer key takes precedence; the legacy header cannot bypass it. The browser
+pilot field uses Bearer auth, so configure the single-key mode for that UI.
+Missing credentials with REQUIRE_AUTH always fail closed. No existing auth
+configuration is silently removed. Final integration needs fresh CI.

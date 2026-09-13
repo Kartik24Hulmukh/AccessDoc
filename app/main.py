@@ -5,8 +5,8 @@ from http.server import ThreadingHTTPServer,BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse
 from .models import VERSION
-from .http_policy import auth_error, public_body
-from .limits import LimitExceeded, MAX_HTTP_BODY_BYTES
+from .http_policy import auth_error, public_body, auth_required
+from .limits import LimitExceeded, MAX_HTTP_BODY_BYTES, limits_summary
 from .service import build_artifacts
 from .bundle import build_bundle
 try:
@@ -152,6 +152,7 @@ class Handler(BaseHTTPRequestHandler):
     for k,v in METRICS.items():lines.append(f'accessdoc_{k} {v}')
    for k,v in STORE.stats.items():lines.append(f'accessdoc_store_{k} {v}')
    return self._send(200,('\n'.join(lines)+'\n').encode(),'text/plain; version=0.0.4; charset=utf-8')
+  if path=='/limits':return self._json(200,dict(limits_summary(),api_key_required=auth_required(),rate_limit_per_minute=int(os.getenv('RATE_LIMIT_PER_MINUTE','30'))))
   if path=='/api/sample':return self._send(200,(ROOT/'public/sample/axe-sample.json').read_bytes(),'application/json; charset=utf-8')
   match=re.fullmatch(r'/(download|download-html|download-receipt)/([A-Za-z0-9_-]{32})',path)
   if match:

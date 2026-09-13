@@ -17,7 +17,7 @@ from app.store import TTLReportStore
 
 class HostedBoundaryTests(unittest.TestCase):
     def setUp(self):
-        self.env = patch.dict(os.environ, {"ACCESSDOC_API_KEY": "", "ACCESSDOC_REQUIRE_AUTH": "false", "RATE_LIMIT_PER_MINUTE": "100000"})
+        self.env = patch.dict(os.environ, {"ACCESSDOC_API_KEY": "", "ACCESSDOC_API_KEYS": "", "ACCESSDOC_REQUIRE_AUTH": "false", "RATE_LIMIT_PER_MINUTE": "100000"})
         self.env.start()
         self.servers = []
         for adapter in (handler, Handler):
@@ -70,6 +70,15 @@ class HostedBoundaryTests(unittest.TestCase):
                 self.assertEqual(self.post(index, headers={"Authorization": "Bearer pilot-test-secret"})[0], 200)
             with patch.dict(os.environ, {"ACCESSDOC_REQUIRE_AUTH": "true"}):
                 self.assertEqual(self.post(index)[0], 503)
+
+    def test_legacy_keys_work_on_both_adapters_with_bearer_precedence(self):
+        for index in (0, 1):
+            with patch.dict(os.environ, {"ACCESSDOC_API_KEYS": "legacy-one,legacy-two"}):
+                self.assertEqual(self.post(index)[0], 401)
+                self.assertEqual(self.post(index, headers={"X-API-Key": "legacy-two"})[0], 200)
+                with patch.dict(os.environ, {"ACCESSDOC_API_KEY": "new-key"}):
+                    self.assertEqual(self.post(index, headers={"X-API-Key": "legacy-two"})[0], 401)
+                    self.assertEqual(self.post(index, headers={"Authorization": "Bearer new-key"})[0], 200)
 
     def test_rejected_post_closes_connection(self):
         for index in (0, 1):
