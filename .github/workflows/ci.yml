@@ -46,6 +46,14 @@ jobs:
           echo "All hostile fixtures rejected by shipped verifier with non-zero exits."
       - name: Bounded local concurrency and malformed-input contract gate
         run: python scripts/hardening_load.py --output hardening-load.json
+      - name: Local authenticated overload and recovery gate (both adapters)
+        run: python scripts/hosted_soak.py --seconds 5 --workers 8 --output hosted-soak.json
+      - name: Archive hosted soak metrics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: hosted-soak
+          path: hosted-soak.json
       - name: Archive local hardening metrics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
