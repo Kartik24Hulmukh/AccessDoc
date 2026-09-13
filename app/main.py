@@ -66,8 +66,21 @@ class Server(ThreadingHTTPServer):
   try:super().process_request_thread(request,client_address)
   finally:CONNECTION_CAPACITY.release()
 
+def _commit_sha():
+ for k in ('ACCESSDOC_COMMIT_SHA','VERCEL_GIT_COMMIT_SHA','RENDER_GIT_COMMIT','RAILWAY_GIT_COMMIT_SHA','FLY_IMAGE_REF','GIT_COMMIT_SHA','SOURCE_VERSION'):
+  v=os.getenv(k)
+  if v:return v
+ try:
+  head=(ROOT/'.git'/'HEAD').read_text().strip()
+  if head.startswith('ref:'):
+   ref=head.split(' ',1)[1].strip()
+   return (ROOT/'.git'/ref).read_text().strip()
+  return head
+ except Exception:return 'unknown'
+
 class Handler(BaseHTTPRequestHandler):
  server_version=f'AccessDoc/{VERSION}';sys_version='';protocol_version='HTTP/1.1'
+
  def setup(self):super().setup();self.connection.settimeout(float(os.getenv('SOCKET_TIMEOUT_SECONDS','15')))
  def log_message(self,fmt,*args):pass
  def _log(self,status,start):
@@ -127,9 +140,9 @@ class Handler(BaseHTTPRequestHandler):
  def do_GET(self):
   if not self._preflight():return
   p=urlparse(self.path);path=p.path
-  if path in ('/health','/livez','/health/live'):return self._json(200,{'status':'ok','service':'accessdoc','version':os.getenv('ACCESSDOC_VERSION',VERSION)})
-  if path=='/version':return self._json(200,{'service':'accessdoc','version':os.getenv('ACCESSDOC_VERSION',VERSION),'catalog':'wcag-2.2-accessdoc-2026-01'})
-  if path in ('/readyz','/health/ready'):return self._json(200 if READY else 503,{'status':'ready' if READY else 'not_ready'})
+  if path in ('/health','/livez','/health/live'):return self._json(200,{'status':'ok','service':'accessdoc','version':os.getenv('ACCESSDOC_VERSION',VERSION),'commit':_commit_sha()})
+  if path=='/version':return self._json(200,{'service':'accessdoc','version':os.getenv('ACCESSDOC_VERSION',VERSION),'catalog':'wcag-2.2-accessdoc-2026-01','commit':_commit_sha()})
+  if path in ('/readyz','/health/ready'):return self._json(200 if READY else 503,{'status':'ready' if READY else 'not_ready','commit':_commit_sha()})
   if path=='/metrics':
    lines=[]
    with METRICS_LOCK:
