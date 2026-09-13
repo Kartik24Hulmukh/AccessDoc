@@ -1,0 +1,10 @@
+{
+  "browser": "Chromium",
+  "sample_to_download": true,
+  "bundle_validation": {
+    "valid": true,
+    "errors": []
+  },
+  "javascript_errors": [],
+  "axe_violations": []
+}

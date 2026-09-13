@@ -1,0 +1,6 @@
+GSA/openacr upstream commit: 86f890a07a2a193d2a9404fb57d2cc2d62a60a4f
+Command: npx --prefix openacr-upstream ts-node openacr-upstream/src/openacr.ts validate -f upstream-candidate.yaml
+Input: build_artifacts on fixtures/axe-sample.json, client_name=Independent validation
+Observed stdout: Valid!
+
+Scope: one representative generated OpenACR file; not human/PDF-UA/signing validation.
