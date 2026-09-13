@@ -24,7 +24,7 @@ scaling, 100 requests / 8 local slots; deterministic identical ZIPs, all pass.
 ZIP verified, no JS errors, axe UI audit. The initial audit found a nested aside
 landmark; it was changed to a labeled group and retested. The authenticated
 error/retry/download flow is additionally covered by `tests/test_hosted_ui.py`.
-`axe-self-audit.json`: generated HTML report self-audit, zero axe violations.
+`generated-html-audit-summary.json`: generated report/VPAT at normal and 320px widths, zero axe violations; full audit is archived by CI.
 `independent-openacr.txt`: generated sample validated with actual GSA upstream
 CLI at the recorded commit; stdout was `Valid!`. This closes sample-level
 upstream validation only, not human accessibility or legal claims.

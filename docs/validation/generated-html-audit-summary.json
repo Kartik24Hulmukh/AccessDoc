@@ -1,0 +1,22 @@
+{
+  "report_html": {
+    "violations": [],
+    "passes_count": 19,
+    "incomplete_count": 0
+  },
+  "report_html_320px": {
+    "violations": [],
+    "passes_count": 19,
+    "incomplete_count": 0
+  },
+  "vpat_draft_html": {
+    "violations": [],
+    "passes_count": 20,
+    "incomplete_count": 0
+  },
+  "vpat_draft_html_320px": {
+    "violations": [],
+    "passes_count": 20,
+    "incomplete_count": 1
+  }
+}
