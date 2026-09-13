@@ -22,6 +22,12 @@ Both adapters support `ACCESSDOC_API_KEY` with `Authorization: Bearer <key>`.
 This single-key mode takes precedence over legacy `ACCESSDOC_API_KEYS` /
 `X-API-Key` if both are configured. `ACCESSDOC_REQUIRE_AUTH=true` without any
 configured key fails closed with 503. The browser pilot-key field uses Bearer.
-The Vercel adapter serves bundle/health endpoints, not self-hosted generate or
-`/limits`. It has per-process concurrency admission, NOT the self-hosted IP
+The Vercel adapter serves bundle/health endpoints and `GET /limits`, not the
+self-hosted generate/download routes. Its `/limits` adds
+`max_concurrent_requests_per_process` and reports `rate_limit_per_minute: null`
+because it has per-process concurrency admission, NOT the self-hosted IP
 rate limiter or a distributed quota. Provider/WAF limits remain required.
+
+Every error, including stdlib-level parse rejections (400 malformed request
+line, 414 URI too long, 431 header too large), is JSON with the security
+headers and `X-Request-ID`; client-supplied request text is never reflected.

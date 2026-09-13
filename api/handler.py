@@ -22,9 +22,10 @@ from http.server import BaseHTTPRequestHandler
 from app.service import build_artifacts
 from app.bundle import build_bundle
 from app.models import VERSION
-from app.http_policy import auth_error, public_body
+from app.http_policy import auth_error, auth_required, public_body
 from app.limits import (
     LimitExceeded,
+    limits_summary,
     MAX_HTTP_BODY_BYTES,
     MAX_VIOLATIONS,
     MAX_TOTAL_NODES,
@@ -66,6 +67,10 @@ class handler(BaseHTTPRequestHandler):
     Raw exception text is never returned to the client.
     """
 
+    # Never advertise the Python/BaseHTTP version on stdlib-generated errors.
+    server_version = f"AccessDoc/{VERSION}"
+    sys_version = ""
+
     # Suppress default stderr logging (Vercel captures stdout/stderr separately).
     def setup(self):
         super().setup()
@@ -94,6 +99,21 @@ class handler(BaseHTTPRequestHandler):
                 self.send_header(k, v)
         self.end_headers()
         self.wfile.write(body)
+
+    def send_error(self, code, message=None, explain=None):
+        """Stdlib parse failures (400/414/431/501) must honour the JSON contract.
+
+        BaseHTTPRequestHandler.send_error renders an HTML page that reflects
+        the client's request line, carries no security headers and no
+        X-Request-ID. Route it through the bounded JSON error path instead and
+        never echo client-supplied text.
+        """
+        self.close_connection = True
+        if not hasattr(self, "request_id"):
+            self.request_id = uuid.uuid4().hex[:12]
+        short = self.responses.get(code, ("Request rejected",))[0]
+        self._send_json(code, {"error": short, "request_id": self.request_id},
+                        {"Connection": "close"})
 
     def _error(self, status, message, request_id=None):
         """Send a bounded error response. No exception detail leakage."""
@@ -217,7 +237,7 @@ class handler(BaseHTTPRequestHandler):
     # ------------------------------------------------------------------ #
 
     def do_GET(self):
-        """Health check on '/', '/readyz', '/healthz', '/api/bundle'."""
+        """Health check on '/', '/readyz', '/healthz', '/api/bundle'; ceilings on '/limits'."""
         commit_sha = os.environ.get("VERCEL_GIT_COMMIT_SHA", "unknown")
         path = self.path.split("?")[0].rstrip("/") or "/"
         if path in ("/", "/readyz", "/healthz", "/health"):
@@ -228,6 +248,16 @@ class handler(BaseHTTPRequestHandler):
                 "commit": commit_sha,
                 "api_note": "Bounded ReportLab demo API. See docs for limitations.",
             })
+            return
+        if path == "/limits":
+            limits = dict(limits_summary())
+            limits.update({
+                "api_key_required": auth_required(),
+                "rate_limit_per_minute": None,
+                "max_concurrent_requests_per_process": int(os.getenv("MAX_CONCURRENT_REQUESTS", "2")),
+                "note": "Per-process admission only; provider/WAF quotas are still required.",
+            })
+            self._send_json(200, limits)
             return
         if path == "/api/bundle":
             self._send_json(200, {
@@ -364,7 +394,7 @@ class handler(BaseHTTPRequestHandler):
 
     def do_HEAD(self):
         path = self.path.split("?")[0].rstrip("/") or "/"
-        if path not in ("/", "/readyz", "/healthz", "/health", "/api/bundle"):
+        if path not in ("/", "/readyz", "/healthz", "/health", "/api/bundle", "/limits"):
             self._error(404, "Not found")
             return
         self.send_response(200)

@@ -10,6 +10,10 @@
 
 ## [Unreleased]
 
+### Fixed
+- Both hosted adapters now route stdlib `send_error` (400/414/431/501 parse rejections) through the JSON error contract: security headers, `X-Request-ID`, no HTML, no reflection of the client request line, no Python/BaseHTTP server banner. Self-hosted request logs record the real status instead of 500 for these rejections.
+- Serverless adapter exposes `GET /limits` (parity with self-hosted) including `api_key_required` and `max_concurrent_requests_per_process`.
+
 ## [0.4.0] - 2026-07-21
 
 ### Added

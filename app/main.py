@@ -85,6 +85,11 @@ class Handler(BaseHTTPRequestHandler):
 
  def setup(self):super().setup();self.connection.settimeout(float(os.getenv('SOCKET_TIMEOUT_SECONDS','15')))
  def log_message(self,fmt,*args):pass
+ def send_error(self,code,message=None,explain=None):
+  # Stdlib parse failures (400/414/431/501) must honour the JSON contract, security headers, X-Request-ID and status metrics. Never reflect client-supplied request text and never render HTML.
+  self.close_connection=True
+  if not hasattr(self,'request_id'):self.request_id=secrets.token_hex(16)
+  self._json(code,{'error':{'code':'MALFORMED_REQUEST' if code<500 else 'INTERNAL_ERROR','message':self.responses.get(code,('Request rejected',))[0]}})
  def _log(self,status,start):
   print(json.dumps({'ts':time.time(),'request_id':self.request_id,'ip':safe_external(self.client_address[0]),'method':self.command,'route':('/download/[token]' if urlparse(self.path).path.startswith(('/download/','/download-html/','/download-receipt/')) else safe_external(urlparse(self.path).path)),'status':status,'duration_ms':round((time.monotonic()-start)*1000,2)},separators=(',',':')),flush=True)
  def _security(self,ctype):
