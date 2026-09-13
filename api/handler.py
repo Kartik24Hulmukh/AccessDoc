@@ -22,7 +22,7 @@ from http.server import BaseHTTPRequestHandler
 from app.service import build_artifacts
 from app.bundle import build_bundle
 from app.models import VERSION
-from app.http_policy import auth_error, public_body
+from app.http_policy import auth_error, auth_required, public_body
 from app.limits import (
     LimitExceeded,
     MAX_HTTP_BODY_BYTES,
@@ -31,6 +31,7 @@ from app.limits import (
     MAX_NODES_PER_VIOLATION,
     MAX_STRING_CHARS,
     MAX_MANUAL_FINDINGS,
+    limits_summary,
 )
 
 ADAPTER_VERSION = VERSION
@@ -228,6 +229,19 @@ class handler(BaseHTTPRequestHandler):
                 "commit": commit_sha,
                 "api_note": "Bounded ReportLab demo API. See docs for limitations.",
             })
+            return
+        if path == "/limits":
+            try:
+                summary = limits_summary()
+            except Exception:
+                summary = {}
+            summary["api_key_required"] = auth_required()
+            try:
+                import os as _os_limits
+                summary["rate_limit_per_minute"] = int(_os_limits.getenv("RATE_LIMIT_PER_MINUTE","30"))
+            except Exception:
+                summary["rate_limit_per_minute"] = 30
+            self._send_json(200, summary)
             return
         if path == "/api/bundle":
             self._send_json(200, {
