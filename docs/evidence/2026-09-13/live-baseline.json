@@ -1,0 +1,34 @@
+{
+  "health": {
+    "status": 200,
+    "json": {
+      "service": "AccessDoc",
+      "adapter_version": "0.7.0-beta.5",
+      "status": "ok",
+      "commit": "b75b41b4cabada2714508cadd03582b12efe7a1d",
+      "api_note": "Bounded ReportLab demo API. See docs for limitations."
+    }
+  },
+  "probes": [
+    {
+      "name": "sample",
+      "status": 200,
+      "bytes": 6907,
+      "summary": {
+        "critical": 3,
+        "serious": 5,
+        "moderate": 0,
+        "minor": 1,
+        "total_violations": 11,
+        "total_passes": 2,
+        "manual_findings": 0
+      },
+      "detail_count": 11
+    },
+    {
+      "name": "explicit_null",
+      "status": 422,
+      "bytes": 83
+    }
+  ]
+}

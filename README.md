@@ -2,7 +2,7 @@
 
 **The receipt printer for accessibility.** AccessDoc turns raw automated scan
 output (axe-core JSON) into a defensible, tamper-evident **evidence bundle** in
-the formats regulators and procurement actually accept - a PDF report, an
+the formats commonly exchanged in procurement and regulatory diligence - a PDF report, an
 EN 301 549-mapped OpenACR YAML, SARIF for CI, a VPAT draft, an EAA evidence
 pack, and an in-toto attestation whose digests cover every file.
 
@@ -10,6 +10,11 @@ pack, and an in-toto attestation whose digests cover every file.
 > never claims conformance. Automated tools detect only ~30-57% of WCAG issues
 > (Deque 2022); manual + assistive-technology testing is required for a
 > conformance claim. Not legal advice.
+
+## Hardening candidate
+
+See [the September 13 engineering receipt](docs/HARDENING-2026-09-13.md) for
+verified fixes, local load results, compatibility changes and deployment gates.
 
 ## What's new in v0.7.0-beta.5
 
@@ -60,7 +65,13 @@ pack, and an in-toto attestation whose digests cover every file.
 
 ## Install
 ```bash
-pip install -r requirements.txt   # reportlab (PyYAML only for tests)
+git clone https://github.com/Kartik24Hulmukh/AccessDoc.git
+cd AccessDoc
+python3 -m venv .venv
+. .venv/bin/activate  # Windows: .venv\Scripts\activate
+python -m pip install -r requirements-dev.txt
+python cli.py bundle fixtures/axe-sample.json --out dist/bundle.zip --sarif --vpat --eaa
+python cli.py verify dist/bundle.zip
 ```
 
 ## CLI
@@ -72,7 +83,7 @@ python3 cli.py catalog                    # rule catalog summary
 
 ## Test
 ```bash
-python3 -m unittest discover -s tests -p 'test_*.py'   # 540 tests
+python3 -m unittest discover -s tests -p 'test_*.py'
 python3 scripts/stress_test.py                          # 15 adversarial checks
 ```
 
@@ -86,7 +97,7 @@ at critical/serious/moderate, tested at 320px reflow), `report.pdf`
 `findings.sarif.json`, `vpat-draft.html`, `eaa-evidence.md`, `trend.json`.
 
 Live demo API: `https://access-doc.vercel.app` (GET = health, POST axe JSON = zip).
-This is a **bounded demo API** — input size and request rate are limited. It is
+This is a **bounded demo API** — input size is limited; deployer-managed rate limiting is required. It is
 not a production-grade hosted service.
 
 

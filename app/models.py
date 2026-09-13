@@ -18,7 +18,7 @@ DISCLAIMER = (
 
 DISCLAIMER_COMPACT = (
     "Auto-scan detects ~30-57 % of WCAG issues (Deque 2022). "
-    "Manual review required for legal compliance."
+    "Automated results are insufficient for any conformance or legal conclusion; manual and assistive-technology review is required."
 )
 
 # Provenance labels applied to every finding so a reader can always tell
@@ -46,6 +46,7 @@ class AuditSummary:
     serious: int = 0
     moderate: int = 0
     minor: int = 0
+    unknown: int = 0
     total_violations: int = 0
     total_passes: int = 0
     total_incomplete: int = 0

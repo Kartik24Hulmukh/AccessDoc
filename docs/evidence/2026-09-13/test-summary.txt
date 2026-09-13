@@ -1,0 +1,8 @@
+ZipHardeningTests.test_zip_bomb)
+A small compressed input that expands enormously must be rejected. ... ok
+
+----------------------------------------------------------------------
+Ran 600 tests in 39.125s
+
+OK (skipped=1)
+

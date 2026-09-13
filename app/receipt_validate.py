@@ -197,8 +197,11 @@ def validate_receipt(receipt, strict=True):
             )
 
     if is_1_2 and strict and isinstance(receipt.get("rule_ids"), list):
+        if any(not isinstance(rule, str) for rule in receipt["rule_ids"]):
+            errors.append("rule_ids entries must be strings")
+            return errors
         declared = set(receipt["rule_ids"])
-        if seen_rule_ids and declared != seen_rule_ids:
+        if declared != seen_rule_ids:
             missing = sorted(seen_rule_ids - declared)
             extra = sorted(declared - seen_rule_ids)
             detail = []

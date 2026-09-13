@@ -19,6 +19,8 @@ _MANUAL_NO_TARGET = "manual:no-target"
 
 
 def _norm_impact(value):
+    if value is not None and not isinstance(value, str):
+        raise ValueError("manual finding impact must be a string or null")
     v = (value or "").strip().lower()
     return v if v in _VALID_IMPACTS else "moderate"
 
@@ -69,15 +71,20 @@ def parse_manual_findings(data):
     if not data:
         return []
     if isinstance(data, list):
-        return [_row_to_violation(r) for r in data if isinstance(r, dict)]
+        from .limits import MAX_MANUAL_FINDINGS, LimitExceeded
+        if len(data) > MAX_MANUAL_FINDINGS:
+            raise LimitExceeded("too many manual findings")
+        if any(not isinstance(r, dict) for r in data):
+            raise ValueError("manual findings entries must be objects")
+        return [_row_to_violation(r) for r in data]
     if isinstance(data, str):
         stripped = data.strip()
         if stripped.startswith("|"):
-            return [_row_to_violation(r) for r in _parse_markdown_table(stripped)]
+            return parse_manual_findings(_parse_markdown_table(stripped))
         # treat as CSV
         reader = csv.DictReader(io.StringIO(stripped))
-        return [_row_to_violation(r) for r in reader]
-    return []
+        return parse_manual_findings(list(reader))
+    raise ValueError("manual_findings must be a list, CSV or Markdown string")
 
 
 def merge_findings(automated, manual, summary):
@@ -90,6 +97,7 @@ def merge_findings(automated, manual, summary):
     summary.serious = impact_counts["serious"]
     summary.moderate = impact_counts["moderate"]
     summary.minor = impact_counts["minor"]
+    summary.unknown = impact_counts.get("unknown", 0)
     summary.total_violations = len(merged)
     summary.manual_findings = sum(1 for v in merged if v.source == SOURCE_MANUAL)
     return merged

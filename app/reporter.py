@@ -95,10 +95,17 @@ def generate_pdf_report(summary, violations, client_name="Client", agency_name="
     story.append(Spacer(1, 0.4*cm))
 
     summary_data = [
-        ["Critical", "Serious", "Moderate", "Minor", "Total", "Passes"],
+        ["Critical", "Serious", "Moderate", "Minor", "Unknown", "Total", "Passes"],
         [str(summary.critical), str(summary.serious), str(summary.moderate),
-         str(summary.minor), str(summary.total_violations), str(summary.total_passes)],
+         str(summary.minor), str(getattr(summary, 'unknown', 0)),
+         str(summary.total_violations), str(summary.total_passes)],
     ]
+    if not summary.url or not summary.engine_version:
+        story.append(Paragraph(
+            "<b>Warning: scanner provenance not supplied / unverified.</b> "
+            "Coverage unknown; do not read as a clean or complete result.",
+            disc_style,
+        ))
     t = Table(summary_data, hAlign="LEFT")
     t.setStyle(TableStyle([
         ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#2C3E50")),

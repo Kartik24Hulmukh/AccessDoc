@@ -8,6 +8,7 @@ and emits one AuditViolation per unique normalized target. Violations with
 no usable target get a deterministic fallback identity.
 """
 import json
+import hashlib
 import re
 from .models import AuditSummary, AuditViolation
 from .catalog import get_wcag_scs
@@ -74,7 +75,7 @@ def _normalize_target_value(raw):
 def _bound_target(text):
     """Bound excessively long target text."""
     if len(text) > _TARGET_MAX_LEN:
-        return text[:_TARGET_MAX_LEN]
+        return text[:_TARGET_MAX_LEN - 65] + "~" + hashlib.sha256(text.encode()).hexdigest()
     return text
 
 
@@ -91,7 +92,22 @@ def _extract_node_targets(node):
     if not isinstance(node, dict):
         return ""
     raw = node.get("target")
+    def valid(value, depth=0):
+        if value is None or isinstance(value, str):
+            return True
+        return (isinstance(value, list) and depth < 2
+                and all(valid(item, depth + 1) for item in value))
+    if not valid(raw):
+        raise ValueError("node target must be a string or nested list of strings (depth <= 2)")
     return _normalize_target_value(raw)
+
+
+def _str_or_empty(value, index, field):
+    if value is None:
+        return ""
+    if not isinstance(value, str):
+        raise ValueError(f"violations[{index}].{field} must be a string or null")
+    return value
 
 
 def _array_or_empty(data, field):
@@ -122,6 +138,10 @@ def parse_axe_json(raw, allow_oversized=None):
     violations_raw = _array_or_empty(data, "violations")
     passes_raw = _array_or_empty(data, "passes")
     incomplete_raw = _array_or_empty(data, "incomplete")
+    for field, entries in (("passes", passes_raw), ("incomplete", incomplete_raw)):
+        for index, entry in enumerate(entries):
+            if not isinstance(entry, dict):
+                raise ValueError(f"{field}[{index}] must be a JSON object")
     # The parser is the shared semantic validation boundary for every surface.
     # HTTP additionally bounds the whole transport body before parsing.
     enforce_axe_limits(
@@ -145,7 +165,6 @@ def parse_axe_json(raw, allow_oversized=None):
     elif not isinstance(engine_ver, str):
         raise ValueError("'testEngine.version' must be a string or null")
 
-    impact_counts = {"critical": 0, "serious": 0, "moderate": 0, "minor": 0}
     violations = []
     for index, v in enumerate(violations_raw):
         if not isinstance(v, dict):
@@ -158,12 +177,13 @@ def parse_axe_json(raw, allow_oversized=None):
         rule_id = rule_id.strip()
         impact = v.get("impact")
         if impact is None or impact == "":
-            impact = "minor"
+            impact = "unknown"
         elif not isinstance(impact, str):
             raise ValueError(
                 f"violations[{index}].impact must be a string or null"
             )
-        impact_counts[impact] = impact_counts.get(impact, 0) + 1
+        if impact not in ("critical", "serious", "moderate", "minor"):
+            impact = "unknown"
         wcag_scs = get_wcag_scs(rule_id)
         nodes = v.get("nodes")
         if nodes is None:
@@ -196,18 +216,23 @@ def parse_axe_json(raw, allow_oversized=None):
         for tgt in normalized_targets:
             violations.append(AuditViolation(
                 id=rule_id, impact=impact,
-                description=v.get("description", ""),
-                help_url=v.get("helpUrl", ""),
+                description=_str_or_empty(v.get("description"), index, "description"),
+                help_url=_str_or_empty(v.get("helpUrl"), index, "helpUrl"),
                 wcag_scs=wcag_scs,
                 nodes=len(nodes),
                 target=tgt,
             ))
 
+    emitted = {"critical": 0, "serious": 0, "moderate": 0, "minor": 0,
+               "unknown": 0}
+    for _v in violations:
+        emitted[_v.impact] = emitted.get(_v.impact, 0) + 1
     summary = AuditSummary(
-        critical=impact_counts.get("critical", 0),
-        serious=impact_counts.get("serious", 0),
-        moderate=impact_counts.get("moderate", 0),
-        minor=impact_counts.get("minor", 0),
+        critical=emitted["critical"],
+        serious=emitted["serious"],
+        moderate=emitted["moderate"],
+        minor=emitted["minor"],
+        unknown=emitted["unknown"],
         total_violations=len(violations),
         total_passes=len(passes_raw),
         total_incomplete=len(incomplete_raw),

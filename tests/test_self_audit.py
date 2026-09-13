@@ -214,14 +214,24 @@ class TestSelfAccessibility(unittest.TestCase):
         """report.html must contain a <main> element."""
         self.assertIn("<main>", self.report_html)
 
-    def test_report_html_has_scoped_headers(self):
-        """report.html table headers must have scope attributes."""
-        self.assertIn("scope='col'", self.report_html)
+    def test_report_html_has_instance_semantics(self):
+        """Instance cards expose labeled definition lists, not an aggregate table."""
+        self.assertIn("<h2>Finding instances</h2>", self.report_html)
+        self.assertIn("<dt>Affected target</dt>", self.report_html)
+        self.assertIn("<dt>Instance fingerprint</dt>", self.report_html)
 
-    def test_report_html_has_thead_tbody(self):
-        """report.html table must have thead and tbody."""
-        self.assertIn("<thead>", self.report_html)
-        self.assertIn("<tbody>", self.report_html)
+    def test_report_html_no_horizontal_overflow(self):
+        """Axe alone cannot prove reflow; measure actual layout at 320px."""
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            try:
+                page = browser.new_page(viewport={"width": 320, "height": 800})
+                page.set_content(self.report_html)
+                self.assertLessEqual(page.evaluate(
+                    "document.documentElement.scrollWidth"), 320)
+            finally:
+                browser.close()
 
     def test_vpat_html_has_main_landmark(self):
         """vpat-draft.html must contain a <main> element."""

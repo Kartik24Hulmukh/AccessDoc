@@ -47,7 +47,7 @@ def generate_eaa_pack(summary, violations, client_name="Client", audit_date=""):
 
 > **Coverage limitation (read first).** This pack is built from an *automated*
 > scan (axe-core). Automated tooling detects approximately **30-57%** of WCAG
-> issues (Deque Systems 2022). It is **evidence of a conformance effort**, not a
+> issues (Deque Systems 2022). It is **DRAFT record of a conformance effort - not evidence of conformance**, not a
 > declaration of conformity. Full conformance requires manual and
 > assistive-technology testing by a qualified evaluator.
 
@@ -72,7 +72,7 @@ def generate_eaa_pack(summary, violations, client_name="Client", audit_date=""):
 
 ## 4. Accessibility statement fields (to be completed by the provider)
 
-- **Compliance status:** [ ] Fully compliant  [ ] Partially compliant  [ ] Non-compliant
+- **Draft compliance self-assessment (unchecked; requires qualified human evaluation):** [ ] Fully compliant  [ ] Partially compliant  [ ] Non-compliant
 - **Non-accessible content and reasons:** _..._
 - **Feedback mechanism / contact:** _..._
 - **Enforcement procedure / national authority:** _..._

@@ -79,27 +79,63 @@ def _generate_weasyprint_pdf(summary, violations, client_name, agency_name, audi
     return html_obj.write_pdf(pdf_variant="pdf/ua-1")
 
 
+def _finding_fp(v):
+    from .receipt_builder import compute_finding_fingerprint
+    return compute_finding_fingerprint(v.id, v.source, v.target)
+
+
 def _build_html(summary, violations, client_name, audit_date):
     e = html.escape
-    rows = "".join(
-        f"<tr><td>{e(v.id)}</td><td>{e(v.impact)}</td><td>{v.nodes}</td>"
-        f"<td>{e(', '.join(v.wcag_scs) or '-')}</td><td>{e(v.source)}</td></tr>"
-        for v in violations
-    )
+    items = []
+    for index, v in enumerate(violations):
+        fp = _finding_fp(v)
+        hu = (v.help_url or "").strip()
+        help_link = ""
+        if hu.startswith(("http://", "https://")):
+            help_link = (f'<p><a href="{e(hu)}" rel="noopener noreferrer">'
+                         f'Remediation reference</a></p>')
+        items.append(
+            f'<article id="finding-{index}-{fp}"><h3>{e(v.id)} '
+            f'(severity: {e(v.impact)})</h3><dl>'
+            f'<dt>Instance fingerprint</dt><dd><code>{fp}</code></dd>'
+            f'<dt>Affected target</dt><dd><code>{e(v.target or "unknown")}</code></dd>'
+            f'<dt>Description</dt><dd>{e(v.description or "")}</dd>'
+            f'<dt>WCAG SC</dt><dd>{e(", ".join(v.wcag_scs) or "-")}</dd>'
+            f'<dt>Source</dt><dd>{e(v.source)}</dd>'
+            f'<dt>Nodes reported</dt><dd>{v.nodes}</dd></dl>'
+            + help_link + '</article>'
+        )
+    prov = ""
+    if not summary.url or not summary.engine_version:
+        prov = ('<p><strong>Warning: scanner provenance not supplied / '
+                'unverified.</strong> Scan URL and/or engine version was '
+                'not supplied; coverage is unknown and this bundle must not be '
+                'read as a clean or complete result.</p>')
+    sev = ('<p>Severity counts (per finding instance): critical '
+           f'{summary.critical}, serious {summary.serious}, moderate '
+           f'{summary.moderate}, minor {summary.minor}, unknown '
+           f'{summary.unknown}; total findings {summary.total_violations}.</p>')
     return (
         f"<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'>"
         f"<meta name='viewport' content='width=device-width, initial-scale=1'>"
-        f"<title>AccessDoc - {e(client_name)}</title></head><body>"
+        f"<title>AccessDoc - {e(client_name)}</title>"
+        "<style>body{font:1rem/1.6 system-ui,sans-serif;color:#172b4d;"
+        "background:#fff;margin:0;padding:1rem;overflow-wrap:anywhere}"
+        "main{max-width:70rem;margin:auto}"
+        "article{border:1px solid #8796a5;padding:1rem;margin:1rem 0;border-radius:.5rem}"
+        "dt{font-weight:700}dd{margin:0 0 .75rem}code{white-space:pre-wrap}"
+        "a{color:#0055aa}a:focus-visible{outline:3px solid #172b4d}"
+        "h1,h2,h3{line-height:1.3}</style></head><body>"
         f"<main>"
         f"<h1>WCAG 2.2 Audit: {e(client_name)}</h1>"
         f"<p>Date: {e(audit_date)} | URL: {e(summary.url)}</p>"
         f"<p>axe-core: {e(summary.engine_version)} | catalog: {e(CATALOG_VERSION)} | AccessDoc: {e(VERSION)}</p>"
-        f"<table border='1'><thead><tr>"
-        f"<th scope='col'>Rule</th><th scope='col'>Impact</th><th scope='col'>Nodes</th>"
-        f"<th scope='col'>WCAG SC</th><th scope='col'>Source</th>"
-        f"</tr></thead><tbody>{rows}</tbody></table>"
+        + prov + sev +
+        f"<section><h2>Finding instances</h2>" + "".join(items) + f"</section>"
         f"<p><small>Automated scan detects ~30-57% of WCAG issues (Deque 2022). "
-        f"Manual review required for legal compliance.</small></p>"
+        f"Automated results are insufficient for any conformance or legal "
+        f"conclusion; qualified human evaluation and context-specific legal "
+        f"review may be needed.</small></p>"
         f"</main>"
         f"</body></html>"
     )
@@ -120,6 +156,21 @@ def build_artifacts(body):
 
     Raises ValueError if scanner_input is missing/empty or not valid axe JSON.
     """
+    if not isinstance(body, dict):
+        raise ValueError("request must be a JSON object")
+    from .limits import MAX_STRING_CHARS, LimitExceeded
+    for field in ("client_name", "agency_name", "audit_date", "pdf_engine"):
+        if field in body:
+            value = body[field]
+            if not isinstance(value, str):
+                raise ValueError(f"{field} must be a string")
+            if len(value) > MAX_STRING_CHARS:
+                raise LimitExceeded(f"{field} exceeds {MAX_STRING_CHARS} characters")
+    if body.get("pdf_engine", "reportlab") not in ("reportlab", "weasyprint"):
+        raise ValueError("unsupported pdf_engine")
+    for field in ("enrich", "include_sarif", "include_vpat", "include_eaa"):
+        if field in body and not isinstance(body[field], bool):
+            raise ValueError(f"{field} must be a boolean")
     scanner_raw = body.get("scanner_input")
     if not scanner_raw:
         raise ValueError("scanner_input is required and must be non-empty axe-core JSON")
