@@ -199,8 +199,8 @@ class Handler(BaseHTTPRequestHandler):
    filename=slug(body.get('client_name','Client'))+'-accessibility-evidence-report.pdf'
    token=STORE.put(artifacts.pdf_bytes,artifacts.html_bytes,receipt_bytes,filename)
    summary=receipt['summary']
-   counts={k:summary.get(v,0) for k,v in (('critical','critical'),('high','serious'),('medium','moderate'),('low','minor'),('needs-review','unknown'))}
-   metric('reports_total');self._json(201,{'report_token':token,'download_url':f'/download/{token}','html_companion_url':f'/download-html/{token}','receipt_url':f'/download-receipt/{token}','detected_format':'axe','finding_count':summary['total_violations'],'instance_count':summary['total_violations'],'severity_counts':counts,'expires_in_seconds':STORE.ttl_seconds,'input_evidence_receipt':receipt})
+   counts={k:summary.get(k,0) for k in ('critical','serious','moderate','minor','unknown')}
+   metric('reports_total');self._json(201,{'report_token':token,'download_url':f'/download/{token}','html_companion_url':f'/download-html/{token}','receipt_url':f'/download-receipt/{token}','detected_format':'axe','finding_count':summary['total_violations'],'instance_count':summary['total_violations'],'severity_counts':counts,'catalog_review_required':summary.get('unknown',0),'expires_in_seconds':STORE.ttl_seconds,'input_evidence_receipt':receipt})
   except LimitExceeded:self._json(413,{'error':{'code':'INPUT_TOO_LARGE','message':'Input exceeds resource limits'}})
   except (RecursionError,UnicodeDecodeError):self._json(422,{'error':{'code':'INVALID_INPUT','message':'Invalid JSON request'}})
   except ValueError as e:self._json(422,{'error':{'code':'INVALID_INPUT','message':str(e)}})

@@ -129,6 +129,8 @@ class HostedBoundaryTests(unittest.TestCase):
             self.assertEqual(status, 201, data)
             result = json.loads(data)
             self.assertEqual(result["finding_count"], 0)
+            self.assertEqual(set(result["severity_counts"]), {"critical", "serious", "moderate", "minor", "unknown"})
+            self.assertEqual(result["catalog_review_required"], 0)
             for key, prefix in (("download_url", b"%PDF"), ("html_companion_url", b"<!DOCTYPE"), ("receipt_url", b"{")):
                 conn = http.client.HTTPConnection("127.0.0.1", self.servers[1][0].server_port, timeout=5)
                 try:
