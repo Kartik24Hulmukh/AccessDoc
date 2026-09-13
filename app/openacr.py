@@ -83,7 +83,7 @@ def generate_openacr_yaml(
         else:
             unmapped_scs.append(f"{sc} (rules: {rule_str})")
 
-    engine = _yq(summary.engine_version or "axe-core")
+    engine = _yq(summary.engine_version or "version unknown")
     disclaimer_note = "Criteria with zero automated failures are marked disabled rather than 'Supports': absence of automated findings is not evidence of conformance."
 
     chapters_lines = ["chapters:\n"]

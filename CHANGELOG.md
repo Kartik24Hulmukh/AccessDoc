@@ -10,6 +10,16 @@
 
 ## [Unreleased]
 
+### Security
+- `eaa-evidence.md`: user-controlled fields (client name, target URL, rule ids, sources) are now HTML-entity-escaped (`& < >`) and Markdown-escaped (`` ` * _ [ ] # ~ ``) in addition to the existing `|`/newline neutralisation. Previously a hostile `client_name` such as `<script>...</script>` was written verbatim into the Markdown pack, which most renderers (GitHub, Notion, procurement portals) pass through as live HTML. Found by live red-team of the production `/api/bundle` endpoint on 13 Sept 2026; `report.html` and `vpat-draft.html` were already escaped.
+
+### Fixed
+- OpenACR `evaluation_methods_used` no longer reads `Automated (axe-core axe-core)` when the scanner input carries no engine version; it now reads `Automated (axe-core version unknown)`.
+- Serverless adapter: `POST`/`GET` on `/api/generate` and `/api/v1/generate` return a 404 whose JSON `error` tells the caller to use `/api/bundle` (the token/download flow only exists on the self-hosted adapter). Previously a bare `Not found` sent integrators following `docs/API_V1.md` down a dead end.
+
+### Verified
+- Live production red-team receipt: `docs/REDTEAM-PROD-2026-09-13.md` (hostile payload matrix, header audit, 24-way concurrency burst, bundle integrity re-verified offline).
+
 ### Fixed
 - Both hosted adapters now route stdlib `send_error` (400/414/431/501 parse rejections) through the JSON error contract: security headers, `X-Request-ID`, no HTML, no reflection of the client request line, no Python/BaseHTTP server banner. Self-hosted request logs record the real status instead of 500 for these rejections.
 - Serverless adapter exposes `GET /limits` (parity with self-hosted) including `api_key_required` and `max_concurrent_requests_per_process`.

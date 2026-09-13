@@ -35,6 +35,14 @@ from app.limits import (
 )
 
 ADAPTER_VERSION = VERSION
+
+# The self-hosted adapter (app/main.py) serves /api/generate with a download
+# token flow; the stateless serverless adapter cannot store artifacts, so it
+# answers those aliases with an actionable hint instead of a bare 404.
+_GENERATE_ALIASES = ("/api/generate", "/api/v1/generate")
+_GENERATE_HINT = (
+    "Not found. The serverless adapter does not expose /api/generate; POST the same JSON body to /api/bundle to receive the evidence ZIP directly (see docs/API_V1.md)"
+)
 # Per-process only: serverless replicas require an external global quota.
 GENERATION_CAPACITY = threading.BoundedSemaphore(max(1, int(os.getenv("MAX_CONCURRENT_REQUESTS", "2"))))
 
@@ -269,6 +277,9 @@ class handler(BaseHTTPRequestHandler):
                 "description": "Send POST with axe-core JSON in scanner_input to generate an evidence ZIP.",
             })
             return
+        if path in _GENERATE_ALIASES:
+            self._error(404, _GENERATE_HINT)
+            return
         self._error(404, "Not found")
 
     def do_POST(self):
@@ -307,6 +318,9 @@ class handler(BaseHTTPRequestHandler):
 
         # 2. Path check: '/' and '/api/bundle' are valid for POST.
         path = self.path.split("?")[0].rstrip("/") or "/"
+        if path in _GENERATE_ALIASES:
+            self._error(404, _GENERATE_HINT, request_id)
+            return
         if path not in ("/", "/api/bundle"):
             self._error(404, "Not found", request_id)
             return

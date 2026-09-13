@@ -4,10 +4,24 @@ from .models import VERSION
 from .openacr import EN_301_549_MAP
 
 
+_MD_SPECIALS = "`*_[]#~"
+
+
 def _md(value):
+    """Neutralise user-controlled text for safe embedding in Markdown.
+
+    Markdown renderers (GitHub, Notion, procurement portals) pass raw HTML
+    through, so `<script>` in a client name would execute wherever the EAA
+    pack is previewed.  We HTML-entity-escape ``& < >`` and backslash-escape
+    Markdown control characters and table delimiters.  Newlines are
+    flattened so a single value can never break out of its table cell.
+    """
     s = str(value)
+    s = s.replace("\r", " ").replace("\n", " ")
     s = s.replace("\\", "\\\\").replace("|", "\\|")
-    s = s.replace("\n", " ").replace("\r", " ")
+    s = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    for ch in _MD_SPECIALS:
+        s = s.replace(ch, "\\" + ch)
     return s
 
 
