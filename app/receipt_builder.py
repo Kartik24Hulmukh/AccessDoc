@@ -118,6 +118,7 @@ def build_receipt(summary, violations, metadata):
             "serious": summary.serious,
             "moderate": summary.moderate,
             "minor": summary.minor,
+            "unknown": summary.unknown,
             "total_violations": summary.total_violations,
             "total_passes": summary.total_passes,
             "manual_findings": summary.manual_findings,

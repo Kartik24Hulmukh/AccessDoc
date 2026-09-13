@@ -1,0 +1,76 @@
+{
+  "note": "Compact audit receipt; full node-level passing results omitted. Reproduce with scripts/self_audit.py.",
+  "raw_sha256": "7a2c9382bf25319459be45472dafffdf56081ef01fb3f4c86c5a8088fe32f338",
+  "results": {
+    "report_html": {
+      "testEngine": {
+        "name": "axe-core",
+        "version": "4.11.0"
+      },
+      "testEnvironment": {
+        "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+        "windowWidth": 1280,
+        "windowHeight": 800,
+        "orientationAngle": 0,
+        "orientationType": "landscape-primary"
+      },
+      "timestamp": "2026-09-13T13:07:10.590Z",
+      "violations": [],
+      "passes_rule_count": 19,
+      "incomplete_rule_ids": []
+    },
+    "report_html_320px": {
+      "testEngine": {
+        "name": "axe-core",
+        "version": "4.11.0"
+      },
+      "testEnvironment": {
+        "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+        "windowWidth": 320,
+        "windowHeight": 800,
+        "orientationAngle": 0,
+        "orientationType": "landscape-primary"
+      },
+      "timestamp": "2026-09-13T13:07:12.198Z",
+      "violations": [],
+      "passes_rule_count": 19,
+      "incomplete_rule_ids": []
+    },
+    "vpat_draft_html": {
+      "testEngine": {
+        "name": "axe-core",
+        "version": "4.11.0"
+      },
+      "testEnvironment": {
+        "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+        "windowWidth": 1280,
+        "windowHeight": 800,
+        "orientationAngle": 0,
+        "orientationType": "landscape-primary"
+      },
+      "timestamp": "2026-09-13T13:07:13.289Z",
+      "violations": [],
+      "passes_rule_count": 20,
+      "incomplete_rule_ids": []
+    },
+    "vpat_draft_html_320px": {
+      "testEngine": {
+        "name": "axe-core",
+        "version": "4.11.0"
+      },
+      "testEnvironment": {
+        "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+        "windowWidth": 320,
+        "windowHeight": 800,
+        "orientationAngle": 0,
+        "orientationType": "landscape-primary"
+      },
+      "timestamp": "2026-09-13T13:07:13.677Z",
+      "violations": [],
+      "passes_rule_count": 20,
+      "incomplete_rule_ids": [
+        "color-contrast"
+      ]
+    }
+  }
+}

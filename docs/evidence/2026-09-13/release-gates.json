@@ -1,0 +1,42 @@
+{
+  "compile": {
+    "status": "PASS",
+    "exitCode": 0
+  },
+  "tests": {
+    "status": "PASS",
+    "exitCode": 0
+  },
+  "secret_patterns": {
+    "status": "PASS",
+    "exitCode": null
+  },
+  "claims": {
+    "status": "PASS",
+    "exitCode": null
+  },
+  "placeholders": {
+    "status": "PASS",
+    "exitCode": null
+  },
+  "stale_files": {
+    "status": "PASS",
+    "exitCode": null
+  },
+  "immutable_action_refs": {
+    "status": "PASS",
+    "exitCode": null
+  },
+  "non_publishing_workflows": {
+    "status": "PASS",
+    "exitCode": null
+  },
+  "required_files": {
+    "status": "PASS",
+    "exitCode": null
+  },
+  "version_consistency": {
+    "status": "PASS",
+    "exitCode": null
+  }
+}

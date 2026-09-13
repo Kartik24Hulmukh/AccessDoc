@@ -21,6 +21,7 @@ from app.service import build_artifacts
 from app.bundle import build_bundle
 from app.models import VERSION
 from app.limits import (
+    LimitExceeded,
     MAX_HTTP_BODY_BYTES,
     MAX_VIOLATIONS,
     MAX_TOTAL_NODES,
@@ -136,7 +137,7 @@ class handler(BaseHTTPRequestHandler):
         if isinstance(scanner_input, str):
             try:
                 data = _json.loads(scanner_input)
-            except _json.JSONDecodeError:
+            except (_json.JSONDecodeError, RecursionError):
                 return False, 400, "Malformed JSON in scanner_input"
         elif isinstance(scanner_input, dict):
             data = scanner_input
@@ -146,10 +147,11 @@ class handler(BaseHTTPRequestHandler):
         if not isinstance(data, dict):
             return False, 422, "axe-core input must be a JSON object"
 
-        violations_raw = data.get("violations")
-        if violations_raw is None:
+        if "violations" not in data:
             return False, 422, "scanner_input missing 'violations' array"
-
+        violations_raw = data["violations"]
+        if violations_raw is None:
+            violations_raw = []  # explicit null == empty (shared parser contract)
         if not isinstance(violations_raw, list):
             return False, 422, "'violations' must be a list"
 
@@ -185,6 +187,14 @@ class handler(BaseHTTPRequestHandler):
                         f"{MAX_STRING_CHARS} characters"
                     )
 
+        # Shared validation must not inherit the CLI-only oversize opt-out.
+        from app.parser import parse_axe_json
+        try:
+            parse_axe_json(data, allow_oversized=False)
+        except LimitExceeded:
+            return False, 413, "Scanner input exceeds resource limits"
+        except (ValueError, RecursionError):
+            return False, 422, "Invalid axe-core data"
         return True, None, None
 
     # ------------------------------------------------------------------ #
@@ -234,14 +244,14 @@ class handler(BaseHTTPRequestHandler):
 
         # 3. Content-Type must be application/json.
         ct = self.headers.get("Content-Type", "")
-        if "application/json" not in ct.lower():
+        if ct.split(";", 1)[0].strip().lower() != "application/json":
             self._error(415, "Content-Type must be application/json", request_id)
             return
 
         # 4. Parse JSON.
         try:
             body = json.loads(raw) if raw else {}
-        except (json.JSONDecodeError, UnicodeDecodeError):
+        except (json.JSONDecodeError, UnicodeDecodeError, RecursionError):
             self._error(400, "Malformed JSON", request_id)
             return
 
@@ -276,6 +286,9 @@ class handler(BaseHTTPRequestHandler):
         try:
             artifacts = build_artifacts(safe_body)
             zip_bytes = build_bundle(artifacts)
+        except LimitExceeded:
+            self._error(413, "Input exceeds resource limits", request_id)
+            return
         except ValueError as exc:
             # ValueError from parsing/validation — return 422.
             self._error(422, "Invalid axe-core data", request_id)
