@@ -16,6 +16,7 @@ import os
 import random
 import threading
 import time
+import weakref
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -174,6 +175,7 @@ class ModelGateway:
         adapter = HTTPAdapter(pool_connections=25, pool_maxsize=100)
         self._session.mount("https://", adapter)
         self._session.mount("http://", adapter)
+        weakref.finalize(self, self._session.close)
 
     def _key(self):
         return self._api_key or os.getenv(API_KEY_ENV, "")
