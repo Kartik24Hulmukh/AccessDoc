@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from .models import VERSION
 from .service import build_artifacts, Artifacts
 from .bundle import build_bundle, validate_bundle, MEMBERS
+from .limits import limits_summary
 try:
     from .store import TTLReportStore
     _STORE_AVAILABLE = True
@@ -47,6 +48,16 @@ def allowed(ip):
    for k in list(RATE)[:1000]:
     if not RATE[k] or now-RATE[k][-1]>=window:RATE.pop(k,None)
   return True
+
+def api_keys():
+ raw=os.getenv('ACCESSDOC_API_KEYS','')
+ return {k.strip() for k in raw.split(',') if k.strip()}
+
+def api_key_ok(provided):
+ keys=api_keys()
+ if not keys:return True
+ if not provided:return False
+ return any(secrets.compare_digest(provided,k) for k in keys)
 
 class Server(ThreadingHTTPServer):
  daemon_threads=True;allow_reuse_address=True;request_queue_size=int(os.getenv('LISTEN_BACKLOG','128'))
@@ -150,6 +161,7 @@ class Handler(BaseHTTPRequestHandler):
    for k,v in STORE.stats.items():lines.append(f'accessdoc_store_{k} {v}')
    return self._send(200,('\n'.join(lines)+'\n').encode(),'text/plain; version=0.0.4; charset=utf-8')
   if path=='/api/sample':return self._send(200,(ROOT/'public/sample/axe-sample.json').read_bytes(),'application/json; charset=utf-8')
+  if path=='/limits':return self._json(200,dict(limits_summary(),api_key_required=bool(api_keys()),rate_limit_per_minute=int(os.getenv('RATE_LIMIT_PER_MINUTE','30'))))
   match=re.fullmatch(r'/(download|download-html|download-receipt)/([A-Za-z0-9_-]{32})',path)
   if match:
    kind,token=match.groups();item=STORE.get(token)
@@ -173,6 +185,7 @@ class Handler(BaseHTTPRequestHandler):
   path=urlparse(self.path).path
   if path not in ('/api/generate','/api/v1/generate','/api/bundle'):return self._json(404,{'error':{'code':'NOT_FOUND','message':'Not found'}})
   if not self._validate_origin():return self._json(403,{'error':{'code':'CROSS_SITE_REQUEST','message':'Cross-site requests are not allowed'}})
+  if not api_key_ok(self.headers.get('X-API-Key')):return self._json(401,{'error':{'code':'UNAUTHORIZED','message':'A valid X-API-Key header is required'}})
   if not READY:return self._json(503,{'error':{'code':'DRAINING','message':'Server is shutting down. Try again shortly.'}})
   if not allowed(self.client_address[0]):return self._json(429,{'error':{'code':'RATE_LIMITED','message':'Too many requests. Try again shortly.'}})
   if not GENERATION_CAPACITY.acquire(timeout=float(os.getenv('GENERATION_QUEUE_TIMEOUT_SECONDS','0.05'))):
@@ -183,26 +196,21 @@ class Handler(BaseHTTPRequestHandler):
    body=self._read_json()
    if path=='/api/bundle':
     artifacts=build_artifacts(body);bundle=build_bundle(artifacts);metric('reports_total');return self._send(200,bundle,'application/zip',{'Content-Disposition':'attachment; filename="accessdoc-report-bundle.zip"','CDN-Cache-Control':'no-store','Vercel-CDN-Cache-Control':'no-store'})
-   scanner=str(body.get('scanner_input',''));findings,detected=parse_input(scanner,str(body.get('format_hint','auto')))
-   logo=None;data_url=str(body.get('logo_data_url',''))
-   if data_url:
-    if not data_url.startswith('data:image/png;base64,'):raise ValueError('Logo must be a PNG')
-    encoded=data_url.split(',',1)[1]
-    if len(encoded)>670_000:raise ValueError('Logo exceeds encoded size limit')
-    logo=base64.b64decode(encoded,validate=True)
-    if len(logo)<24 or logo[:8]!=b'\x89PNG\r\n\x1a\n' or logo[12:16]!=b'IHDR':raise ValueError('Logo must be a valid PNG')
-    width,height=struct.unpack('>II',logo[16:24])
-    if width<1 or height<1 or width>4096 or height>4096 or width*height>16_000_000:raise ValueError('Logo dimensions exceed limit')
-   branding=Branding(body.get('agency_name','AccessDoc Studio'),body.get('primary_color','#185ABD'),logo)
-   input_sha256=hashlib.sha256(scanner.encode('utf-8')).hexdigest()
-   req=AuditRequest(body.get('client_name','Client'),body.get('audit_date',''),branding,findings,body.get('manual_findings',''),detected,body.get('source_filename','pasted-evidence'),input_sha256,os.getenv('ACCESSDOC_VERSION',VERSION))
-   pdf=generate_pdf(req);filename=slug(req.client_name)+'-accessibility-evidence-report.pdf'
-   counts={s:sum(1 for f in findings if f.severity==s) for s in ('critical','high','medium','low','needs-review')};unmapped=sum(1 for f in findings if f.wcag_criterion=='Unmapped')
-   receipt={'source_filename':req.source_filename,'submitted_text_sha256':input_sha256,'detected_format':detected,'generator_version':req.generator_version,'catalog_version':'wcag-2.2-accessdoc-2026-01','mapped_findings':len(findings)-unmapped,'unmapped_findings':unmapped,'manual_findings_included':bool(req.manual_findings),'pdf_sha256':hashlib.sha256(pdf).hexdigest(),'scope_statement':'Digest identifies submitted UTF-8 input text; AccessDoc normalized supplied evidence and did not rescan or authenticate its source.'}
-   html=generate_html(req,receipt);receipt_bytes=(json.dumps(receipt,ensure_ascii=False,indent=2)+'\n').encode()
+   # /api/generate and /api/v1/generate: single-file PDF+receipt flow backed
+   # by the same canonical pipeline as /api/bundle (build_artifacts), stored
+   # behind short-lived tokens. Previously this branch referenced Branding/
+   # AuditRequest/parse_input/generate_pdf/generate_html, none of which exist
+   # in this codebase any more after the evidence-bundle refactor -- every
+   # call unconditionally raised NameError, caught by the generic handler
+   # below and returned as an opaque 500 GENERATION_FAILED. That made the
+   # documented API_V1.md contract 100% non-functional. Fixed by routing
+   # through build_artifacts(), the same tested/hardened path as /api/bundle.
+   artifacts=build_artifacts(body);receipt=json.loads(artifacts.receipt_json)
+   summary=receipt['summary'];filename=slug(receipt.get('client_name','Client'))+'-accessibility-evidence-report.pdf'
    if not READY:return self._json(503,{'error':{'code':'DRAINING','message':'Server is shutting down; report was not stored'}})
-   token=STORE.put(pdf,html,receipt_bytes,filename)
-   metric('reports_total');self._json(201,{'report_token':token,'download_url':f'/download/{token}','html_companion_url':f'/download-html/{token}','receipt_url':f'/download-receipt/{token}','detected_format':detected,'finding_count':len(findings),'instance_count':sum(f.instance_count for f in findings),'severity_counts':counts,'catalog_review_required':unmapped,'expires_in_seconds':STORE.ttl_seconds,'input_evidence_receipt':receipt})
+   token=STORE.put(artifacts.pdf_bytes,artifacts.html_bytes,artifacts.receipt_json.encode(),filename)
+   metric('reports_total')
+   self._json(201,{'report_token':token,'download_url':f'/download/{token}','html_companion_url':f'/download-html/{token}','receipt_url':f'/download-receipt/{token}','finding_count':summary['total_violations'],'severity_counts':{'critical':summary['critical'],'serious':summary['serious'],'moderate':summary['moderate'],'minor':summary['minor'],'unknown':summary['unknown']},'catalog_review_required':summary['unknown'],'expires_in_seconds':STORE.ttl_seconds,'input_evidence_receipt':receipt})
   except ValueError as e:self._json(422,{'error':{'code':'INVALID_INPUT','message':str(e)}})
   except (TimeoutError,ConnectionError,BrokenPipeError,OSError):
    self.close_connection=True;metric('client_disconnects_total')
