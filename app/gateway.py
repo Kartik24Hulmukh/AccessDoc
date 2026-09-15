@@ -154,7 +154,8 @@ def extract_text(payload):
     content = msg.get("content")
     if isinstance(content, list):
         content = "".join(p.get("text", "") for p in content
-                          if isinstance(p, dict) and p.get("type", "text") == "text")
+                          if isinstance(p, dict) and p.get("type", "text") == "text"
+                          and isinstance(p.get("text"), str))
     text = (content or "").strip() if isinstance(content, str) else ""
     if not text:
         text = (msg.get("reasoning_content") or "").strip() if isinstance(msg.get("reasoning_content"), str) else ""
@@ -230,7 +231,7 @@ class ModelGateway:
             t = self.timeout[1]
         t = max(t, self.timeout[1]) if env is None else t
         if remaining is not None:
-            t = max(1.0, min(t, remaining))
+            t = min(t, remaining)
         return t
 
     def _post(self, model, messages, max_tokens=None, remaining=None):
@@ -239,6 +240,8 @@ class ModelGateway:
         key = self._key()
         if not key:
             raise GatewayError(API_KEY_ENV + " is not set", model=model)
+        if remaining is not None and remaining <= 0:
+            raise GatewayError("gateway time budget exhausted", status=504, model=model)
         resp = self._session.post(
             MELIOUS_BASE_URL + CHAT_PATH,
             headers={"Authorization": "Bearer " + key,
@@ -246,12 +249,16 @@ class ModelGateway:
                      "traceparent": telemetry.traceparent_header()},
             json={"model": model, "messages": messages,
                   "max_tokens": int(max_tokens or os.getenv("GATEWAY_MAX_TOKENS", "1024"))},
-            timeout=(self.timeout[0], self.read_timeout_for(model, remaining)))
+            timeout=(min(self.timeout[0], remaining) if remaining is not None else self.timeout[0],
+                     self.read_timeout_for(model, remaining)))
         try:
-            payload = resp.json()
-        except ValueError:
-            payload = {}
-        return resp.status_code, dict(resp.headers), payload
+            try:
+                payload = resp.json()
+            except ValueError:
+                payload = {}
+            return resp.status_code, dict(resp.headers), payload
+        finally:
+            resp.close()
 
     @staticmethod
     def _log(**fields):
@@ -288,11 +295,21 @@ class ModelGateway:
                 continue
             attempt = 0
             while True:
+                # Retries share the same budget as fallback models. Recheck
+                # after backoff, before making another billable network call.
+                if time.monotonic() >= deadline:
+                    budget_hit = True
+                    last_err = GatewayError("gateway time budget exhausted", status=504, model=m)
+                    break
+                if tokens_spent >= self.token_budget:
+                    token_budget_hit = True
+                    last_err = GatewayError("gateway token budget exhausted", status=429, model=m)
+                    break
                 t0 = time.monotonic()
                 status, headers, payload = 0, {}, {}
                 try:
                     per_call = min(int(os.getenv("GATEWAY_MAX_TOKENS", "1024")),
-                                   max(64, self.token_budget - tokens_spent))
+                                   self.token_budget - tokens_spent)
                     status, headers, payload = self._post(
                         m, messages, per_call, remaining=deadline - time.monotonic())
                 except requests.Timeout as exc:
@@ -304,10 +321,12 @@ class ModelGateway:
                         raise
                     status, payload = exc.status or 502, {'error': str(exc)}
                 latency = round((time.monotonic() - t0) * 1000, 2)
+                # Provider JSON is untrusted, including usage on success.
                 try:
-                    tokens_spent += int(((payload or {}).get("usage") or {}).get("total_tokens") or 0)
-                except (TypeError, ValueError, AttributeError):
-                    pass
+                    tokens = max(0, int(((payload or {}).get("usage") or {}).get("total_tokens") or 0))
+                except (TypeError, ValueError, AttributeError, OverflowError):
+                    tokens = 0
+                tokens_spent += tokens
                 text = extract_text(payload) if status == 200 else ""
                 if status == 200 and not text:
                     # Reasoning models can spend the whole completion budget on
@@ -317,7 +336,6 @@ class ModelGateway:
                     payload = {"error": "empty completion"}
                 if status == 200:
                     breaker.record_success()
-                    tokens = (payload.get("usage") or {}).get("total_tokens", 0)
                     self._log(event="gateway_call", model=m, status=200,
                               latency_ms=latency, tokens=tokens,
                               tokens_spent=tokens_spent,

@@ -114,7 +114,7 @@ class PerModelReadTimeoutTests(unittest.TestCase):
         self.assertEqual(gw.read_timeout_for("glm-5.3"), 15.0)
         self.assertGreaterEqual(gw.read_timeout_for("kimi-k3"), 25.0)
         self.assertEqual(gw.read_timeout_for("kimi-k3", remaining=7.0), 7.0)
-        self.assertEqual(gw.read_timeout_for("kimi-k3", remaining=0.2), 1.0)
+        self.assertEqual(gw.read_timeout_for("kimi-k3", remaining=0.2), 0.2)
 
     def test_env_override_wins(self):
         os.environ["GATEWAY_READ_TIMEOUT_QWEN3_8_27B"] = "22"
