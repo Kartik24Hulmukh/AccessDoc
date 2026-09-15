@@ -1,0 +1,579 @@
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "AccessDoc Evidence API",
+  "version": "0.7.0-beta.7",
+  "summary": "Turn axe-core scanner output into a deterministic, verifiable accessibility evidence bundle.",
+  "description": "Bounded, stateless API. AccessDoc organises supplied evidence and drafts advisory WCAG 2.2 guidance; it does not certify conformance and does not provide legal advice. Bodies are limited to 2,097,152 bytes (2 MiB); see GET /limits for every ceiling. Every response carries X-Request-ID for support.",
+  "license": {
+   "name": "Apache-2.0",
+   "identifier": "Apache-2.0"
+  }
+ },
+ "servers": [
+  {
+   "url": "https://access-doc.vercel.app"
+  }
+ ],
+ "tags": [
+  {
+   "name": "evidence"
+  },
+  {
+   "name": "remediation"
+  },
+  {
+   "name": "operations"
+  }
+ ],
+ "paths": {
+  "/readyz": {
+   "get": {
+    "tags": [
+     "operations"
+    ],
+    "summary": "Readiness probe",
+    "operationId": "readyz",
+    "responses": {
+     "200": {
+      "description": "Service ready",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "service": {
+           "const": "AccessDoc"
+          },
+          "adapter_version": {
+           "type": "string"
+          },
+          "status": {
+           "const": "ok"
+          },
+          "commit": {
+           "type": "string"
+          },
+          "endpoints": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           }
+          },
+          "gateway": {
+           "type": "object"
+          }
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/limits": {
+   "get": {
+    "tags": [
+     "operations"
+    ],
+    "summary": "Resource ceilings enforced by this deployment",
+    "operationId": "limits",
+    "responses": {
+     "200": {
+      "description": "Limits",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "max_http_body_bytes": {
+           "type": "integer",
+           "const": 2097152
+          },
+          "max_violations": {
+           "type": "integer"
+          },
+          "max_total_nodes": {
+           "type": "integer"
+          },
+          "max_nodes_per_violation": {
+           "type": "integer"
+          },
+          "max_string_chars": {
+           "type": "integer"
+          },
+          "api_key_required": {
+           "type": "boolean"
+          },
+          "rate_limit_per_minute": {
+           "type": [
+            "integer",
+            "null"
+           ]
+          },
+          "max_concurrent_requests_per_process": {
+           "type": "integer"
+          }
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/bundle": {
+   "post": {
+    "tags": [
+     "evidence"
+    ],
+    "summary": "Generate an evidence ZIP (report.html primary, report.pdf convenience, receipt.json, openacr.yaml, attestation.intoto.json, manifest.json)",
+    "operationId": "createBundle",
+    "security": [
+     {},
+     {
+      "bearer": []
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/BundleRequest"
+       },
+       "examples": {
+        "minimal": {
+         "value": {
+          "scanner_input": {
+           "violations": []
+          },
+          "client_name": "Example Client",
+          "agency_name": "Example Agency",
+          "audit_date": "2026-09-16"
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "ZIP bundle. manifest.json lists SHA-256 for every member; receipt.json follows schema 1.2.",
+      "headers": {
+       "X-Request-ID": {
+        "schema": {
+         "type": "string"
+        }
+       },
+       "X-AccessDoc-Finding-Count": {
+        "schema": {
+         "type": "string"
+        }
+       },
+       "X-AccessDoc-Instance-Count": {
+        "schema": {
+         "type": "string"
+        }
+       },
+       "X-AccessDoc-Unmapped-Count": {
+        "schema": {
+         "type": "string"
+        }
+       }
+      },
+      "content": {
+       "application/zip": {
+        "schema": {
+         "type": "string",
+         "format": "binary"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Malformed JSON / scanner_input required",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "required": [
+          "error",
+          "request_id"
+         ],
+         "properties": {
+          "error": {
+           "type": "string"
+          },
+          "request_id": {
+           "type": "string"
+          }
+         }
+        }
+       }
+      }
+     },
+     "401": {
+      "description": "Unauthorized (auth-gated deployments)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "required": [
+          "error",
+          "request_id"
+         ],
+         "properties": {
+          "error": {
+           "type": "string"
+          },
+          "request_id": {
+           "type": "string"
+          }
+         }
+        }
+       }
+      }
+     },
+     "413": {
+      "description": "Body or scanner input exceeds /limits",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "required": [
+          "error",
+          "request_id"
+         ],
+         "properties": {
+          "error": {
+           "type": "string"
+          },
+          "request_id": {
+           "type": "string"
+          }
+         }
+        }
+       }
+      }
+     },
+     "415": {
+      "description": "Content-Type must be application/json",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "required": [
+          "error",
+          "request_id"
+         ],
+         "properties": {
+          "error": {
+           "type": "string"
+          },
+          "request_id": {
+           "type": "string"
+          }
+         }
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Invalid axe-core structure",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "required": [
+          "error",
+          "request_id"
+         ],
+         "properties": {
+          "error": {
+           "type": "string"
+          },
+          "request_id": {
+           "type": "string"
+          }
+         }
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Capacity exhausted; honour Retry-After",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "required": [
+          "error",
+          "request_id"
+         ],
+         "properties": {
+          "error": {
+           "type": "string"
+          },
+          "request_id": {
+           "type": "string"
+          }
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/remediate": {
+   "post": {
+    "tags": [
+     "remediation"
+    ],
+    "summary": "Prioritised, advisory WCAG 2.2 remediation plan (never 503s: falls back to deterministic offline knowledge base, flagged by X-AccessDoc-Mode: degraded-offline-kb)",
+    "operationId": "remediate",
+    "security": [
+     {},
+     {
+      "bearer": []
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RemediateRequest"
+       },
+       "examples": {
+        "violations": {
+         "value": {
+          "violations": [
+           {
+            "id": "color-contrast",
+            "impact": "serious",
+            "nodes": [
+             {
+              "html": "<p style=\"color:#999\">low contrast</p>"
+             }
+            ]
+           }
+          ]
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Plan",
+      "headers": {
+       "X-AccessDoc-Mode": {
+        "description": "Present with value degraded-offline-kb when no model was reachable",
+        "schema": {
+         "type": "string"
+        }
+       }
+      },
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RemediateResponse"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "violations must be a non-empty list / invalid input",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "required": [
+          "error",
+          "request_id"
+         ],
+         "properties": {
+          "error": {
+           "type": "string"
+          },
+          "request_id": {
+           "type": "string"
+          }
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "securitySchemes": {
+   "bearer": {
+    "type": "http",
+    "scheme": "bearer",
+    "description": "Only when the deployment sets ACCESSDOC_REQUIRE_AUTH=true and ACCESSDOC_API_KEY."
+   }
+  },
+  "schemas": {
+   "AxeResults": {
+    "type": "object",
+    "required": [
+     "violations"
+    ],
+    "properties": {
+     "url": {
+      "type": "string"
+     },
+     "testEngine": {
+      "type": "object",
+      "properties": {
+       "name": {
+        "type": "string"
+       },
+       "version": {
+        "type": "string"
+       }
+      }
+     },
+     "violations": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "id": {
+         "type": "string"
+        },
+        "impact": {
+         "type": "string"
+        },
+        "description": {
+         "type": "string"
+        },
+        "helpUrl": {
+         "type": "string"
+        },
+        "nodes": {
+         "type": "array",
+         "items": {
+          "type": "object"
+         }
+        }
+       }
+      }
+     },
+     "passes": {
+      "type": "array"
+     },
+     "incomplete": {
+      "type": "array"
+     }
+    }
+   },
+   "BundleRequest": {
+    "type": "object",
+    "required": [
+     "scanner_input"
+    ],
+    "properties": {
+     "scanner_input": {
+      "oneOf": [
+       {
+        "$ref": "#/components/schemas/AxeResults"
+       },
+       {
+        "type": "string",
+        "description": "axe-core JSON as a string"
+       }
+      ]
+     },
+     "client_name": {
+      "type": "string",
+      "maxLength": 160
+     },
+     "agency_name": {
+      "type": "string",
+      "maxLength": 120
+     },
+     "audit_date": {
+      "type": "string",
+      "format": "date"
+     },
+     "manual_findings": {
+      "type": "string"
+     },
+     "enrich": {
+      "type": "boolean"
+     },
+     "include_sarif": {
+      "type": "boolean"
+     },
+     "include_vpat": {
+      "type": "boolean"
+     },
+     "include_eaa": {
+      "type": "boolean"
+     },
+     "prior_receipt": {
+      "type": "object",
+      "description": "Previous receipt.json for delta reporting"
+     }
+    },
+    "additionalProperties": true
+   },
+   "RemediateRequest": {
+    "type": "object",
+    "properties": {
+     "scanner_input": {
+      "$ref": "#/components/schemas/AxeResults"
+     },
+     "violations": {
+      "type": "array",
+      "items": {
+       "type": "object"
+      }
+     },
+     "client_name": {
+      "type": "string"
+     },
+     "model": {
+      "type": "string"
+     }
+    }
+   },
+   "RemediateResponse": {
+    "type": "object",
+    "properties": {
+     "guidance": {
+      "type": "string"
+     },
+     "model": {
+      "type": "string"
+     },
+     "degraded": {
+      "type": "boolean"
+     },
+     "fallback": {
+      "type": "boolean"
+     },
+     "violations_considered": {
+      "type": "integer"
+     },
+     "latency_ms": {
+      "type": "number"
+     },
+     "request_id": {
+      "type": "string"
+     },
+     "adapter": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ }
+}

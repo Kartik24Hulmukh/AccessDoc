@@ -73,7 +73,56 @@ _SECURITY_HEADERS = {
     "X-Frame-Options": "DENY",
     "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
     "Referrer-Policy": "no-referrer",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+    "Cross-Origin-Opener-Policy": "same-origin",
+    "Cross-Origin-Resource-Policy": "same-origin",
 }
+
+# ---------------------------------------------------------------------- #
+# Hosted UI + developer docs. Vercel routes every path to this handler, so the
+# static report builder in public/ must be served from here or it is dark in
+# production. Strict allowlist: no directory walking, no path joins from input.
+# ---------------------------------------------------------------------- #
+_PUBLIC_ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "public")
+_PAGE_CSP = ("default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
+             "connect-src 'self'; font-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'")
+_STATIC_FILES = {
+    "/index.html": ("index.html", "text/html; charset=utf-8"),
+    "/docs": ("docs.html", "text/html; charset=utf-8"),
+    "/docs/index.html": ("docs.html", "text/html; charset=utf-8"),
+    "/openapi.json": ("openapi.json", "application/json; charset=utf-8"),
+    "/static/app.css": ("static/app.css", "text/css; charset=utf-8"),
+    "/static/app.js": ("static/app.js", "text/javascript; charset=utf-8"),
+    "/static/report.css": ("static/report.css", "text/css; charset=utf-8"),
+    "/sample/axe-sample.json": ("sample/axe-sample.json", "application/json; charset=utf-8"),
+}
+_STATIC_MAX_BYTES = 512 * 1024
+
+
+def _load_static(path):
+    """Return (bytes, content_type) for an allowlisted asset, or None."""
+    entry = _STATIC_FILES.get(path)
+    if not entry:
+        return None
+    rel, ctype = entry
+    full = os.path.join(_PUBLIC_ROOT, *rel.split("/"))
+    try:
+        if os.path.getsize(full) > _STATIC_MAX_BYTES:
+            return None
+        with open(full, "rb") as fh:
+            return fh.read(_STATIC_MAX_BYTES), ctype
+    except OSError:
+        return None
+
+
+def _wants_html(accept):
+    """Browsers ask for text/html first; probes, curl and SDKs do not."""
+    accept = (accept or "").lower()
+    if "text/html" not in accept:
+        return False
+    if "application/json" in accept and accept.find("application/json") < accept.find("text/html"):
+        return False
+    return True
 
 
 class handler(BaseHTTPRequestHandler):
@@ -284,10 +333,39 @@ class handler(BaseHTTPRequestHandler):
             snap["available"] = False
         return snap
 
+    def _send_static(self, path, head_only=False):
+        """Serve an allowlisted public asset with page-scoped CSP. Returns True if served."""
+        loaded = _load_static(path)
+        if loaded is None:
+            return False
+        body, ctype = loaded
+        self._status = 200
+        self.send_response(200)
+        self.send_header("X-Request-ID", self.request_id)
+        self.send_header("traceparent", telemetry.traceparent_header(self._trace()))
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Vary", "Accept")
+        for k, v in _SECURITY_HEADERS.items():
+            if k == "Content-Security-Policy":
+                v = _PAGE_CSP
+            self.send_header(k, v)
+        self.end_headers()
+        if not head_only:
+            self.wfile.write(body)
+        return True
+
     def do_GET(self):
-        """Health check on '/', '/readyz', '/healthz', '/api/bundle'; ceilings on '/limits'."""
+        """Hosted UI on '/' (browsers) and '/index.html'; JSON health on '/' (API clients),
+        '/readyz', '/healthz'; ceilings on '/limits'; docs on '/docs' + '/openapi.json'."""
+        self.request_id = uuid.uuid4().hex[:12]
+        self._trace_ctx = None
         commit_sha = os.environ.get("VERCEL_GIT_COMMIT_SHA", "unknown")
         path = self.path.split("?")[0].rstrip("/") or "/"
+        if path == "/" and _wants_html(self.headers.get("Accept")) and self._send_static("/index.html"):
+            return
+        if path in _STATIC_FILES and self._send_static(path):
+            return
         if path in ("/", "/readyz", "/healthz", "/health"):
             self._send_json(200, {
                 "service": "AccessDoc",
@@ -295,7 +373,8 @@ class handler(BaseHTTPRequestHandler):
                 "status": "ok",
                 "commit": commit_sha,
                 "api_note": "Bounded ReportLab demo API. See docs for limitations.",
-                "endpoints": ["/api/bundle", "/api/remediate", "/limits"],
+                "endpoints": ["/api/bundle", "/api/remediate", "/limits", "/docs", "/openapi.json"],
+                "ui": "/index.html",
                 "gateway": self._gateway_snapshot(),
             })
             return
@@ -317,6 +396,8 @@ class handler(BaseHTTPRequestHandler):
                 "method": "POST",
                 "commit": commit_sha,
                 "description": "Send POST with axe-core JSON in scanner_input to generate an evidence ZIP.",
+                "docs": "/docs",
+                "openapi": "/openapi.json",
             })
             return
         if path in _REMEDIATE_PATHS:
@@ -521,11 +602,18 @@ class handler(BaseHTTPRequestHandler):
         self._error(405, "Method not allowed")
 
     def do_HEAD(self):
+        self.request_id = uuid.uuid4().hex[:12]
+        self._trace_ctx = None
         path = self.path.split("?")[0].rstrip("/") or "/"
+        if path == "/" and _wants_html(self.headers.get("Accept")) and self._send_static("/index.html", head_only=True):
+            return
+        if path in _STATIC_FILES and self._send_static(path, head_only=True):
+            return
         if path not in ("/", "/readyz", "/healthz", "/health", "/api/bundle", "/limits") + _REMEDIATE_PATHS:
             self._error(404, "Not found")
             return
         self.send_response(200)
+        self.send_header("X-Request-ID", self.request_id)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         for k, v in _SECURITY_HEADERS.items():
             self.send_header(k, v)
