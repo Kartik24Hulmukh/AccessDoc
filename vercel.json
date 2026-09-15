@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "functions": {
-    "api/handler.py": {
-      "maxDuration": 60,
-      "memory": 1024
+  "builds": [
+    {
+      "src": "api/handler.py",
+      "use": "@vercel/python"
     }
-  },
+  ],
   "routes": [
     {
       "src": "/(.*)",
