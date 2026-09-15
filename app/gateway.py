@@ -32,7 +32,7 @@ DEFAULT_TOKEN_BUDGET = 6000
 # they time out (504) on every call and become dead weight in the chain.
 # Live Melious benchmark: kimi-k3 P50 ~16.5 s. Override per model with
 # GATEWAY_READ_TIMEOUT_<MODEL> (non-alnum -> _, upper-case).
-MODEL_READ_TIMEOUTS = {"kimi-k3": 30.0}
+MODEL_READ_TIMEOUTS = {"glm-5.3-flash": 25.0, "qwen3.8-27b": 25.0, "kimi-k3": 30.0}
 
 MELIOUS_BASE_URL = os.getenv("MELIOUS_BASE_URL", "https://api.melious.ai/v1")
 CHAT_PATH = "/chat/completions"

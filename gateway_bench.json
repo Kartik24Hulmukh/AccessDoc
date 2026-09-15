@@ -1,0 +1,45 @@
+{
+  "models": {
+    "glm-5.3": {
+      "ok": 3,
+      "n": 3,
+      "p50_ms": 5279.05,
+      "p95_ms": 6619.94,
+      "p99_ms": 6619.94,
+      "avg_tokens": 1073
+    },
+    "glm-5.3-flash": {
+      "ok": 0,
+      "n": 3,
+      "error": "transient gateway failure"
+    },
+    "qwen3.8-27b": {
+      "ok": 3,
+      "n": 3,
+      "p50_ms": 11127.58,
+      "p95_ms": 11135.6,
+      "p99_ms": 11135.6,
+      "avg_tokens": 1075
+    },
+    "kimi-k3": {
+      "ok": 0,
+      "n": 3,
+      "error": "transient gateway failure"
+    }
+  },
+  "resilience": {
+    "429_storm_fallback": {
+      "served_by": "glm-5.3-flash",
+      "attempts": 1,
+      "pass": true
+    },
+    "outage_fail_fast": {
+      "pass": true,
+      "ms": 228.7
+    },
+    "static_kb_last_resort": {
+      "pass": true,
+      "model": "static-kb"
+    }
+  }
+}
