@@ -10,7 +10,6 @@ from concurrent.futures import ThreadPoolExecutor
 ROOT = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else os.getcwd())
 sys.path.insert(0, ROOT)
 os.environ.setdefault("MAX_CONCURRENT_REQUESTS", "32")
-os.environ.setdefault("LISTEN_BACKLOG", "128")
 os.environ.setdefault("MAX_CONNECTIONS", "256")
 os.environ.setdefault("RATE_LIMIT_PER_MINUTE", "100000")
 os.environ["ALLOWED_HOSTS"] = ""
@@ -18,7 +17,8 @@ from http.server import HTTPServer
 from app.main import Handler, Server
 from app.limits import MAX_HTTP_BODY_BYTES
 
-SAMPLE = json.load(open(os.path.join(ROOT, "public", "sample", "axe-sample.json")))
+with open(os.path.join(ROOT, "public", "sample", "axe-sample.json"), encoding="utf-8") as _fh:
+    SAMPLE = json.load(_fh)
 
 def payload(kind, i):
     if kind == "tiny":

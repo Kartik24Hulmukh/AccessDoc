@@ -12,7 +12,8 @@ from app import remediate
 from app.gateway import ModelGateway, GatewayError, normalize_model, CANONICAL_CHAIN
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SAMPLE = json.load(open(os.path.join(ROOT, "public", "sample", "axe-sample.json")))
+with open(os.path.join(ROOT, "public", "sample", "axe-sample.json"), encoding="utf-8") as _fh:
+    SAMPLE = json.load(_fh)
 
 
 def ok_transport(model, messages):
@@ -162,7 +163,8 @@ class RemediateEndpointTests(unittest.TestCase):
 
     def test_no_secret_literals_in_new_source(self):
         for f in ("app/remediate.py", "app/main.py", "app/http_policy.py", "tests/test_remediate_endpoint.py"):
-            src = open(os.path.join(ROOT, f), encoding="utf-8").read()
+            with open(os.path.join(ROOT, f), encoding="utf-8") as fh:
+                src = fh.read()
             self.assertNotIn("sk-mel" + "-1", src, f); self.assertNotIn("gh" + "p_m", src, f)
 
 
