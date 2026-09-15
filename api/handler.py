@@ -107,12 +107,24 @@ def _load_static(path):
     rel, ctype = entry
     full = os.path.join(_PUBLIC_ROOT, *rel.split("/"))
     try:
-        if os.path.getsize(full) > _STATIC_MAX_BYTES:
-            return None
-        with open(full, "rb") as fh:
-            return fh.read(_STATIC_MAX_BYTES), ctype
+        if os.path.getsize(full) <= _STATIC_MAX_BYTES:
+            with open(full, "rb") as fh:
+                return fh.read(_STATIC_MAX_BYTES), ctype
     except OSError:
+        pass
+    # Vercel does not bundle public/ into the Python function; fall back to the
+    # generated, allowlisted copy that ships inside api/ (scripts/embed_public_assets.py).
+    try:
+        from api import public_assets
+    except Exception:
+        try:
+            import public_assets  # api/ is the CWD-less lambda root on some runtimes
+        except Exception:
+            return None
+    data = public_assets.load(rel)
+    if data is None or len(data) > _STATIC_MAX_BYTES:
         return None
+    return data, ctype
 
 
 def _wants_html(accept):
