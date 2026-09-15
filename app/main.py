@@ -7,6 +7,8 @@ from urllib.parse import urlparse
 from .models import VERSION
 from .http_policy import auth_error, public_body, auth_required, remediation_body
 from .limits import LimitExceeded, MAX_HTTP_BODY_BYTES, limits_summary
+from . import telemetry
+READ_CHUNK_BYTES=64*1024
 from .service import build_artifacts
 from .bundle import build_bundle
 from . import remediate as remediation
@@ -93,10 +95,13 @@ class Handler(BaseHTTPRequestHandler):
   self.close_connection=True
   if not hasattr(self,'request_id'):self.request_id=secrets.token_hex(16)
   self._json(code,{'error':{'code':'MALFORMED_REQUEST' if code<500 else 'INTERNAL_ERROR','message':self.responses.get(code,('Request rejected',))[0]}})
+ def _trace(self):
+  if not getattr(self,'_trace_ctx',None):self._trace_ctx=telemetry.start_trace(self.headers.get('traceparent') if getattr(self,'headers',None) else None,request_id=self.request_id)
+  return self._trace_ctx
  def _log(self,status,start):
-  print(json.dumps({'ts':time.time(),'request_id':self.request_id,'ip':safe_external(self.client_address[0]),'method':self.command,'route':('/download/[token]' if urlparse(self.path).path.startswith(('/download/','/download-html/','/download-receipt/')) else safe_external(urlparse(self.path).path)),'status':status,'duration_ms':round((time.monotonic()-start)*1000,2)},separators=(',',':')),flush=True)
+  print(json.dumps({'ts':time.time(),'level':'info','event':'http_request','trace_id':self._trace()['trace_id'],'span_id':self._trace()['span_id'],'request_id':self.request_id,'ip':safe_external(self.client_address[0]),'method':self.command,'route':('/download/[token]' if urlparse(self.path).path.startswith(('/download/','/download-html/','/download-receipt/')) else safe_external(urlparse(self.path).path)),'status':status,'duration_ms':round((time.monotonic()-start)*1000,2)},separators=(',',':')),flush=True)
  def _security(self,ctype):
-  self.send_header('Content-Type',ctype);self.send_header('X-Content-Type-Options','nosniff');self.send_header('X-Frame-Options','DENY');self.send_header('Referrer-Policy','no-referrer');self.send_header('Permissions-Policy','camera=(), microphone=(), geolocation=()');self.send_header('Cross-Origin-Resource-Policy','same-origin');self.send_header('Cross-Origin-Opener-Policy','same-origin');self.send_header('Cache-Control','no-store');self.send_header('Pragma','no-cache');self.send_header('X-Request-ID',self.request_id);self.send_header('Content-Security-Policy',"default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+  self.send_header('Content-Type',ctype);self.send_header('X-Content-Type-Options','nosniff');self.send_header('X-Frame-Options','DENY');self.send_header('Referrer-Policy','no-referrer');self.send_header('Permissions-Policy','camera=(), microphone=(), geolocation=()');self.send_header('Cross-Origin-Resource-Policy','same-origin');self.send_header('Cross-Origin-Opener-Policy','same-origin');self.send_header('Cache-Control','no-store');self.send_header('Pragma','no-cache');self.send_header('X-Request-ID',self.request_id);self.send_header('traceparent',telemetry.traceparent_header(self._trace()));self.send_header('Content-Security-Policy',"default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
  def _send(self,status,body=b'',ctype='application/json; charset=utf-8',extra=None):
   self.send_response(status);self._security(ctype)
   for k,v in (extra or {}).items():self.send_header(k,safe_external(v,300))
@@ -124,16 +129,21 @@ class Handler(BaseHTTPRequestHandler):
   except:raise ValueError('Invalid Content-Length')
   if n>limit:raise LimitExceeded('Request body exceeds limit',limit_name='MAX_HTTP_BODY_BYTES',limit=limit,actual=n)
   if n<=0:raise ValueError('Invalid Content-Length')
-  raw=self.rfile.read(n)
-  if len(raw)!=n:raise ValueError('Truncated request body')
-  return raw
+  # Chunked streaming read: bounded 64 KiB slices, abort on short read, never a single oversized allocation.
+  raw=bytearray();remaining=n
+  while remaining>0:
+   chunk=self.rfile.read(min(remaining,READ_CHUNK_BYTES))
+   if not chunk:break
+   raw+=chunk;remaining-=len(chunk)
+  if remaining:raise ValueError('Truncated request body')
+  return bytes(raw)
  def _read_json(self):
   if self.headers.get_content_type()!='application/json':raise ValueError('Content-Type must be application/json')
   raw=self._read(MAX_BODY)
   try:return json.loads(raw,parse_constant=lambda x:(_ for _ in ()).throw(ValueError('Non-finite JSON number')))
   except json.JSONDecodeError:raise ValueError('Invalid JSON request')
  def handle_one_request(self):
-  self.request_id=secrets.token_hex(16);self._status=500;start=time.monotonic()
+  self.request_id=secrets.token_hex(16);self._status=500;start=time.monotonic();telemetry.clear();self._trace_ctx=None
   try:
    super().handle_one_request()
   except (TimeoutError,ConnectionError,BrokenPipeError,OSError):self.close_connection=True;metric('client_disconnects_total')
@@ -146,6 +156,7 @@ class Handler(BaseHTTPRequestHandler):
     metric('requests_total')
     try:self._log(self._status,start)
     except:pass
+   telemetry.clear()
  def _preflight(self):
   if not self._validate_host():self._json(421,{'error':{'code':'INVALID_HOST','message':'Request host is not allowed'}});return False
   return True

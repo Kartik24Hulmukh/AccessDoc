@@ -23,6 +23,9 @@ from app.service import build_artifacts
 from app.bundle import build_bundle
 from app.models import VERSION
 from app.http_policy import auth_error, auth_required, public_body
+from app import telemetry
+
+READ_CHUNK_BYTES = 64 * 1024
 from app.limits import (
     LimitExceeded,
     limits_summary,
@@ -103,6 +106,7 @@ class handler(BaseHTTPRequestHandler):
         self.send_response(status)
         if hasattr(self, "request_id"):
             self.send_header("X-Request-ID", self.request_id)
+        self.send_header("traceparent", telemetry.traceparent_header(self._trace()))
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         for k, v in _SECURITY_HEADERS.items():
@@ -112,6 +116,15 @@ class handler(BaseHTTPRequestHandler):
                 self.send_header(k, v)
         self.end_headers()
         self.wfile.write(body)
+
+    def _trace(self):
+        """Adopt the inbound W3C traceparent (or mint a root span) once per request."""
+        ctx = getattr(self, "_trace_ctx", None)
+        if not ctx:
+            inbound = self.headers.get("traceparent") if getattr(self, "headers", None) else None
+            ctx = telemetry.start_trace(inbound, request_id=getattr(self, "request_id", None))
+            self._trace_ctx = ctx
+        return ctx
 
     def send_error(self, code, message=None, explain=None):
         """Stdlib parse failures (400/414/431/501) must honour the JSON contract.
@@ -124,6 +137,8 @@ class handler(BaseHTTPRequestHandler):
         self.close_connection = True
         if not hasattr(self, "request_id"):
             self.request_id = uuid.uuid4().hex[:12]
+        self._trace_ctx = None
+        self._trace()
         short = self.responses.get(code, ("Request rejected",))[0]
         self._send_json(code, {"error": short, "request_id": self.request_id},
                         {"Connection": "close"})
@@ -167,7 +182,17 @@ class handler(BaseHTTPRequestHandler):
         # Read exactly the declared number of bytes.
         # Even if Content-Length is absent we cap reads at MAX_HTTP_BODY_BYTES,
         # but we already required it above for POST.
-        raw = self.rfile.read(length)
+        # Chunked streaming read (64 KiB slices): no single oversized allocation,
+        # early abort on client disconnect.
+        buf = bytearray()
+        remaining = length
+        while remaining > 0:
+            chunk = self.rfile.read(min(remaining, READ_CHUNK_BYTES))
+            if not chunk:
+                break
+            buf += chunk
+            remaining -= len(chunk)
+        raw = bytes(buf)
         if len(raw) < length:
             # Client disconnected early; treat as malformed.
             return None, 400, "Request body shorter than Content-Length"
@@ -312,6 +337,8 @@ class handler(BaseHTTPRequestHandler):
     def do_POST(self):
         self.close_connection = True
         self.request_id = uuid.uuid4().hex[:12]
+        self._trace_ctx = None
+        self._trace()
         self._status = 500
         start = time.monotonic()
         _p = self.path.split("?")[0].rstrip("/") or "/"

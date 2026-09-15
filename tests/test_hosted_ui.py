@@ -31,10 +31,20 @@ class HostedUITests(unittest.TestCase):
             with patch.dict(os.environ, env), tempfile.TemporaryDirectory() as temp, sync_playwright() as p:
                 browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
                 try:
-                    page = browser.new_page()
+                    # The UI ships CSP script-src 'self' (no unsafe-eval). Playwright's
+                    # evaluate/wait_for_function inject eval'd strings into the main
+                    # world and are blocked by that policy on current Chromium builds,
+                    # so the test harness bypasses CSP for its own instrumentation and
+                    # asserts the production policy header explicitly below instead.
+                    page = browser.new_page(bypass_csp=True)
                     errors = []
                     page.on("pageerror", lambda error: errors.append(str(error)))
-                    page.goto(base)
+                    response = page.goto(base)
+                    self.assertIsNotNone(response)
+                    csp = response.headers.get("content-security-policy", "")
+                    self.assertIn("script-src 'self'", csp)
+                    self.assertNotIn("unsafe-eval", csp)
+                    self.assertNotIn("unsafe-inline", csp)
                     page.locator("#sample").click()
                     page.wait_for_function("document.querySelector('#scanner').value.length > 0")
                     # Auth-required error must be accessible and recoverable.
