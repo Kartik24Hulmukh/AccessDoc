@@ -473,16 +473,17 @@ class handler(BaseHTTPRequestHandler):
         degrade through the ordered model chain to the static knowledge base;
         a missing credential is an explicit 503 with Retry-After, never a 500.
         """
-        if not os.getenv("MELIOUS_API_KEY"):
-            self._send_json(503, {"error": "GATEWAY_UNAVAILABLE",
-                                  "detail": "MELIOUS_API_KEY is not configured for this deployment",
-                                  "request_id": request_id}, {"Retry-After": "5"})
-            return
         try:
             from app import remediate as remediation
             from app.gateway import GatewayError
         except Exception:
             self._error(503, "GATEWAY_UNAVAILABLE", request_id)
+            return
+        strict = remediation.strict_gateway()
+        if strict and not os.getenv("MELIOUS_API_KEY"):
+            self._send_json(503, {"error": "GATEWAY_UNAVAILABLE",
+                                  "detail": "MELIOUS_API_KEY is not configured for this deployment",
+                                  "request_id": request_id}, {"Retry-After": "5"})
             return
         model = body.get("model")
         if model is not None and not isinstance(model, str):
@@ -494,8 +495,14 @@ class handler(BaseHTTPRequestHandler):
             self._error(422, str(exc)[:200], request_id)
             return
         except GatewayError:
-            self._send_json(503, {"error": "GATEWAY_UNAVAILABLE", "request_id": request_id},
-                            {"Retry-After": "5"})
+            if strict:
+                self._send_json(503, {"error": "GATEWAY_UNAVAILABLE", "request_id": request_id},
+                                {"Retry-After": "5"})
+                return
+            out = remediation.remediate_offline(body)
+            out["request_id"] = request_id
+            out["adapter"] = "serverless"
+            self._send_json(200, out, {"X-AccessDoc-Mode": "degraded-offline-kb"})
             return
         except Exception:
             self._error(500, "Internal error", request_id)

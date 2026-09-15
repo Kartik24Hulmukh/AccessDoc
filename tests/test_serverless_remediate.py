@@ -91,6 +91,8 @@ class ServerlessRemediateTests(unittest.TestCase):
 
     def test_missing_credential_is_503_with_retry_after(self):
         os.environ.pop("MELIOUS_API_KEY", None)
+        os.environ["ACCESSDOC_STRICT_GATEWAY"] = "1"  # strict mode keeps the hard 503 contract
+        self.addCleanup(os.environ.pop, "ACCESSDOC_STRICT_GATEWAY", None)
         with self.assertRaises(HTTPError) as cm:
             post(self.port, "/api/remediate", {"scanner_input": AXE})
         self.addCleanup(cm.exception.close)

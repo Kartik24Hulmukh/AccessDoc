@@ -81,6 +81,14 @@ verified fixes, local load results, compatibility changes and deployment gates.
 
 ## AI remediation (`POST /api/remediate`, self-hosted **and** serverless)
 
+**Never a dead surface.** If `MELIOUS_API_KEY` is absent or the whole model
+chain is unreachable, the endpoint returns `200` with a deterministic offline
+WCAG 2.2 plan (`degraded: true`, `model: offline-kb`, header
+`X-AccessDoc-Mode: degraded-offline-kb`) instead of a 503. Set
+`ACCESSDOC_STRICT_GATEWAY=1` to restore fail-closed 503 behaviour. See
+[docs/degraded-mode.md](docs/degraded-mode.md).
+
+
 AccessDoc can turn the violations in a scan into a prioritised WCAG 2.2
 remediation plan using the Melious frontier-model gateway. The route is fully
 fault-tolerant: an ordered chain `GLM-5.3 -> GLM-5.3 Flash -> Qwen 3.8 27B ->

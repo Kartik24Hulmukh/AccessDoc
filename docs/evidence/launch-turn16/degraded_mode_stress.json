@@ -1,0 +1,17 @@
+{
+  "server": "ThreadingHTTPServer(serverless handler)",
+  "workers": 50,
+  "requests": 500,
+  "wall_seconds": 3.23,
+  "throughput_rps": 154.9,
+  "status_200": 497,
+  "errors": {
+    "ConnectionResetError:[Errno 104] Connection reset by peer": 3
+  },
+  "p50_ms": 5.32,
+  "p95_ms": 1043.29,
+  "p99_ms": 2064.04,
+  "max_ms": 3086.63,
+  "distinct_guidance_hashes": 1,
+  "determinism": "PASS"
+}

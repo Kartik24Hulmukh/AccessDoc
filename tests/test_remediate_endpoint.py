@@ -87,8 +87,21 @@ class RemediateEndpointTests(unittest.TestCase):
         self.assertEqual(s, 200); self.assertTrue(b["fallback"]); self.assertEqual(b["model"], "static-kb")
         self.assertTrue(b["guidance"])
 
+    def test_missing_credential_serves_degraded_offline_plan_by_default(self):
+        """Launch fix: the stdlib server must not 503 the product when no key is set."""
+        os.environ.pop("MELIOUS_API_KEY", None)
+        os.environ.pop("ACCESSDOC_STRICT_GATEWAY", None)
+        remediate.reset_gateway(ModelGateway())  # real transport, no key -> GatewayError
+        s, b, h = self._post("/api/remediate", {"scanner_input": SAMPLE})
+        self.assertEqual(s, 200)
+        self.assertTrue(b["degraded"]); self.assertEqual(b["model"], "offline-kb")
+        self.assertTrue(b["guidance"].strip())
+        self.assertEqual(h.get("X-AccessDoc-Mode"), "degraded-offline-kb")
+
     def test_missing_credential_is_503_with_retry_after(self):
         os.environ.pop("MELIOUS_API_KEY", None)
+        os.environ["ACCESSDOC_STRICT_GATEWAY"] = "1"  # strict mode keeps the hard 503 contract
+        self.addCleanup(os.environ.pop, "ACCESSDOC_STRICT_GATEWAY", None)
         remediate.reset_gateway(ModelGateway())  # real transport, no key -> GatewayError(status=None)
         s, b, h = self._post("/api/remediate", {"scanner_input": SAMPLE})
         self.assertEqual(s, 503); self.assertEqual(b["error"]["code"], "GATEWAY_UNAVAILABLE")
