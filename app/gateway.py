@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import os
 import random
+import re
 import threading
 import time
 import weakref
@@ -43,7 +44,7 @@ _ALIASES = {
 
 def normalize_model(name):
     """Map vendor aliases onto canonical Melious model identifiers."""
-    key = str(name or "").strip().lower()
+    key = re.sub(r"[\s_]+", "-", str(name or "").strip().lower())
     return _ALIASES.get(key, key)
 
 
@@ -129,6 +130,25 @@ _STATIC_KB = (
 )
 
 
+def extract_text(payload):
+    """Robustly pull assistant text from an OpenAI-compatible completion.
+    Handles string content, multi-part content lists and reasoning-only replies."""
+    try:
+        msg = payload["choices"][0]["message"]
+    except (KeyError, IndexError, TypeError):
+        return ""
+    if not isinstance(msg, dict):
+        return ""
+    content = msg.get("content")
+    if isinstance(content, list):
+        content = "".join(p.get("text", "") for p in content
+                          if isinstance(p, dict) and p.get("type", "text") == "text")
+    text = (content or "").strip() if isinstance(content, str) else ""
+    if not text:
+        text = (msg.get("reasoning_content") or "").strip() if isinstance(msg.get("reasoning_content"), str) else ""
+    return text
+
+
 def static_answer(prompt):
     """Deterministic offline knowledge-base answer (last-resort fallback)."""
     text = str(prompt or "").lower()
@@ -161,13 +181,19 @@ class ModelGateway:
     """Circuit-breaking, pooling, fallback-routing Melious chat client."""
 
     def __init__(self, api_key=None, transport=None, chain=None,
-                 connect_timeout=5.0, read_timeout=10.0, max_retries=3,
-                 base_backoff=0.25, max_sleep=2.0):
+                 connect_timeout=5.0, read_timeout=None, max_retries=3,
+                 base_backoff=0.25, max_sleep=2.0, budget_seconds=None):
         self._api_key = api_key
         self.transport = transport
         self.chain = tuple(normalize_model(m) for m in (chain or CANONICAL_CHAIN))
         self.breakers = {m: CircuitBreaker() for m in self.chain}
+        if read_timeout is None:
+            read_timeout = float(os.getenv("GATEWAY_READ_TIMEOUT_SECONDS", "15"))
         self.timeout = (connect_timeout, read_timeout)
+        # Hard wall-clock ceiling for one chat() across every model/retry so a
+        # slow chain can never pin a worker: exhausted budget -> static-KB.
+        self.budget_seconds = float(budget_seconds if budget_seconds is not None
+                                    else os.getenv("GATEWAY_BUDGET_SECONDS", "40"))
         self.max_retries = max_retries
         self.base_backoff = base_backoff
         self.max_sleep = max_sleep
@@ -190,7 +216,8 @@ class ModelGateway:
             MELIOUS_BASE_URL + CHAT_PATH,
             headers={"Authorization": "Bearer " + key,
                      "Content-Type": "application/json"},
-            json={"model": model, "messages": messages, "max_tokens": 256},
+            json={"model": model, "messages": messages,
+                  "max_tokens": int(os.getenv("GATEWAY_MAX_TOKENS", "1024"))},
             timeout=self.timeout)
         try:
             payload = resp.json()
@@ -203,7 +230,9 @@ class ModelGateway:
         print(json.dumps(dict(fields, ts=time.time()), separators=(",", ":")),
               flush=True)
 
-    def chat(self, prompt, model=None, static_fallback=True):
+    def chat(self, prompt, model=None, static_fallback=True, budget_seconds=None):
+        deadline = time.monotonic() + float(budget_seconds if budget_seconds is not None else self.budget_seconds)
+        budget_hit = False
         messages = [{"role": "system",
                      "content": "You are an accessibility remediation engineer."},
                     {"role": "user", "content": str(prompt)}]
@@ -211,6 +240,11 @@ class ModelGateway:
         start = self.chain.index(wanted) if wanted in self.chain else 0
         last_err = None
         for m in self.chain[start:]:
+            if time.monotonic() >= deadline:
+                budget_hit = True
+                self._log(event="gateway_budget_exhausted", model=m)
+                last_err = GatewayError("gateway time budget exhausted", status=504, model=m)
+                break
             breaker = self.breakers[m]
             if not breaker.allow():
                 self._log(event="gateway_skip", model=m, reason="circuit_open",
@@ -232,12 +266,15 @@ class ModelGateway:
                         raise
                     status, payload = exc.status or 502, {'error': str(exc)}
                 latency = round((time.monotonic() - t0) * 1000, 2)
+                text = extract_text(payload) if status == 200 else ""
+                if status == 200 and not text:
+                    # Reasoning models can spend the whole completion budget on
+                    # hidden thinking and return an empty answer with a 200. A
+                    # 200 with no content is a failed attempt, never a success.
+                    status = 502
+                    payload = {"error": "empty completion"}
                 if status == 200:
                     breaker.record_success()
-                    try:
-                        text = payload["choices"][0]["message"]["content"]
-                    except (KeyError, IndexError, TypeError):
-                        text = ""
                     tokens = (payload.get("usage") or {}).get("total_tokens", 0)
                     self._log(event="gateway_call", model=m, status=200,
                               latency_ms=latency, tokens=tokens,
@@ -255,21 +292,29 @@ class ModelGateway:
                     break
                 last_err = GatewayError("transient gateway failure",
                                         status=status, model=m)
+                if status == 504:
+                    # A timeout already cost a full read window; retrying the
+                    # same model would burn the budget. Fail over immediately.
+                    break
                 attempt += 1
                 if attempt > self.max_retries:
+                    break
+                if time.monotonic() >= deadline:
+                    budget_hit = True
                     break
                 retry_after = 0.0
                 try:
                     retry_after = float(headers.get("Retry-After") or 0)
                 except (TypeError, ValueError):
                     retry_after = 0.0
-                delay = min(max(retry_after,
+                delay = min(deadline - time.monotonic(), max(retry_after,
                                 self.base_backoff * (2 ** (attempt - 1)))
                             + random.uniform(0, self.base_backoff),
                             self.max_sleep)
-                time.sleep(delay)
+                time.sleep(max(0.0, delay))
         if static_fallback:
-            self._log(event="gateway_static_fallback", reason="chain_exhausted")
+            self._log(event="gateway_static_fallback",
+                      reason="budget_exhausted" if budget_hit else "chain_exhausted")
             return GatewayResult("static-kb", static_answer(prompt), 0, 0.0,
                                  0, True, "static-kb")
         raise last_err or GatewayError("all models unavailable")

@@ -1,0 +1,71 @@
+{
+ "GLM-5.3 Flash": {
+  "model": "qwen3.8-27b",
+  "fallback": false,
+  "attempts": 1,
+  "latency_ms": 11020.43,
+  "tokens": 1210,
+  "violations_considered": 4,
+  "guidance": "# WCAG 2.2 Remediation Plan \u2014 Client: Launch Pilot\n\n> **Note on source data:** All entries below were taken from untrusted scanner output. The fourth entry (`cu",
+  "wall_ms": 26223
+ },
+ "None": {
+  "model": "glm-5.3",
+  "fallback": false,
+  "attempts": 1,
+  "latency_ms": 5356.51,
+  "tokens": 1206,
+  "violations_considered": 4,
+  "guidance": "# WCAG 2.2 Remediation Plan \u2014 Launch Pilot\n\n**Note on data handling:** The scanner output was treated as untrusted data. In particular, the `custom-future-rule`",
+  "wall_ms": 5358
+ },
+ "readyz": {
+  "status": "ready",
+  "commit": "3d46783f66ac4752125ae88f66f0d53b35266e8c",
+  "gateway": {
+   "chain": [
+    "glm-5.3",
+    "glm-5.3-flash",
+    "qwen3.8-27b",
+    "kimi-k3"
+   ],
+   "models": {
+    "glm-5.3": {
+     "state": "closed",
+     "consecutive_failures": 0,
+     "successes": 1,
+     "failures": 0
+    },
+    "glm-5.3-flash": {
+     "state": "closed",
+     "consecutive_failures": 1,
+     "successes": 0,
+     "failures": 1
+    },
+    "qwen3.8-27b": {
+     "state": "closed",
+     "consecutive_failures": 0,
+     "successes": 1,
+     "failures": 0
+    },
+    "kimi-k3": {
+     "state": "closed",
+     "consecutive_failures": 0,
+     "successes": 0,
+     "failures": 0
+    }
+   },
+   "configured": true
+  }
+ },
+ "metrics": [
+  "accessdoc_remediations_total 2",
+  "accessdoc_gateway_remediate_requests_total 2",
+  "accessdoc_gateway_remediate_fallbacks_total 0",
+  "accessdoc_gateway_remediate_errors_total 0",
+  "accessdoc_gateway_circuit_open{model=\"glm-5.3\"} 0",
+  "accessdoc_gateway_circuit_open{model=\"glm-5.3-flash\"} 0",
+  "accessdoc_gateway_circuit_open{model=\"qwen3.8-27b\"} 0",
+  "accessdoc_gateway_circuit_open{model=\"kimi-k3\"} 0"
+ ]
+}

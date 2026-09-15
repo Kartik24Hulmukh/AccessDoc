@@ -63,6 +63,38 @@ verified fixes, local load results, compatibility changes and deployment gates.
 - **Unified CLI** (`cli.py`), **stdio MCP server** (`mcp/server.py`), and a
   reusable **GitHub Action** (`action.yml` + `scripts/ci_gate.py`).
 
+## AI remediation (`POST /api/remediate`, self-hosted adapter)
+
+AccessDoc can turn the violations in a scan into a prioritised WCAG 2.2
+remediation plan using the Melious frontier-model gateway. The route is fully
+fault-tolerant: an ordered chain `GLM-5.3 -> GLM-5.3 Flash -> Qwen 3.8 27B ->
+Kimi K3` with per-model circuit breakers, `Retry-After`-aware bounded retries, a
+hard wall-clock budget (`GATEWAY_BUDGET_SECONDS`, default 40; a model that times out is failed over immediately rather than retried) and a
+deterministic static knowledge-base last resort. **It never returns a 5xx for
+an upstream model failure and never returns an empty answer.**
+
+```bash
+export MELIOUS_API_KEY=...            # env only; never committed
+python3 -m app.main &
+curl -s -X POST localhost:8000/api/remediate -H 'Content-Type: application/json' \
+  -d '{"scanner_input": '"$(cat fixtures/axe-sample.json)"'", "client_name": "Acme", "model": "GLM-5.3"}'
+```
+
+Response: `{"model", "fallback", "attempts", "latency_ms", "tokens",
+"violations_considered", "guidance"}`. Either `scanner_input` (axe JSON, same
+limits as `/api/generate`) or a bare `violations` list is accepted; at most 25
+violations, 300 chars per field, control characters stripped, and the prompt
+instructs the model to treat scanner text as untrusted data.
+
+Operations: `/readyz` reports per-model breaker state and whether the
+credential is configured; `/metrics` exposes
+`accessdoc_gateway_remediate_{requests,fallbacks,errors}_total` and
+`accessdoc_gateway_circuit_open{model=...}`. Remediation has its own
+concurrency pool (`MAX_CONCURRENT_REMEDIATIONS`, default 8) so slow model calls
+can never starve PDF generation. Without `MELIOUS_API_KEY` the route answers
+`503 GATEWAY_UNAVAILABLE` with `Retry-After`; every other product path is
+unaffected. Not yet exposed on the Vercel serverless adapter.
+
 ## Install
 ```bash
 git clone https://github.com/Kartik24Hulmukh/AccessDoc.git

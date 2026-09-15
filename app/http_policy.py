@@ -50,3 +50,19 @@ def public_body(body):
     # Do not inherit ACCESSDOC_ALLOW_OVERSIZED from a CLI-oriented deployment.
     parse_axe_json(body.get("scanner_input"), allow_oversized=False)
     return {key: body[key] for key in PUBLIC_KEYS if key in body}
+
+
+REMEDIATION_KEYS = ("scanner_input", "violations", "client_name", "model")
+
+
+def remediation_body(body):
+    """Boundary for POST /api/remediate: scanner_input (if present) must pass the
+    same axe parser/limits as /api/generate; a bare violations list is bounded by
+    app.remediate. Unknown keys never cross."""
+    if not isinstance(body, dict):
+        raise ValueError("Request body must be a JSON object")
+    if body.get("scanner_input") is not None:
+        parse_axe_json(body.get("scanner_input"), allow_oversized=False)
+    if "model" in body and body["model"] is not None and not isinstance(body["model"], str):
+        raise ValueError("model must be a string")
+    return {key: body[key] for key in REMEDIATION_KEYS if key in body}
