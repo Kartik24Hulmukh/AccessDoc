@@ -1,6 +1,10 @@
 # AccessDoc runtime dependencies.
-# The deterministic core is stdlib-only EXCEPT PDF rendering (reportlab).
+# The deterministic core is stdlib-only EXCEPT PDF rendering (reportlab)
+# and the pooled HTTPS transport used by the Melious gateway router (requests).
 reportlab>=4.0.0
+
+# Melious frontier-model gateway router (app/gateway.py): pooled HTTPS transport.
+requests>=2.32.0
 
 # Optional extras (not required for the core evidence pipeline):
 #   PyYAML     - only used by the test-suite to assert openacr.yaml is safe
