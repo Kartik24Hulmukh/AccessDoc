@@ -56,7 +56,7 @@ def allowed(ip):
   return True
 
 class Server(ThreadingHTTPServer):
- daemon_threads=True;allow_reuse_address=True;request_queue_size=int(os.getenv('LISTEN_BACKLOG','128'))
+ daemon_threads=True;allow_reuse_address=True;request_queue_size=max(128,int(os.getenv('LISTEN_BACKLOG','512')))
  def process_request(self,request,client_address):
   if not CONNECTION_CAPACITY.acquire(blocking=False):
    metric('overload_rejections_total')
