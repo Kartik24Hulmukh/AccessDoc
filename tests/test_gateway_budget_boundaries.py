@@ -26,13 +26,27 @@ class BudgetBoundaryTests(unittest.TestCase):
         calls = []
         def transport(model, messages):
             calls.append(model)
-            return 503, {}, {}
+            return 408, {}, {}
         def sleep(delay):
             clock[0] += 2.0
         with patch("app.gateway.time.monotonic", side_effect=lambda: clock[0]), patch("app.gateway.time.sleep", side_effect=sleep):
             result = self.run_quiet(ModelGateway(transport=transport, budget_seconds=1))
         self.assertTrue(result.fallback)
         self.assertEqual(len(calls), 1)
+
+    def test_429_fails_over_without_retry_sleep(self):
+        calls = []
+        def transport(model, messages):
+            calls.append(model)
+            if model == CANONICAL_CHAIN[0]:
+                return 429, {"Retry-After": "10"}, {}
+            return 200, {}, {"choices": [{"message": {"content": "ok"}}]}
+        gw = ModelGateway(transport=transport, max_retries=3, base_backoff=1)
+        with patch("app.gateway.time.sleep") as sleep:
+            result = self.run_quiet(gw)
+        self.assertEqual(calls, list(CANONICAL_CHAIN[:2]))
+        sleep.assert_not_called()
+        self.assertEqual(result.model, CANONICAL_CHAIN[1])
 
     def test_small_remaining_budget_is_not_rounded_up(self):
         gw = ModelGateway()
