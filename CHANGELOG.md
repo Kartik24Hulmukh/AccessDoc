@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased - serverless remediation parity (PR #41)
+
+- POST /api/remediate is now served by the Vercel serverless adapter (api/handler.py) with the same contract as the self-hosted server: bounded body, JSON-only errors, X-Request-ID, security headers.
+- Dedicated MAX_CONCURRENT_REMEDIATIONS admission pool with a bounded REMEDIATION_QUEUE_TIMEOUT_SECONDS queue so slow model round-trips never starve or shed PDF/evidence generation.
+- GET /, /readyz, /healthz expose a gateway/circuit-breaker snapshot and the endpoint list; GET /api/remediate returns a usage descriptor.
+- Missing MELIOUS_API_KEY returns 503 GATEWAY_UNAVAILABLE + Retry-After, never a 500, and never affects /api/bundle.
+- UI: "Get AI remediation plan" button in the report result panel; fallback:true responses are labelled as static-knowledge-base guidance and all plans are labelled advisory.
+- 13 new tests (tests/test_serverless_remediate.py). Suite: 676 tests green.
+
+
 ## 0.4.0-beta.4 — Vercel source candidate
 
 - Added a stateless Vercel Python handler at `api/bundle.py`.

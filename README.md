@@ -63,7 +63,7 @@ verified fixes, local load results, compatibility changes and deployment gates.
 - **Unified CLI** (`cli.py`), **stdio MCP server** (`mcp/server.py`), and a
   reusable **GitHub Action** (`action.yml` + `scripts/ci_gate.py`).
 
-## AI remediation (`POST /api/remediate`, self-hosted adapter)
+## AI remediation (`POST /api/remediate`, self-hosted **and** serverless)
 
 AccessDoc can turn the violations in a scan into a prioritised WCAG 2.2
 remediation plan using the Melious frontier-model gateway. The route is fully
@@ -88,6 +88,13 @@ instructs the model to treat scanner text as untrusted data.
 
 Operations: `/readyz` reports per-model breaker state and whether the
 credential is configured; `/metrics` exposes
+Serverless (Vercel) parity since PR #41: same request/response contract, its own
+`MAX_CONCURRENT_REMEDIATIONS` admission pool with a `REMEDIATION_QUEUE_TIMEOUT_SECONDS`
+queue, gateway snapshot on `GET /readyz`, and `503 GATEWAY_UNAVAILABLE` + `Retry-After`
+when `MELIOUS_API_KEY` is absent. Plans are advisory drafting aid: AccessDoc still
+never claims or verifies conformance, and `fallback: true` responses are static
+knowledge-base text, labelled as such in the UI.
+
 `accessdoc_gateway_remediate_{requests,fallbacks,errors}_total` and
 `accessdoc_gateway_circuit_open{model=...}`. Remediation has its own
 concurrency pool (`MAX_CONCURRENT_REMEDIATIONS`, default 8) so slow model calls
