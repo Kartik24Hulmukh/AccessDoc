@@ -45,6 +45,11 @@ _GENERATE_HINT = (
 )
 # Per-process only: serverless replicas require an external global quota.
 GENERATION_CAPACITY = threading.BoundedSemaphore(max(1, int(os.getenv("MAX_CONCURRENT_REQUESTS", "2"))))
+# Remediation calls are slow model round-trips; they must never starve PDF
+# generation, so they admit from their own bounded pool.
+REMEDIATION_CAPACITY = threading.BoundedSemaphore(max(1, int(os.getenv("MAX_CONCURRENT_REMEDIATIONS", "4"))))
+_REMEDIATE_PATHS = ("/api/remediate", "/api/v1/remediate")
+REMEDIATION_QUEUE_TIMEOUT = max(0.0, float(os.getenv("REMEDIATION_QUEUE_TIMEOUT_SECONDS", "10")))
 
 # Only these keys from the request body are forwarded to build_artifacts.
 # pdf_engine and receipt_history are deliberately excluded from the public API.
@@ -244,6 +249,16 @@ class handler(BaseHTTPRequestHandler):
     # HTTP methods
     # ------------------------------------------------------------------ #
 
+    def _gateway_snapshot(self):
+        """Circuit-breaker / configuration view for readiness probes."""
+        snap = {"configured": bool(os.getenv("MELIOUS_API_KEY"))}
+        try:
+            from app import remediate as remediation
+            snap.update(remediation.health())
+        except Exception:
+            snap["available"] = False
+        return snap
+
     def do_GET(self):
         """Health check on '/', '/readyz', '/healthz', '/api/bundle'; ceilings on '/limits'."""
         commit_sha = os.environ.get("VERCEL_GIT_COMMIT_SHA", "unknown")
@@ -255,6 +270,8 @@ class handler(BaseHTTPRequestHandler):
                 "status": "ok",
                 "commit": commit_sha,
                 "api_note": "Bounded ReportLab demo API. See docs for limitations.",
+                "endpoints": ["/api/bundle", "/api/remediate", "/limits"],
+                "gateway": self._gateway_snapshot(),
             })
             return
         if path == "/limits":
@@ -277,6 +294,16 @@ class handler(BaseHTTPRequestHandler):
                 "description": "Send POST with axe-core JSON in scanner_input to generate an evidence ZIP.",
             })
             return
+        if path in _REMEDIATE_PATHS:
+            self._send_json(200, {
+                "service": "AccessDoc",
+                "adapter_version": ADAPTER_VERSION,
+                "endpoint": "/api/remediate",
+                "method": "POST",
+                "description": "POST {scanner_input|violations, client_name?, model?} for a prioritised WCAG 2.2 remediation plan. Advisory only - AccessDoc never claims conformance.",
+                "gateway": self._gateway_snapshot(),
+            })
+            return
         if path in _GENERATE_ALIASES:
             self._error(404, _GENERATE_HINT)
             return
@@ -287,7 +314,15 @@ class handler(BaseHTTPRequestHandler):
         self.request_id = uuid.uuid4().hex[:12]
         self._status = 500
         start = time.monotonic()
-        acquired = GENERATION_CAPACITY.acquire(blocking=False)
+        _p = self.path.split("?")[0].rstrip("/") or "/"
+        _rem = _p in _REMEDIATE_PATHS
+        pool = REMEDIATION_CAPACITY if _rem else GENERATION_CAPACITY
+        # Model round-trips are seconds long, so remediation waits briefly in an
+        # admission queue before shedding; generation stays fail-fast.
+        if _rem:
+            acquired = pool.acquire(timeout=REMEDIATION_QUEUE_TIMEOUT)
+        else:
+            acquired = pool.acquire(blocking=False)
         try:
             if not acquired:
                 self._send_json(503, {"error": "Generation capacity exhausted", "request_id": self.request_id}, {"Retry-After": "1"})
@@ -295,7 +330,7 @@ class handler(BaseHTTPRequestHandler):
             self._post()
         finally:
             if acquired:
-                GENERATION_CAPACITY.release()
+                pool.release()
             print(json.dumps({"event": "request", "request_id": self.request_id,
                               "method": "POST", "status": self._status,
                               "duration_ms": round((time.monotonic() - start) * 1000, 2)}), flush=True)
@@ -321,7 +356,7 @@ class handler(BaseHTTPRequestHandler):
         if path in _GENERATE_ALIASES:
             self._error(404, _GENERATE_HINT, request_id)
             return
-        if path not in ("/", "/api/bundle"):
+        if path not in ("/", "/api/bundle") + _REMEDIATE_PATHS:
             self._error(404, "Not found", request_id)
             return
 
@@ -340,6 +375,12 @@ class handler(BaseHTTPRequestHandler):
 
         if not isinstance(body, dict):
             self._error(422, "Request body must be a JSON object", request_id)
+            return
+
+        # 4b. AI remediation plans are answered from the model gateway, not the
+        #     artifact pipeline (stateless, no ZIP).
+        if path in _REMEDIATE_PATHS:
+            self._remediate(body, request_id)
             return
 
         # 5. scanner_input is required.
@@ -397,6 +438,45 @@ class handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(zip_bytes)
 
+    def _remediate(self, body, request_id):
+        """POST /api/remediate - AI remediation plan via the Melious gateway.
+
+        Stateless and safe for the serverless adapter: no artifact store is
+        touched. Credential comes from $MELIOUS_API_KEY only. Gateway faults
+        degrade through the ordered model chain to the static knowledge base;
+        a missing credential is an explicit 503 with Retry-After, never a 500.
+        """
+        if not os.getenv("MELIOUS_API_KEY"):
+            self._send_json(503, {"error": "GATEWAY_UNAVAILABLE",
+                                  "detail": "MELIOUS_API_KEY is not configured for this deployment",
+                                  "request_id": request_id}, {"Retry-After": "5"})
+            return
+        try:
+            from app import remediate as remediation
+            from app.gateway import GatewayError
+        except Exception:
+            self._error(503, "GATEWAY_UNAVAILABLE", request_id)
+            return
+        model = body.get("model")
+        if model is not None and not isinstance(model, str):
+            self._error(422, "model must be a string", request_id)
+            return
+        try:
+            out = remediation.remediate(body, model=model)
+        except ValueError as exc:
+            self._error(422, str(exc)[:200], request_id)
+            return
+        except GatewayError:
+            self._send_json(503, {"error": "GATEWAY_UNAVAILABLE", "request_id": request_id},
+                            {"Retry-After": "5"})
+            return
+        except Exception:
+            self._error(500, "Internal error", request_id)
+            return
+        out["request_id"] = request_id
+        out["adapter"] = "serverless"
+        self._send_json(200, out)
+
     def do_PUT(self):
         self._error(405, "Method not allowed")
 
@@ -408,7 +488,7 @@ class handler(BaseHTTPRequestHandler):
 
     def do_HEAD(self):
         path = self.path.split("?")[0].rstrip("/") or "/"
-        if path not in ("/", "/readyz", "/healthz", "/health", "/api/bundle", "/limits"):
+        if path not in ("/", "/readyz", "/healthz", "/health", "/api/bundle", "/limits") + _REMEDIATE_PATHS:
             self._error(404, "Not found")
             return
         self.send_response(200)

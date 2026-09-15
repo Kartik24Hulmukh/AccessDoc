@@ -1,0 +1,70 @@
+{
+  "endpoint": "/api/remediate on the Vercel serverless adapter",
+  "date": "2026-09-15",
+  "cases": [
+    {
+      "case": "default chain",
+      "status": 200,
+      "wall_ms": 8827.4,
+      "model": "glm-5.3",
+      "fallback": false,
+      "tokens": 1177,
+      "attempts": 1,
+      "guidance_chars": 3067,
+      "error": null
+    },
+    {
+      "case": "alias model Qwen 3.8 27B",
+      "status": 200,
+      "wall_ms": 10843.3,
+      "model": "qwen3.8-27b",
+      "fallback": false,
+      "tokens": 1174,
+      "attempts": 1,
+      "guidance_chars": 1882,
+      "error": null
+    },
+    {
+      "case": "unknown model -> 422",
+      "status": 422,
+      "wall_ms": 1.1,
+      "model": null,
+      "fallback": null,
+      "tokens": null,
+      "attempts": null,
+      "guidance_chars": 0,
+      "error": "unknown model; allowed: glm-5.3, glm-5.3-flash, qwen3.8-27b, kimi-k3"
+    },
+    {
+      "case": "empty violations -> 422",
+      "status": 422,
+      "wall_ms": 0.7,
+      "model": null,
+      "fallback": null,
+      "tokens": null,
+      "attempts": null,
+      "guidance_chars": 0,
+      "error": "violations must be a non-empty list"
+    },
+    {
+      "case": "credential unset -> 503",
+      "status": 503,
+      "wall_ms": 0.7,
+      "error": "GATEWAY_UNAVAILABLE"
+    }
+  ],
+  "concurrency_20x": {
+    "status_histogram": {
+      "200": 20
+    },
+    "p50_ms": 12443.6,
+    "p95_ms": 21188.3,
+    "p99_ms": 21326.0,
+    "wall_s": 21.3,
+    "fallbacks": 0,
+    "unexpected_5xx": 0,
+    "shed_503": 0,
+    "pool": "8",
+    "queue_timeout_s": "30"
+  }
+}
