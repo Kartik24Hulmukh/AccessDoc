@@ -26,7 +26,7 @@ class BudgetBoundaryTests(unittest.TestCase):
         calls = []
         def transport(model, messages):
             calls.append(model)
-            return 503, {}, {}
+            return 408, {}, {}
         def sleep(delay):
             clock[0] += 2.0
         with patch("app.gateway.time.monotonic", side_effect=lambda: clock[0]), patch("app.gateway.time.sleep", side_effect=sleep):

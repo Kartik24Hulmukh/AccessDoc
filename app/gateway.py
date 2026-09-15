@@ -4,7 +4,7 @@ Structural remediation for the gateway-cascade deadlock failure mode:
 * per-model three-state circuit breakers (CLOSED -> OPEN -> HALF_OPEN)
 * ordered zero-loss fallback chain across frontier models
 * dedicated connection pooling (requests.Session + HTTPAdapter)
-* bounded jittered retries honouring Retry-After on HTTP 429 / 5xx / timeout
+* immediate failover on HTTP 429 / 5xx; bounded retries on HTTP 408
 * structured JSON telemetry per attempt (latency, tokens, circuit state)
 * bearer credential resolved exclusively from $MELIOUS_API_KEY (never hardcoded)
 * deterministic static-KB last-resort fallback (guaranteed zero-failure answer)
@@ -123,6 +123,15 @@ class CircuitBreaker:
             elif self.state == self.CLOSED and                     self.consecutive_failures >= self.failure_threshold:
                 self.state = self.OPEN
                 self._opened_at = time.monotonic()
+
+    def trip(self):
+        """Record one failure and open atomically; never synthesize failures."""
+        with self._lock:
+            self.failures += 1
+            self.consecutive_failures += 1
+            self.state = self.OPEN
+            self._opened_at = time.monotonic()
+            self._trials = 0
 
     def snapshot(self):
         with self._lock:
@@ -426,13 +435,12 @@ class ModelGateway:
                     return GatewayResult(m, text, tokens, latency,
                                          attempt + 1, False, m)
                 transient = status == 429 or status == 408 or status >= 500
-                breaker.record_failure()
                 if status == 429:
-                    # One explicit provider rate limit is sufficient to stop new
-                    # traffic to that model during its recovery window. Do not
-                    # require three billable retries merely to open the breaker.
-                    while breaker.snapshot()["state"] == CircuitBreaker.CLOSED:
-                        breaker.record_failure()
+                    # Explicit rate limits atomically stop new admissions without
+                    # fabricating failures or racing an unbounded retry loop.
+                    breaker.trip()
+                else:
+                    breaker.record_failure()
                 self._log(event="gateway_call", model=m, status=status,
                           latency_ms=latency, circuit=breaker.state,
                           attempt=attempt + 1)
@@ -442,8 +450,8 @@ class ModelGateway:
                     break
                 last_err = GatewayError("transient gateway failure",
                                         status=status, model=m)
-                if status in (429, 504):
-                    # Rate limits and timeouts fail over immediately. Sleeping and
+                if status == 429 or status >= 500:
+                    # Rate limits and server failures fail over immediately. Sleeping and
                     # retrying the same constrained model amplifies provider
                     # cascades and violates the sub-200 ms routing objective.
                     # Retry-After remains useful to operators via response headers,
