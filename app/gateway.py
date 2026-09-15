@@ -427,6 +427,12 @@ class ModelGateway:
                                          attempt + 1, False, m)
                 transient = status == 429 or status == 408 or status >= 500
                 breaker.record_failure()
+                if status == 429:
+                    # One explicit provider rate limit is sufficient to stop new
+                    # traffic to that model during its recovery window. Do not
+                    # require three billable retries merely to open the breaker.
+                    while breaker.snapshot()["state"] == CircuitBreaker.CLOSED:
+                        breaker.record_failure()
                 self._log(event="gateway_call", model=m, status=status,
                           latency_ms=latency, circuit=breaker.state,
                           attempt=attempt + 1)
@@ -436,9 +442,12 @@ class ModelGateway:
                     break
                 last_err = GatewayError("transient gateway failure",
                                         status=status, model=m)
-                if status == 504:
-                    # A timeout already cost a full read window; retrying the
-                    # same model would burn the budget. Fail over immediately.
+                if status in (429, 504):
+                    # Rate limits and timeouts fail over immediately. Sleeping and
+                    # retrying the same constrained model amplifies provider
+                    # cascades and violates the sub-200 ms routing objective.
+                    # Retry-After remains useful to operators via response headers,
+                    # while the per-model breaker prevents hot-looping.
                     break
                 attempt += 1
                 if attempt > self.max_retries:
