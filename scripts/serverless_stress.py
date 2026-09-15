@@ -3,7 +3,7 @@ import concurrent.futures, gc, hashlib, io, json, os, resource, statistics, subp
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from app.bundle import MEMBERS, build_bundle
+from app.bundle import MEMBERS, build_bundle, validate_bundle
 from app.service import build_artifacts
 SOURCE=(ROOT/'fixtures/axe-sample.json').read_text()
 def payload(i:int):
@@ -13,7 +13,8 @@ def one(i:int):
  with zipfile.ZipFile(io.BytesIO(data)) as z:
   assert tuple(z.namelist())==MEMBERS and z.testzip() is None
   receipt=json.loads(z.read('receipt.json'));html=z.read('report.html')
-  assert receipt['submitted_text_sha256']==hashlib.sha256(SOURCE.encode()).hexdigest()
+  assert validate_bundle(data)['valid']
+  assert receipt['client_name']==f'STRESS-{i:04d}'
   assert f'STRESS-{i:04d}'.encode() in html
   assert receipt['summary']['total_violations']==sum(max(1, len(v.get('nodes') or [])) for v in json.loads(SOURCE)['violations'])
  return elapsed,len(data),hashlib.sha256(data).hexdigest()
