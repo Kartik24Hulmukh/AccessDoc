@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.7.0-beta.7] - 2026-09-15 - launch turn 17: hosted UI + developer docs actually served in production (PR #56)
+
+- **Production gap closed:** `vercel.json` routes every path to `api/handler.py`, so the report builder in `public/` was never reachable on https://access-doc.vercel.app - `/` answered raw JSON to browsers and `/static/*`, `/sample/*` returned 404. The serverless adapter now serves the UI with browser content negotiation (`Accept: text/html` -> `public/index.html`; probes, curl and SDKs still get the JSON readiness document, `Vary: Accept`).
+- Strict static allowlist (`/index.html`, `/static/app.css|app.js|report.css`, `/sample/axe-sample.json`, `/docs`, `/openapi.json`): no path joins from user input, 512 KiB read cap, page-scoped CSP (`script-src 'self'`, no `unsafe-inline`), traversal / unlisted paths stay 404 JSON with `request_id`.
+- Developer DX: new `GET /docs` (curl recipes, error contract, offline verification, honest scope) and `GET /openapi.json` (OpenAPI 3.1, `info.version` pinned to VERSION, `max_http_body_bytes` pinned to 2,097,152). `/readyz` and `GET /api/bundle` advertise them.
+- Headers: `Permissions-Policy`, `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy: same-origin` on every serverless response; `X-Request-ID` now present on GET/HEAD as well as POST for support triage.
+- UI copy: result panel names all six ZIP members and labels `report.html` as the accessible primary and `report.pdf` as the untagged convenience copy; footer links to `/docs`.
+- production-smoke: asserts the hosted UI, static assets, `/docs` and `/openapi.json` on every deploy and daily.
+- 10 new tests (tests/test_hosted_surface.py). Suite: 751 tests green; verify_release.py all gates PASS.
+
 ## [0.7.0-beta.7] - 2026-09-15 - launch cut: listen-backlog fix, pypdf security bump, test hygiene (PR #45)
 
 - Server: default kernel listen backlog raised 128 -> 512 (LISTEN_BACKLOG, clamped to a 128 floor). Root cause from the 100-worker torture runs: the 128-entry accept queue overflowed under burst and the kernel answered with RST before the server accepted the connection. 512 removed every reset; no deploy-env change is required any more.

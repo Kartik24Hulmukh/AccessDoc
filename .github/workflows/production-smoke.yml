@@ -330,6 +330,37 @@ jobs:
                 not leakage_found,
                 f"checked {len(error_responses)} error responses")
 
+          # --- Check H: hosted UI + developer docs are actually served ---
+          # vercel.json routes every path into api/handler.py; before launch
+          # turn 17 the report builder in public/ was dark in production.
+          print("\n=== Check H: hosted UI, static assets, docs, OpenAPI ===")
+          status_ui, hdrs_ui, body_ui = req("GET", "/", headers={"Accept": "text/html,application/xhtml+xml,*/*;q=0.8"})
+          ui_ct = hdrs_ui.get("Content-Type", "")
+          check("GET / with browser Accept serves HTML report builder",
+                status_ui == 200 and ui_ct.startswith("text/html") and b'id="report-form"' in body_ui,
+                f"status {status_ui}, content-type {ui_ct!r}")
+          check("Hosted UI CSP forbids inline script",
+                "script-src 'self'" in hdrs_ui.get("Content-Security-Policy", "") and "unsafe-inline" not in hdrs_ui.get("Content-Security-Policy", ""),
+                hdrs_ui.get("Content-Security-Policy", ""))
+          for asset, ct_prefix in (("/static/app.js", "text/javascript"), ("/static/app.css", "text/css"),
+                                   ("/sample/axe-sample.json", "application/json"), ("/docs", "text/html"),
+                                   ("/openapi.json", "application/json")):
+              s_a, h_a, b_a = req("GET", asset)
+              check(f"GET {asset} is 200 {ct_prefix}",
+                    s_a == 200 and h_a.get("Content-Type", "").startswith(ct_prefix) and len(b_a) > 0,
+                    f"status {s_a}, content-type {h_a.get('Content-Type')!r}, {len(b_a)} bytes")
+          s_o, h_o, b_o = req("GET", "/openapi.json")
+          try:
+              spec = json.loads(b_o)
+          except Exception:
+              spec = {}
+          check("OpenAPI info.version matches expected adapter version",
+                spec.get("info", {}).get("version") == EXPECTED, f"got {spec.get('info', {}).get('version')!r}")
+          s_t, h_t, b_t = req("GET", "/static/" + "%2e%2e" + "/api/handler.py")
+          check("Static traversal attempt is 404 JSON", s_t == 404 and h_t.get("Content-Type", "").startswith("application/json"), f"status {s_t}")
+          check("Permissions-Policy header present on JSON and HTML responses",
+                "Permissions-Policy" in hdrs_ui and "Permissions-Policy" in h_o)
+
           # ----------------------------------------------------------------
           # Summary
           # ----------------------------------------------------------------
