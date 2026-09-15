@@ -10,25 +10,34 @@ PROMPT = ("Explain how to remediate WCAG 1.1.1 Non-text Content failures "
           "found by axe-core in a public-sector dashboard.")
 
 def bench():
+    """Three independent samples/model; failures count, never fabricated N.
+
+    Small-sample percentiles are descriptive order statistics, not an SLO.
+    Sessions/breakers are reused across calls as they are in the service.
+    """
     rows = {}
     for model in CANONICAL_CHAIN:
-        lat = []; toks = []; okc = 0
-        for _ in range(3):
-            gw = ModelGateway(chain=(model,))
-            t0 = time.monotonic()
-            try:
-                res = gw.chat(PROMPT, model=model, static_fallback=False)
-                okc += 1; toks.append(res.tokens)
-                lat.append(round((time.monotonic() - t0) * 1000, 2))
-            except GatewayError as e:
-                lat.append(round((time.monotonic() - t0) * 1000, 2))
-                rows[model] = {"ok": okc, "n": 3, "error": str(e)}
-                break
-        else:
-            lat.sort()
-            rows[model] = {"ok": okc, "n": 3,
-                           "p50_ms": lat[len(lat)//2], "p95_ms": lat[-1],
-                           "p99_ms": lat[-1], "avg_tokens": sum(toks)//max(1,len(toks))}
+        gw = ModelGateway(chain=(model,))
+        samples = []
+        try:
+            for _ in range(3):
+                t0 = time.monotonic()
+                try:
+                    res = gw.chat(PROMPT, model=model, static_fallback=False)
+                    sample = {"ok": True, "tokens": res.tokens}
+                except GatewayError as exc:
+                    sample = {"ok": False, "error": str(exc), "status": exc.status}
+                sample["ms"] = round((time.monotonic() - t0) * 1000, 2)
+                samples.append(sample)
+        finally:
+            gw._session.close()
+        lat = sorted(s["ms"] for s in samples)
+        good = [s for s in samples if s["ok"]]
+        rows[model] = {"ok": len(good), "n": len(samples),
+                       "p50_ms": lat[len(lat)//2], "p95_ms": lat[-1],
+                       "p99_ms": lat[-1], "latency_scope": "all attempts including failures",
+                       "avg_tokens": sum(s["tokens"] for s in good)//max(1, len(good)),
+                       "samples": samples, "breaker": gw.breakers[model].snapshot()}
     return rows
 
 def probes():
@@ -60,4 +69,5 @@ def probes():
 if __name__ == "__main__":
     data = {"models": bench(), "resilience": probes()}
     print(json.dumps(data, indent=2))
-    json.dump(data, open(os.path.join(ROOT, "gateway_bench.json"), "w"), indent=2)
+    with open(os.path.join(ROOT, "gateway_bench.json"), "w", encoding="utf-8") as fh:
+        json.dump(data, fh, indent=2)
