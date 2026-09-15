@@ -3,10 +3,10 @@
 Add these badge lines to the top of README.md, just below the title:
 
 ```markdown
-# AccessDoc v0.7.0-beta.5
+# AccessDoc v0.7.0-beta.6
 
 [![CI](https://github.com/Kartik24Hulmukh/AccessDoc/actions/workflows/accessdoc-ci.yml/badge.svg)](https://github.com/Kartik24Hulmukh/AccessDoc/actions/workflows/accessdoc-ci.yml)
-[![Version](https://img.shields.io/badge/version-0.7.0--beta.5-blue)](https://github.com/Kartik24Hulmukh/AccessDoc/releases/tag/v0.7.0-beta.5)
+[![Version](https://img.shields.io/badge/version-0.7.0--beta.5-blue)](https://github.com/Kartik24Hulmukh/AccessDoc/releases/tag/v0.7.0-beta.6)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
 [![Tests: 540](https://img.shields.io/badge/tests-561%20OK-brightgreen)](https://github.com/Kartik24Hulmukh/AccessDoc)
