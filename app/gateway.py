@@ -28,6 +28,12 @@ from . import telemetry
 # fallback chain. Exhausted budget -> deterministic static-KB (never a 5xx).
 DEFAULT_TOKEN_BUDGET = 6000
 
+# Slow reasoning models need a longer read window than the 15 s default or
+# they time out (504) on every call and become dead weight in the chain.
+# Live Melious benchmark: kimi-k3 P50 ~16.5 s. Override per model with
+# GATEWAY_READ_TIMEOUT_<MODEL> (non-alnum -> _, upper-case).
+MODEL_READ_TIMEOUTS = {"kimi-k3": 30.0}
+
 MELIOUS_BASE_URL = os.getenv("MELIOUS_BASE_URL", "https://api.melious.ai/v1")
 CHAT_PATH = "/chat/completions"
 API_KEY_ENV = "MELIOUS_API_KEY"
@@ -215,7 +221,19 @@ class ModelGateway:
     def _key(self):
         return self._api_key or os.getenv(API_KEY_ENV, "")
 
-    def _post(self, model, messages, max_tokens=None):
+    def read_timeout_for(self, model, remaining=None):
+        """Per-model read window, clamped to the remaining wall-clock budget."""
+        env = os.getenv("GATEWAY_READ_TIMEOUT_" + re.sub(r"[^A-Za-z0-9]", "_", model).upper())
+        try:
+            t = float(env) if env else MODEL_READ_TIMEOUTS.get(model, self.timeout[1])
+        except ValueError:
+            t = self.timeout[1]
+        t = max(t, self.timeout[1]) if env is None else t
+        if remaining is not None:
+            t = max(1.0, min(t, remaining))
+        return t
+
+    def _post(self, model, messages, max_tokens=None, remaining=None):
         if self.transport is not None:
             return self.transport(model, messages)
         key = self._key()
@@ -228,7 +246,7 @@ class ModelGateway:
                      "traceparent": telemetry.traceparent_header()},
             json={"model": model, "messages": messages,
                   "max_tokens": int(max_tokens or os.getenv("GATEWAY_MAX_TOKENS", "1024"))},
-            timeout=self.timeout)
+            timeout=(self.timeout[0], self.read_timeout_for(model, remaining)))
         try:
             payload = resp.json()
         except ValueError:
@@ -275,7 +293,8 @@ class ModelGateway:
                 try:
                     per_call = min(int(os.getenv("GATEWAY_MAX_TOKENS", "1024")),
                                    max(64, self.token_budget - tokens_spent))
-                    status, headers, payload = self._post(m, messages, per_call)
+                    status, headers, payload = self._post(
+                        m, messages, per_call, remaining=deadline - time.monotonic())
                 except requests.Timeout as exc:
                     status, payload = 504, {"error": str(exc)}
                 except requests.RequestException as exc:
