@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0-beta.6] - 2026-09-15 - launch-critical hardening: token budgets, W3C tracing, chunked I/O (PR #43)
+
+- Gateway: cumulative per-request token budget (GATEWAY_TOKEN_BUDGET, default 6000) across the whole fallback chain; per-call max_tokens is clipped to the remaining budget and an exhausted budget routes to the deterministic static-KB instead of burning more frontier tokens. Exposed in the /readyz gateway snapshot.
+- Observability: new app/telemetry.py - W3C traceparent adoption/minting on the hosted and serverless adapters, traceparent echoed on every response and propagated to Melious; OpenTelemetry tracer used automatically when opentelemetry-api is installed, zero-dependency fallback otherwise; every log line (http_request, gateway_call, gateway_skip, span) is a single JSON object with level/trace_id/span_id.
+- Ingestion: request bodies are read in bounded 64 KiB chunks on both adapters (no single oversized allocation, early abort on client disconnect).
+- 11 new tests (tests/test_launch_hardening.py). Suite: 687 tests green.
+
 ## [0.7.0-beta.6] - 2026-09-15 - serverless remediation parity + launch hardening (PR #41, PR #42)
 
 - POST /api/remediate is now served by the Vercel serverless adapter (api/handler.py) with the same contract as the self-hosted server: bounded body, JSON-only errors, X-Request-ID, security headers.
