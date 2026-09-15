@@ -3,9 +3,13 @@
 Live Melious benchmarks (2026-09-15) measured P50/P95 of ~11.0/12.0 s for the
 second and third models in the canonical chain and ~24 s for the fourth. A
 15 s default window turned the second model into a 504 on a routine call and
-had already made the fourth model dead weight (fixed in PR #43). Every model
-that regularly exceeds ~8 s must get a window of at least 25 s, and every
-window must still be clamped to the remaining GATEWAY_BUDGET_SECONDS.
+had already made the fourth model dead weight (fixed in PR #43). The turn-10
+live benchmark then caught the PRIMARY at 0/3: it was the only chain model
+still on the 15 s default, and 1024-token generations ran past it every time.
+A 60 s-window probe measured the same model 5/5 (P50 ~1.1 s, max 9.8 s), so
+the window -- not the provider -- was the failure. Every model in the chain
+must therefore get a window of at least 25 s, and every window must still be
+clamped to the remaining GATEWAY_BUDGET_SECONDS so total wall clock is unchanged.
 """
 import os
 import unittest
@@ -19,13 +23,29 @@ class ReadWindowTests(unittest.TestCase):
             if k.startswith("GATEWAY_READ_TIMEOUT_"):
                 os.environ.pop(k)
 
-    def test_slow_models_have_wide_windows(self):
-        for model in CANONICAL_CHAIN[1:]:
+    def test_every_chain_model_has_wide_window(self):
+        for model in CANONICAL_CHAIN:
             self.assertGreaterEqual(MODEL_READ_TIMEOUTS.get(model, 0), 25.0, model)
 
-    def test_primary_keeps_fast_default(self):
+    def test_primary_is_not_left_on_narrow_default(self):
+        # Regression: turn-10 live benchmark, primary 0/3 at the 15 s default.
         gw = ModelGateway()
-        self.assertEqual(gw.read_timeout_for(CANONICAL_CHAIN[0]), gw.timeout[1])
+        self.assertGreater(gw.read_timeout_for(CANONICAL_CHAIN[0]), gw.timeout[1])
+        self.assertGreaterEqual(gw.read_timeout_for(CANONICAL_CHAIN[0]), 25.0)
+
+    def test_primary_window_leaves_failover_budget(self):
+        # A slow primary must fail over with wall clock left for the next model.
+        gw = ModelGateway()
+        self.assertLess(gw.read_timeout_for(CANONICAL_CHAIN[0]), gw.budget_seconds)
+
+    def test_env_override_still_wins_for_primary(self):
+        import re
+        key = "GATEWAY_READ_TIMEOUT_" + re.sub(r"[^A-Za-z0-9]", "_", CANONICAL_CHAIN[0]).upper()
+        os.environ[key] = "12"
+        try:
+            self.assertEqual(ModelGateway().read_timeout_for(CANONICAL_CHAIN[0]), 12.0)
+        finally:
+            os.environ.pop(key, None)
 
     def test_windows_are_clamped_to_remaining_budget(self):
         gw = ModelGateway()

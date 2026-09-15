@@ -111,7 +111,11 @@ class TokenBudgetTests(unittest.TestCase):
 class PerModelReadTimeoutTests(unittest.TestCase):
     def test_slow_reasoning_model_gets_longer_window_clamped_to_budget(self):
         gw = ModelGateway(transport=lambda m, msgs: _ok(1), read_timeout=15.0)
-        self.assertEqual(gw.read_timeout_for("glm-5.3"), 15.0)
+        # Turn-10 regression: the primary was 0/3 live on the 15 s default;
+        # every chain model now gets a measured window, the primary included.
+        self.assertGreaterEqual(gw.read_timeout_for("glm-5.3"), 25.0)
+        self.assertEqual(gw.read_timeout_for("glm-5.3", remaining=7.0), 7.0)
+        self.assertEqual(gw.read_timeout_for("unknown-model"), 15.0)
         self.assertGreaterEqual(gw.read_timeout_for("kimi-k3"), 25.0)
         self.assertEqual(gw.read_timeout_for("kimi-k3", remaining=7.0), 7.0)
         self.assertEqual(gw.read_timeout_for("kimi-k3", remaining=0.2), 0.2)

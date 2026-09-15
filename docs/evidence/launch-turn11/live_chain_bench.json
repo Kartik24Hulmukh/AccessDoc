@@ -1,0 +1,140 @@
+{
+  "ts": 1789491931.1260555,
+  "read_windows": {
+    "glm-5.3": 25.0,
+    "glm-5.3-flash": 25.0,
+    "qwen3.8-27b": 25.0,
+    "kimi-k3": 30.0
+  },
+  "budget_s": 40.0,
+  "results": [
+    {
+      "model": "glm-5.3",
+      "samples": [
+        {
+          "model": "glm-5.3",
+          "tokens": 267,
+          "latency_ms": 1473.32,
+          "attempts": 1,
+          "fallback": false,
+          "wall_ms": 1473.4
+        },
+        {
+          "model": "glm-5.3",
+          "tokens": 271,
+          "latency_ms": 953.0,
+          "attempts": 1,
+          "fallback": false,
+          "wall_ms": 953.1
+        },
+        {
+          "model": "glm-5.3",
+          "tokens": 268,
+          "latency_ms": 1087.77,
+          "attempts": 1,
+          "fallback": false,
+          "wall_ms": 1087.9
+        }
+      ],
+      "p50_ms": 1087.9,
+      "p95_p99_max_ms": 1473.4,
+      "served_by_requested": 3
+    },
+    {
+      "model": "glm-5.3-flash",
+      "samples": [
+        {
+          "model": "glm-5.3-flash",
+          "tokens": 191,
+          "latency_ms": 2989.27,
+          "attempts": 1,
+          "fallback": false,
+          "wall_ms": 2989.4
+        },
+        {
+          "model": "glm-5.3-flash",
+          "tokens": 284,
+          "latency_ms": 2553.72,
+          "attempts": 1,
+          "fallback": false,
+          "wall_ms": 2553.8
+        },
+        {
+          "model": "glm-5.3-flash",
+          "tokens": 237,
+          "latency_ms": 3040.34,
+          "attempts": 1,
+          "fallback": false,
+          "wall_ms": 3040.5
+        }
+      ],
+      "p50_ms": 2989.4,
+      "p95_p99_max_ms": 3040.5,
+      "served_by_requested": 3
+    },
+    {
+      "model": "qwen3.8-27b",
+      "samples": [
+        {
+          "model": "qwen3.8-27b",
+          "tokens": 538,
+          "latency_ms": 5422.95,
+          "attempts": 1,
+          "fallback": false,
+          "wall_ms": 5423.1
+        },
+        {
+          "model": "qwen3.8-27b",
+          "tokens": 484,
+          "latency_ms": 4818.26,
+          "attempts": 1,
+          "fallback": false,
+          "wall_ms": 4818.3
+        },
+        {
+          "model": "qwen3.8-27b",
+          "tokens": 358,
+          "latency_ms": 3530.31,
+          "attempts": 1,
+          "fallback": false,
+          "wall_ms": 3530.4
+        }
+      ],
+      "p50_ms": 4818.3,
+      "p95_p99_max_ms": 5423.1,
+      "served_by_requested": 3
+    },
+    {
+      "model": "kimi-k3",
+      "samples": [
+        {
+          "model": "kimi-k3",
+          "tokens": 425,
+          "latency_ms": 4614.46,
+          "attempts": 1,
+          "fallback": false,
+          "wall_ms": 4614.6
+        },
+        {
+          "model": "kimi-k3",
+          "tokens": 386,
+          "latency_ms": 4214.06,
+          "attempts": 1,
+          "fallback": false,
+          "wall_ms": 4214.2
+        },
+        {
+          "model": "kimi-k3",
+          "tokens": 352,
+          "latency_ms": 3697.49,
+          "attempts": 1,
+          "fallback": false,
+          "wall_ms": 3697.6
+        }
+      ],
+      "p50_ms": 4214.2,
+      "p95_p99_max_ms": 4614.6,
+      "served_by_requested": 3
+    }
+  ]
+}
