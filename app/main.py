@@ -143,7 +143,7 @@ class Handler(BaseHTTPRequestHandler):
   try:return json.loads(raw,parse_constant=lambda x:(_ for _ in ()).throw(ValueError('Non-finite JSON number')))
   except json.JSONDecodeError:raise ValueError('Invalid JSON request')
  def handle_one_request(self):
-  self.request_id=secrets.token_hex(16);self._status=500;start=time.monotonic();telemetry.clear();self._trace_ctx=None
+  self.request_id=secrets.token_hex(16);self._status=500;start=time.monotonic();start_ns=time.time_ns();telemetry.clear();self._trace_ctx=None
   try:
    super().handle_one_request()
   except (TimeoutError,ConnectionError,BrokenPipeError,OSError):self.close_connection=True;metric('client_disconnects_total')
@@ -156,6 +156,8 @@ class Handler(BaseHTTPRequestHandler):
     metric('requests_total')
     try:self._log(self._status,start)
     except:pass
+    try:telemetry.record_server_span(self._trace(),self.command,('/download/[token]' if urlparse(self.path).path.startswith(('/download/','/download-html/','/download-receipt/')) else safe_external(urlparse(self.path).path)),self._status,start_ns,time.time_ns())
+    except:pass
    telemetry.clear()
  def _preflight(self):
   if not self._validate_host():self._json(421,{'error':{'code':'INVALID_HOST','message':'Request host is not allowed'}});return False
@@ -165,7 +167,7 @@ class Handler(BaseHTTPRequestHandler):
   p=urlparse(self.path);path=p.path
   if path in ('/health','/healthz','/livez','/health/live'):return self._json(200,{'status':'ok','service':'accessdoc','version':os.getenv('ACCESSDOC_VERSION',VERSION),'commit':_commit_sha()})
   if path=='/version':return self._json(200,{'service':'accessdoc','version':os.getenv('ACCESSDOC_VERSION',VERSION),'catalog':'wcag-2.2-accessdoc-2026-01','commit':_commit_sha()})
-  if path in ('/readyz','/health/ready'):return self._json(200 if READY else 503,{'status':'ready' if READY else 'not_ready','commit':_commit_sha(),'gateway':remediation.health()})
+  if path in ('/readyz','/health/ready'):return self._json(200 if READY else 503,{'status':'ready' if READY else 'not_ready','commit':_commit_sha(),'gateway':remediation.health(),'tracing':telemetry.export_status()})
   if path=='/metrics':
    lines=[]
    with METRICS_LOCK:
