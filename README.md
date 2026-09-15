@@ -1,4 +1,4 @@
-# AccessDoc v0.7.0-beta.6
+# AccessDoc v0.7.0-beta.7
 
 **The receipt printer for accessibility.** AccessDoc turns raw automated scan
 output (axe-core JSON) into a defensible, tamper-evident **evidence bundle** in
@@ -16,7 +16,7 @@ pack, and an in-toto attestation whose digests cover every file.
 See [the September 13 engineering receipt](docs/HARDENING-2026-09-13.md) for
 verified fixes, local load results, compatibility changes and deployment gates.
 
-## What's new in v0.7.0-beta.6
+## What's new in v0.7.0-beta.7
 
 - **Serverless AI remediation parity.** `POST /api/remediate` is now served by
   the Vercel adapter with the same bounded contract as the self-hosted server

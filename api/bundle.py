@@ -1,7 +1,7 @@
 """Vercel serverless bundle handler alias.
 
 Routes /api/bundle requests to the canonical AccessDoc handler.
-Version: 0.7.0-beta.6
+Version: 0.7.0-beta.7
 """
 from __future__ import annotations
 from app.models import VERSION

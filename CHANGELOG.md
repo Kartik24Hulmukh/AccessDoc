@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0-beta.7] - 2026-09-15 - launch cut: listen-backlog fix, pypdf security bump, test hygiene (PR #45)
+
+- Server: default kernel listen backlog raised 128 -> 512 (LISTEN_BACKLOG, clamped to a 128 floor). Root cause from the 100-worker torture runs: the 128-entry accept queue overflowed under burst and the kernel answered with RST before the server accepted the connection. 512 removed every reset; no deploy-env change is required any more.
+- Dependencies: pypdf 6.17.0 -> 6.18.1 (dev/test verifier) picks up upstream parser hardening (FlateDecode recovery limits, font /Widths entry caps, bfchar token length caps) for corrupted-PDF inputs.
+- Tests: file-handle leaks in tests/test_remediate_endpoint.py closed (clean under -W error::ResourceWarning); scripts/concurrent_bench.py now exercises the shipped backlog default. 3 new tests (tests/test_listen_backlog.py). Suite: 692 tests green.
+- Release: version aligned to 0.7.0-beta.7 across VERSION, pyproject, SBOM, adapters, smoke workflow and launch docs.
+
 ## [0.7.0-beta.6] - 2026-09-15 - launch-critical hardening: token budgets, W3C tracing, chunked I/O (PR #43)
 
 - Gateway: cumulative per-request token budget (GATEWAY_TOKEN_BUDGET, default 6000) across the whole fallback chain; per-call max_tokens is clipped to the remaining budget and an exhausted budget routes to the deterministic static-KB instead of burning more frontier tokens. Exposed in the /readyz gateway snapshot.

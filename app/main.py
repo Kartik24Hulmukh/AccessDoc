@@ -1,5 +1,5 @@
 from __future__ import annotations
-# Version: 0.7.0-beta.6
+# Version: 0.7.0-beta.7
 import json,mimetypes,os,re,secrets,signal,threading,time
 from http.server import ThreadingHTTPServer,BaseHTTPRequestHandler
 from pathlib import Path
@@ -56,7 +56,7 @@ def allowed(ip):
   return True
 
 class Server(ThreadingHTTPServer):
- daemon_threads=True;allow_reuse_address=True;request_queue_size=int(os.getenv('LISTEN_BACKLOG','128'))
+ daemon_threads=True;allow_reuse_address=True;request_queue_size=max(128,int(os.getenv('LISTEN_BACKLOG','512')))
  def process_request(self,request,client_address):
   if not CONNECTION_CAPACITY.acquire(blocking=False):
    metric('overload_rejections_total')
