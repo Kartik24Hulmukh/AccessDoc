@@ -1,0 +1,98 @@
+[
+  {
+    "workers": 100,
+    "requests": 200,
+    "wall_seconds": 14.43,
+    "seed": 7,
+    "throughput_rps": 13.86,
+    "scope": "local self-hosted JSON ingestion; not a production 100x baseline",
+    "transport_attempt_errors": 0,
+    "admission_retries": 0,
+    "recovery_probes": {
+      "/healthz": 200,
+      "/api/bundle": 200
+    },
+    "rss_after_mb": 182.8,
+    "status_histogram": {
+      "413": 33,
+      "422": 33,
+      "200": 134
+    },
+    "unexpected_5xx": 0,
+    "contract_violations": 0,
+    "transport_errors": 0,
+    "latency_p50_ms": 5531.02,
+    "latency_p95_ms": 9515.74,
+    "latency_p99_ms": 10594.25,
+    "latency_max_ms": 10770.74,
+    "rss_floor_mb": 42.4,
+    "rss_ceiling_mb": 297.6,
+    "fault_recovery": "PASS",
+    "exit_code": 0,
+    "round": 1
+  },
+  {
+    "workers": 100,
+    "requests": 200,
+    "wall_seconds": 14.5,
+    "seed": 7,
+    "throughput_rps": 13.8,
+    "scope": "local self-hosted JSON ingestion; not a production 100x baseline",
+    "transport_attempt_errors": 0,
+    "admission_retries": 0,
+    "recovery_probes": {
+      "/healthz": 200,
+      "/api/bundle": 200
+    },
+    "rss_after_mb": 207.8,
+    "status_histogram": {
+      "413": 33,
+      "200": 134,
+      "422": 33
+    },
+    "unexpected_5xx": 0,
+    "contract_violations": 0,
+    "transport_errors": 0,
+    "latency_p50_ms": 5650.75,
+    "latency_p95_ms": 10109.92,
+    "latency_p99_ms": 10713.62,
+    "latency_max_ms": 10715.66,
+    "rss_floor_mb": 42.3,
+    "rss_ceiling_mb": 316.4,
+    "fault_recovery": "PASS",
+    "exit_code": 0,
+    "round": 2
+  },
+  {
+    "workers": 100,
+    "requests": 200,
+    "wall_seconds": 14.57,
+    "seed": 7,
+    "throughput_rps": 13.73,
+    "scope": "local self-hosted JSON ingestion; not a production 100x baseline",
+    "transport_attempt_errors": 0,
+    "admission_retries": 0,
+    "recovery_probes": {
+      "/healthz": 200,
+      "/api/bundle": 200
+    },
+    "rss_after_mb": 201.8,
+    "status_histogram": {
+      "413": 33,
+      "422": 33,
+      "200": 134
+    },
+    "unexpected_5xx": 0,
+    "contract_violations": 0,
+    "transport_errors": 0,
+    "latency_p50_ms": 5743.08,
+    "latency_p95_ms": 10177.99,
+    "latency_p99_ms": 10567.69,
+    "latency_max_ms": 10608.68,
+    "rss_floor_mb": 42.2,
+    "rss_ceiling_mb": 299.8,
+    "fault_recovery": "PASS",
+    "exit_code": 0,
+    "round": 3
+  }
+]
