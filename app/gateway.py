@@ -204,8 +204,9 @@ class ModelGateway:
         if read_timeout is None:
             read_timeout = float(os.getenv("GATEWAY_READ_TIMEOUT_SECONDS", "15"))
         self.timeout = (connect_timeout, read_timeout)
-        # Hard wall-clock ceiling for one chat() across every model/retry so a
-        # slow chain can never pin a worker: exhausted budget -> static-KB.
+        # Admission deadline shared by models/retries: exhausted -> static-KB.
+        # Requests connect/read inactivity timeouts are NOT strict cancellation
+        # of DNS, connection+read duration, or a slow-drip response body.
         self.budget_seconds = float(budget_seconds if budget_seconds is not None
                                     else os.getenv("GATEWAY_BUDGET_SECONDS", "40"))
         self.token_budget = int(token_budget if token_budget is not None
