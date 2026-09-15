@@ -31,6 +31,10 @@
 - `scripts/version_lint.py`, `scripts/config_lint.py` -> OK.
 - production-smoke workflow gains Check H (UI, assets, docs, OpenAPI, traversal, Permissions-Policy) on every deploy and daily.
 
+## Premortem hit during rollout (and the fix)
+
+PR #56 deployed to production at `d7220c0`: headers and `X-Request-ID` went live, but every asset still 404ed. Root cause: Vercel does not copy `public/` into the Python function bundle, only `api/` and its imports. Fix in PR #57: `scripts/embed_public_assets.py` generates `api/public_assets.py` (base64 + SHA-256 per asset, 7 assets, ~55 KB); `api/handler.py` prefers the on-disk file and falls back to the embedded copy; `tests/test_hosted_surface.py::EmbeddedAssetTests` fails on drift and exercises the fallback path with the disk root removed. Lesson recorded for the runbook: *every production-facing claim is verified against the production URL after deploy, never against the preview (which is SSO-protected).*
+
 ## Still open for the 16-17 Sept window (operator actions, not code)
 
 1. Revoke the `ghp_` token that was pasted into the task prompt; replace with a fine-grained PAT or GitHub App token.

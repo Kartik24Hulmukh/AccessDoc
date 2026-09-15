@@ -7,6 +7,7 @@ OpenAPI, hardened headers, and X-Request-ID on every verb.
 """
 import json
 import http.client
+import os
 import unittest
 from http.server import HTTPServer
 from threading import Thread
@@ -148,6 +149,49 @@ class HostedSurfaceTests(unittest.TestCase):
     def test_api_json_csp_stays_locked_down(self):
         resp = self._get("/readyz")
         self.assertEqual(resp.headers["Content-Security-Policy"], "default-src 'none'; frame-ancestors 'none'")
+
+
+class EmbeddedAssetTests(unittest.TestCase):
+    """Vercel strips public/ from the Python function; api/public_assets.py is the
+    bundled fallback and must never drift from the source files."""
+
+    def test_embedded_assets_match_public_dir(self):
+        import hashlib
+        import os
+        from api import public_assets
+        root = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "public")
+        expected = {"index.html", "docs.html", "openapi.json", "static/app.css",
+                    "static/app.js", "static/report.css", "sample/axe-sample.json"}
+        self.assertEqual(set(public_assets.ASSETS), expected)
+        for rel, (digest, _chunks) in public_assets.ASSETS.items():
+            with open(os.path.join(root, *rel.split("/")), "rb") as fh:
+                on_disk = fh.read()
+            self.assertEqual(public_assets.load(rel), on_disk, f"{rel} drifted: run scripts/embed_public_assets.py")
+            self.assertEqual(hashlib.sha256(on_disk).hexdigest(), digest, rel)
+        self.assertIsNone(public_assets.load("nope.html"))
+
+    def test_generator_check_mode_passes(self):
+        import subprocess
+        import sys
+        import os
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        r = subprocess.run([sys.executable, os.path.join(root, "scripts", "embed_public_assets.py"), "--check"],
+                           capture_output=True, text=True, timeout=30)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+    def test_handler_falls_back_to_embedded_when_disk_missing(self):
+        import api.handler as h
+        original = h._PUBLIC_ROOT
+        h._PUBLIC_ROOT = os.path.join(original, "definitely-missing-dir") if False else original + "-missing"
+        try:
+            loaded = h._load_static("/static/app.js")
+            self.assertIsNotNone(loaded)
+            body, ctype = loaded
+            self.assertTrue(ctype.startswith("text/javascript"))
+            self.assertIn(b"/api/bundle", body)
+            self.assertIsNone(h._load_static("/static/nope.js"))
+        finally:
+            h._PUBLIC_ROOT = original
 
 
 if __name__ == "__main__":
