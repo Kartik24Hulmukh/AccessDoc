@@ -1,6 +1,8 @@
 """Serverless adapter: POST /api/remediate (Vercel parity with app/main.py)."""
 import json, os, unittest
 from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
 from http.server import HTTPServer
 from threading import Thread
 from types import SimpleNamespace
@@ -137,11 +139,11 @@ class ServerlessRemediateTests(unittest.TestCase):
 
     def test_no_secret_literal_in_sources(self):
         for path in ("api/handler.py", "public/static/app.js", "public/index.html"):
-            self.assertNotIn("sk-mel-", Path(path).read_text(encoding="utf-8"))
+            self.assertNotIn("sk-mel-", (REPO_ROOT / path).read_text(encoding="utf-8"))
 
     def test_ui_exposes_remediation_control(self):
-        html = Path("public/index.html").read_text(encoding="utf-8")
-        js = Path("public/static/app.js").read_text(encoding="utf-8")
+        html = (REPO_ROOT / "public/index.html").read_text(encoding="utf-8")
+        js = (REPO_ROOT / "public/static/app.js").read_text(encoding="utf-8")
         self.assertIn('id="remediate"', html)
         self.assertIn("/api/remediate", js)
         self.assertIn("fallback", js)
