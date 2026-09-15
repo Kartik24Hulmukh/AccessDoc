@@ -217,7 +217,12 @@ class Handler(BaseHTTPRequestHandler):
    raw=self._read_json()
    if path=='/api/remediate':
     body=remediation_body(raw);model=body.get('model');model=None if model in (None,'') else str(model)[:64]
-    out=remediation.remediate(body,model=model);metric('remediations_total');return self._json(200,out)
+    try:
+     out=remediation.remediate(body,model=model)
+    except remediation.GatewayError:
+     if remediation.strict_gateway():raise
+     out=remediation.remediate_offline(body);metric('remediations_total');return self._send(200,json.dumps(out).encode(),'application/json; charset=utf-8',{'X-AccessDoc-Mode':'degraded-offline-kb'})
+    metric('remediations_total');return self._json(200,out)
    body=public_body(raw)
    artifacts=build_artifacts(body)
    receipt_bytes=artifacts.receipt_json.encode('utf-8')
