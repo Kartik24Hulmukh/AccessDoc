@@ -15,11 +15,13 @@ import json
 import os
 import random
 import re
+import socket
 import threading
 import time
 import weakref
 
 import requests
+import urllib3
 from requests.adapters import HTTPAdapter
 
 from . import telemetry
@@ -263,14 +265,7 @@ class ModelGateway:
             # Preserve Retry-After while closing the stream in the finally block.
             if resp.status_code != 200:
                 return resp.status_code, dict(resp.headers), {}
-            body = bytearray()
-            for chunk in resp.iter_content(chunk_size=min(16384, self.max_response_bytes + 1)):
-                if response_deadline is not None and time.monotonic() >= response_deadline:
-                    raise GatewayError("gateway response deadline exceeded", status=504, model=model)
-                # iter_content yields decoded bytes: also bounds gzip expansion.
-                if len(body) + len(chunk) > self.max_response_bytes:
-                    raise GatewayError("gateway response exceeds decoded byte limit", status=502, model=model)
-                body.extend(chunk)
+            body = self._read_bounded(resp, model, response_deadline)
             try:
                 payload = json.loads(body)
                 if not isinstance(payload, dict):
@@ -280,6 +275,73 @@ class ModelGateway:
             return resp.status_code, dict(resp.headers), payload
         finally:
             resp.close()
+
+    @staticmethod
+    def _response_socket(resp):
+        """Best-effort handle on the live socket behind a streaming response."""
+        raw = getattr(resp, "raw", None)
+        conn = getattr(raw, "_connection", None)
+        sock = getattr(conn, "sock", None)
+        if sock is None:
+            fp = getattr(getattr(raw, "_fp", None), "fp", None)
+            sock = getattr(getattr(fp, "raw", None), "_sock", None)
+        return sock
+
+    def _read_bounded(self, resp, model, response_deadline):
+        """Strict wall-clock body reader (slow-drip / gzip-bomb safe).
+
+        ``iter_content(chunk_size=N)`` blocks inside http.client until N bytes
+        or EOF, so a provider dripping one byte per interval could hold a
+        worker for N * interval regardless of the admission deadline. Here we
+        (1) re-arm the socket timeout to the *remaining* budget before every
+        read and (2) use ``read1`` so each read returns as soon as any bytes
+        arrive, checking the deadline between reads. Decoded bytes are capped
+        at ``max_response_bytes`` so gzip expansion is bounded too.
+        """
+        body = bytearray()
+        raw = getattr(resp, "raw", None)
+        amt = min(16384, self.max_response_bytes + 1)
+        if not isinstance(raw, urllib3.response.HTTPResponse):
+            # Non-urllib3 transports (test doubles, adapters): keep the
+            # chunked contract with the same deadline + decoded-size guards.
+            for chunk in resp.iter_content(chunk_size=amt):
+                if response_deadline is not None and time.monotonic() >= response_deadline:
+                    raise GatewayError("gateway response deadline exceeded", status=504, model=model)
+                if len(body) + len(chunk) > self.max_response_bytes:
+                    raise GatewayError("gateway response exceeds decoded byte limit", status=502, model=model)
+                body.extend(chunk)
+            return body
+        read1 = getattr(raw, "read1", None)
+        while True:
+            if response_deadline is not None:
+                remaining = response_deadline - time.monotonic()
+                if remaining <= 0:
+                    raise GatewayError("gateway response deadline exceeded", status=504, model=model)
+                sock = self._response_socket(resp)
+                if sock is not None:
+                    try:
+                        sock.settimeout(max(0.001, min(remaining, self.timeout[1])))
+                    except (OSError, ValueError):
+                        pass
+            try:
+                if read1 is not None:
+                    chunk = read1(amt, decode_content=True)
+                else:
+                    chunk = raw.read(amt, decode_content=True)
+            except (socket.timeout, TimeoutError) as exc:
+                raise requests.Timeout(str(exc) or "gateway read timed out")
+            except requests.RequestException:
+                raise
+            except Exception as exc:  # urllib3 ReadTimeoutError / ProtocolError / DecodeError
+                name = type(exc).__name__
+                if "Timeout" in name or "timed out" in str(exc).lower():
+                    raise requests.Timeout(str(exc))
+                raise requests.ConnectionError(str(exc))
+            if not chunk:
+                return body
+            if len(body) + len(chunk) > self.max_response_bytes:
+                raise GatewayError("gateway response exceeds decoded byte limit", status=502, model=model)
+            body.extend(chunk)
 
     @staticmethod
     def _log(**fields):
