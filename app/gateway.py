@@ -22,6 +22,12 @@ import weakref
 import requests
 from requests.adapters import HTTPAdapter
 
+from . import telemetry
+
+# Cumulative token ceiling for ONE chat() across every model/retry in the
+# fallback chain. Exhausted budget -> deterministic static-KB (never a 5xx).
+DEFAULT_TOKEN_BUDGET = 6000
+
 MELIOUS_BASE_URL = os.getenv("MELIOUS_BASE_URL", "https://api.melious.ai/v1")
 CHAT_PATH = "/chat/completions"
 API_KEY_ENV = "MELIOUS_API_KEY"
@@ -182,7 +188,8 @@ class ModelGateway:
 
     def __init__(self, api_key=None, transport=None, chain=None,
                  connect_timeout=5.0, read_timeout=None, max_retries=3,
-                 base_backoff=0.25, max_sleep=2.0, budget_seconds=None):
+                 base_backoff=0.25, max_sleep=2.0, budget_seconds=None,
+                 token_budget=None):
         self._api_key = api_key
         self.transport = transport
         self.chain = tuple(normalize_model(m) for m in (chain or CANONICAL_CHAIN))
@@ -194,6 +201,8 @@ class ModelGateway:
         # slow chain can never pin a worker: exhausted budget -> static-KB.
         self.budget_seconds = float(budget_seconds if budget_seconds is not None
                                     else os.getenv("GATEWAY_BUDGET_SECONDS", "40"))
+        self.token_budget = int(token_budget if token_budget is not None
+                                else os.getenv("GATEWAY_TOKEN_BUDGET", str(DEFAULT_TOKEN_BUDGET)))
         self.max_retries = max_retries
         self.base_backoff = base_backoff
         self.max_sleep = max_sleep
@@ -206,7 +215,7 @@ class ModelGateway:
     def _key(self):
         return self._api_key or os.getenv(API_KEY_ENV, "")
 
-    def _post(self, model, messages):
+    def _post(self, model, messages, max_tokens=None):
         if self.transport is not None:
             return self.transport(model, messages)
         key = self._key()
@@ -215,9 +224,10 @@ class ModelGateway:
         resp = self._session.post(
             MELIOUS_BASE_URL + CHAT_PATH,
             headers={"Authorization": "Bearer " + key,
-                     "Content-Type": "application/json"},
+                     "Content-Type": "application/json",
+                     "traceparent": telemetry.traceparent_header()},
             json={"model": model, "messages": messages,
-                  "max_tokens": int(os.getenv("GATEWAY_MAX_TOKENS", "1024"))},
+                  "max_tokens": int(max_tokens or os.getenv("GATEWAY_MAX_TOKENS", "1024"))},
             timeout=self.timeout)
         try:
             payload = resp.json()
@@ -227,12 +237,13 @@ class ModelGateway:
 
     @staticmethod
     def _log(**fields):
-        print(json.dumps(dict(fields, ts=time.time()), separators=(",", ":")),
-              flush=True)
+        telemetry.log_event(fields.pop("event", "gateway"), **fields)
 
     def chat(self, prompt, model=None, static_fallback=True, budget_seconds=None):
         deadline = time.monotonic() + float(budget_seconds if budget_seconds is not None else self.budget_seconds)
         budget_hit = False
+        tokens_spent = 0
+        token_budget_hit = False
         messages = [{"role": "system",
                      "content": "You are an accessibility remediation engineer."},
                     {"role": "user", "content": str(prompt)}]
@@ -245,6 +256,12 @@ class ModelGateway:
                 self._log(event="gateway_budget_exhausted", model=m)
                 last_err = GatewayError("gateway time budget exhausted", status=504, model=m)
                 break
+            if tokens_spent >= self.token_budget:
+                token_budget_hit = True
+                self._log(event="gateway_token_budget_exhausted", model=m,
+                          tokens_spent=tokens_spent, token_budget=self.token_budget)
+                last_err = GatewayError("gateway token budget exhausted", status=429, model=m)
+                break
             breaker = self.breakers[m]
             if not breaker.allow():
                 self._log(event="gateway_skip", model=m, reason="circuit_open",
@@ -256,7 +273,9 @@ class ModelGateway:
                 t0 = time.monotonic()
                 status, headers, payload = 0, {}, {}
                 try:
-                    status, headers, payload = self._post(m, messages)
+                    per_call = min(int(os.getenv("GATEWAY_MAX_TOKENS", "1024")),
+                                   max(64, self.token_budget - tokens_spent))
+                    status, headers, payload = self._post(m, messages, per_call)
                 except requests.Timeout as exc:
                     status, payload = 504, {"error": str(exc)}
                 except requests.RequestException as exc:
@@ -266,6 +285,10 @@ class ModelGateway:
                         raise
                     status, payload = exc.status or 502, {'error': str(exc)}
                 latency = round((time.monotonic() - t0) * 1000, 2)
+                try:
+                    tokens_spent += int(((payload or {}).get("usage") or {}).get("total_tokens") or 0)
+                except (TypeError, ValueError, AttributeError):
+                    pass
                 text = extract_text(payload) if status == 200 else ""
                 if status == 200 and not text:
                     # Reasoning models can spend the whole completion budget on
@@ -278,6 +301,7 @@ class ModelGateway:
                     tokens = (payload.get("usage") or {}).get("total_tokens", 0)
                     self._log(event="gateway_call", model=m, status=200,
                               latency_ms=latency, tokens=tokens,
+                              tokens_spent=tokens_spent,
                               circuit=breaker.state, attempt=attempt + 1)
                     return GatewayResult(m, text, tokens, latency,
                                          attempt + 1, False, m)
@@ -314,11 +338,16 @@ class ModelGateway:
                 time.sleep(max(0.0, delay))
         if static_fallback:
             self._log(event="gateway_static_fallback",
-                      reason="budget_exhausted" if budget_hit else "chain_exhausted")
+                      reason="budget_exhausted" if budget_hit else
+                      ("token_budget_exhausted" if token_budget_hit else "chain_exhausted"),
+                      tokens_spent=tokens_spent)
             return GatewayResult("static-kb", static_answer(prompt), 0, 0.0,
                                  0, True, "static-kb")
         raise last_err or GatewayError("all models unavailable")
 
     def health(self):
         return {"chain": list(self.chain),
+                "token_budget": self.token_budget,
+                "budget_seconds": self.budget_seconds,
+                "tracing": "opentelemetry" if telemetry.otel_enabled() else "w3c-traceparent",
                 "models": {m: b.snapshot() for m, b in self.breakers.items()}}
