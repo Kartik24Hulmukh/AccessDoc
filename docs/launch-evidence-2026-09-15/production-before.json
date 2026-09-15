@@ -1,0 +1,96 @@
+{
+  "/": {
+    "status": 200,
+    "body": {
+      "service": "AccessDoc",
+      "adapter_version": "0.7.0-beta.7",
+      "status": "ok",
+      "commit": "0e5bd1bbfbfab6b381aadd4e4aa9c286914fecde",
+      "api_note": "Bounded ReportLab demo API. See docs for limitations.",
+      "endpoints": [
+        "/api/bundle",
+        "/api/remediate",
+        "/limits"
+      ],
+      "gateway": {
+        "configured": false,
+        "chain": [
+          "glm-5.3",
+          "glm-5.3-flash",
+          "qwen3.8-27b",
+          "kimi-k3"
+        ],
+        "models": {}
+      }
+    }
+  },
+  "/healthz": {
+    "status": 200,
+    "body": {
+      "service": "AccessDoc",
+      "adapter_version": "0.7.0-beta.7",
+      "status": "ok",
+      "commit": "0e5bd1bbfbfab6b381aadd4e4aa9c286914fecde",
+      "api_note": "Bounded ReportLab demo API. See docs for limitations.",
+      "endpoints": [
+        "/api/bundle",
+        "/api/remediate",
+        "/limits"
+      ],
+      "gateway": {
+        "configured": false,
+        "chain": [
+          "glm-5.3",
+          "glm-5.3-flash",
+          "qwen3.8-27b",
+          "kimi-k3"
+        ],
+        "models": {}
+      }
+    }
+  },
+  "/readyz": {
+    "status": 200,
+    "body": {
+      "service": "AccessDoc",
+      "adapter_version": "0.7.0-beta.7",
+      "status": "ok",
+      "commit": "0e5bd1bbfbfab6b381aadd4e4aa9c286914fecde",
+      "api_note": "Bounded ReportLab demo API. See docs for limitations.",
+      "endpoints": [
+        "/api/bundle",
+        "/api/remediate",
+        "/limits"
+      ],
+      "gateway": {
+        "configured": false,
+        "chain": [
+          "glm-5.3",
+          "glm-5.3-flash",
+          "qwen3.8-27b",
+          "kimi-k3"
+        ],
+        "models": {}
+      }
+    }
+  },
+  "/limits": {
+    "status": 200,
+    "body": {
+      "max_http_body_bytes": 2097152,
+      "max_violations": 10000,
+      "max_total_nodes": 100000,
+      "max_nodes_per_violation": 5000,
+      "max_string_chars": 10000,
+      "max_manual_findings": 5000,
+      "max_history_receipts": 50,
+      "max_history_receipt_bytes": 1048576,
+      "oversize_opt_out_env_var": "ACCESSDOC_ALLOW_OVERSIZED",
+      "oversize_opt_out_available_on_http": false,
+      "api_key_required": false,
+      "rate_limit_per_minute": null,
+      "max_concurrent_requests_per_process": 2,
+      "note": "Per-process admission only; provider/WAF quotas are still required."
+    }
+  }
+}

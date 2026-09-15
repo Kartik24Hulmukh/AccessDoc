@@ -3,7 +3,7 @@
 corrupt and oversize payloads against the self-hosted adapter.
 Emits p50/p95/p99 latency, RSS floor/ceiling, status histogram and a
 machine-readable fault-recovery verdict. Usage: concurrent_bench.py [repo_root]"""
-import json, os, sys, time, threading, random, statistics
+import gc, json, os, sys, time, threading, random, statistics
 import urllib.request, urllib.error
 from concurrent.futures import ThreadPoolExecutor
 
@@ -66,7 +66,8 @@ def main():
         nonlocal rss_peak
         while not stop.is_set():
             rss_peak = max(rss_peak, rss_mb()); time.sleep(0.02)
-    threading.Thread(target=sampler, daemon=True).start()
+    sampler_thread = threading.Thread(target=sampler, daemon=True)
+    sampler_thread.start()
 
     results = []; lock = threading.Lock()
     def worker(task):
@@ -75,6 +76,7 @@ def main():
         req = urllib.request.Request("http://127.0.0.1:%d/api/bundle" % port, data=body,
             headers={"Content-Type": "application/json", "Host": "127.0.0.1:%d" % port})
         t0 = time.monotonic(); status = None; err = None
+        transport_attempt_errors = 0; admission_retries = 0
         for attempt in range(3):
             try:
                 with urllib.request.urlopen(req, timeout=60) as r:
@@ -83,24 +85,47 @@ def main():
             except urllib.error.HTTPError as e:
                 status = e.code; e.read()
                 ra = e.headers.get("Retry-After")
+                e.close()
                 if status == 503 and ra:
+                    admission_retries += 1
                     time.sleep(float(ra)); continue
                 break
             except OSError as e:
+                transport_attempt_errors += 1
                 err = repr(e); time.sleep(0.05 * (attempt + 1))
         with lock:
             results.append({"kind": kind, "status": status, "err": err,
+                            "transport_attempt_errors": transport_attempt_errors,
+                            "admission_retries": admission_retries,
                             "ms": round((time.monotonic() - t0) * 1000, 2)})
 
     kinds = ["tiny", "medium", "large", "hostile", "oversize", "corrupt"]
-    tasks = [(k, i) for _round in range(2) for i in range(100) for k in [random.choice(kinds)]]
-    random.Random(7).shuffle(tasks)
+    rng = random.Random(7)
+    tasks = [(kinds[i % len(kinds)], i) for i in range(200)]
+    rng.shuffle(tasks)
     t_start = time.monotonic()
     with ThreadPoolExecutor(max_workers=100) as ex:
         list(ex.map(worker, tasks))
     wall = time.monotonic() - t_start
-    stop.set()
+    # Recovery is a fresh healthy request after hostile traffic, not inferred
+    # from the absence of 5xx in the traffic under test.
+    recovery = {}
+    for path in ("/healthz", "/api/bundle"):
+        data = payload("tiny", 0) if path == "/api/bundle" else None
+        req = urllib.request.Request("http://127.0.0.1:%d%s" % (port, path), data=data,
+                                     headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=15) as response:
+                response.read()
+                recovery[path] = response.status
+        except (OSError, urllib.error.HTTPError) as exc:
+            recovery[path] = str(exc)
+            if hasattr(exc, "close"):
+                exc.close()
+    stop.set(); sampler_thread.join(timeout=2)
     srv.shutdown(); srv.server_close()
+    gc.collect()
+    rss_after = rss_mb()
 
     ok = [r for r in results if r["err"] is None]
     bad_transport = [r for r in results if r["err"]]
@@ -114,6 +139,11 @@ def main():
     for r in ok: hist[r["status"]] = hist.get(r["status"], 0) + 1
     verdict = {
         "workers": 100, "requests": len(results), "wall_seconds": round(wall, 2),
+        "seed": 7, "throughput_rps": round(len(results) / wall, 2),
+        "scope": "local self-hosted JSON ingestion; not a production 100x baseline",
+        "transport_attempt_errors": sum(r["transport_attempt_errors"] for r in results),
+        "admission_retries": sum(r["admission_retries"] for r in results),
+        "recovery_probes": recovery, "rss_after_mb": round(rss_after, 1),
         "status_histogram": hist,
         "unexpected_5xx": len(unexpected_5xx),
         "contract_violations": len(viol),
@@ -121,11 +151,13 @@ def main():
         "latency_p50_ms": pct(0.50), "latency_p95_ms": pct(0.95),
         "latency_p99_ms": pct(0.99), "latency_max_ms": lat[-1] if lat else 0,
         "rss_floor_mb": round(rss_floor, 1), "rss_ceiling_mb": round(rss_peak, 1),
-        "fault_recovery": "PASS" if (not unexpected_5xx and not viol and not bad_transport) else "FAIL",
+        "fault_recovery": "PASS" if (not unexpected_5xx and not viol and not bad_transport
+                                     and all(v == 200 for v in recovery.values())) else "FAIL",
     }
     print(json.dumps(verdict, indent=2))
     out = os.path.join(ROOT, "bench_results.json")
-    json.dump(verdict, open(out, "w"), indent=2)
+    with open(out, "w", encoding="utf-8") as fh:
+        json.dump(verdict, fh, indent=2)
     return 0 if verdict["fault_recovery"] == "PASS" else 1
 
 if __name__ == "__main__":

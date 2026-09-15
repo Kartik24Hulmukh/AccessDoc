@@ -91,6 +91,7 @@ class ServerlessRemediateTests(unittest.TestCase):
         os.environ.pop("MELIOUS_API_KEY", None)
         with self.assertRaises(HTTPError) as cm:
             post(self.port, "/api/remediate", {"scanner_input": AXE})
+        self.addCleanup(cm.exception.close)
         self.assertEqual(cm.exception.code, 503)
         self.assertEqual(cm.exception.headers.get("Retry-After"), "5")
         self.assertEqual(json.loads(cm.exception.read())["error"], "GATEWAY_UNAVAILABLE")
@@ -103,16 +104,19 @@ class ServerlessRemediateTests(unittest.TestCase):
     def test_unknown_model_is_422(self):
         with self.assertRaises(HTTPError) as cm:
             post(self.port, "/api/remediate", {"scanner_input": AXE, "model": "gpt-fake"})
+        self.addCleanup(cm.exception.close)
         self.assertEqual(cm.exception.code, 422)
 
     def test_non_string_model_is_422(self):
         with self.assertRaises(HTTPError) as cm:
             post(self.port, "/api/remediate", {"scanner_input": AXE, "model": 7})
+        self.addCleanup(cm.exception.close)
         self.assertEqual(cm.exception.code, 422)
 
     def test_empty_violations_is_422(self):
         with self.assertRaises(HTTPError) as cm:
             post(self.port, "/api/remediate", {"scanner_input": {"violations": []}})
+        self.addCleanup(cm.exception.close)
         self.assertEqual(cm.exception.code, 422)
 
     def test_get_descriptor_and_readiness_snapshot(self):

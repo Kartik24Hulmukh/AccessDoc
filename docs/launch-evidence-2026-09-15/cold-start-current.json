@@ -1,0 +1,34 @@
+{
+  "status": "PASS",
+  "scope": "in-process bundle generation and subprocess cold starts; not deployed serverless load",
+  "requests": 200,
+  "workers": 100,
+  "errors": 0,
+  "wall_seconds": 1.792,
+  "throughput_per_second": 111.59,
+  "latency_ms": {
+    "p50": 123.89,
+    "p95": 340.21,
+    "p99": 389.54,
+    "max": 838.17
+  },
+  "bundle_bytes": {
+    "min": 8433,
+    "max": 8457
+  },
+  "peak_rss_kb": {
+    "before": 36612,
+    "after": 69636
+  },
+  "cold_starts": 10,
+  "cold_start_hashes_identical": true,
+  "cross_request_leakage_detected": false,
+  "bundle_members": [
+    "report.pdf",
+    "report.html",
+    "receipt.json",
+    "openacr.yaml",
+    "attestation.intoto.json",
+    "manifest.json"
+  ]
+}
