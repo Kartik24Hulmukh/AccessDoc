@@ -30,11 +30,17 @@ from . import telemetry
 # fallback chain. Exhausted budget -> deterministic static-KB (never a 5xx).
 DEFAULT_TOKEN_BUDGET = 6000
 
-# Slow reasoning models need a longer read window than the 15 s default or
-# they time out (504) on every call and become dead weight in the chain.
-# Live Melious benchmark: kimi-k3 P50 ~16.5 s. Override per model with
-# GATEWAY_READ_TIMEOUT_<MODEL> (non-alnum -> _, upper-case).
-MODEL_READ_TIMEOUTS = {"glm-5.3-flash": 25.0, "qwen3.8-27b": 25.0, "kimi-k3": 30.0}
+# Every model in the canonical chain needs a read window wider than the 15 s
+# default or it times out (504) on every call and becomes dead weight in the
+# chain. Live Melious benchmarks: 2026-09-15 turn-10 measured the PRIMARY at
+# 0/3 because it alone inherited the 15 s default (1024-token generations ran
+# past 15 s); a 60 s-window probe the same day then measured it 5/5 at
+# P50 ~1.1 s / max 9.8 s. Fourth model P50 ~16.5-20 s. Override per model with
+# GATEWAY_READ_TIMEOUT_<MODEL> (non-alnum -> _, upper-case). Windows are always
+# clamped to the remaining GATEWAY_BUDGET_SECONDS, so the total wall clock for
+# a chat() is unchanged: a slow primary now fails over with budget to spare
+# instead of burning 15 s and returning nothing.
+MODEL_READ_TIMEOUTS = {"glm-5.3": 25.0, "glm-5.3-flash": 25.0, "qwen3.8-27b": 25.0, "kimi-k3": 30.0}
 
 MELIOUS_BASE_URL = os.getenv("MELIOUS_BASE_URL", "https://api.melious.ai/v1")
 CHAT_PATH = "/chat/completions"
