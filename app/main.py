@@ -1,5 +1,5 @@
 from __future__ import annotations
-# Version: 0.7.0-beta.6
+# Version: 0.7.0-beta.7
 import json,mimetypes,os,re,secrets,signal,threading,time
 from http.server import ThreadingHTTPServer,BaseHTTPRequestHandler
 from pathlib import Path

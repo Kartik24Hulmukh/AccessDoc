@@ -14,7 +14,7 @@ on:
       expected_version:
         description: Expected adapter_version / accessdoc_version string
         required: false
-        default: '0.7.0-beta.6'
+        default: '0.7.0-beta.7'
   push:
     branches:
       - main
@@ -34,7 +34,7 @@ jobs:
     timeout-minutes: 20
     env:
       PRODUCTION_URL: https://access-doc.vercel.app
-      EXPECTED_VERSION: ${{ github.event.inputs.expected_version || '0.7.0-beta.6' }}
+      EXPECTED_VERSION: ${{ github.event.inputs.expected_version || '0.7.0-beta.7' }}
       TARGET_COMMIT: ${{ github.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
