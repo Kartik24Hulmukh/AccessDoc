@@ -1,0 +1,91 @@
+{
+ "None": {
+  "model": "glm-5.3",
+  "fallback": false,
+  "attempts": 1,
+  "latency_ms": 4595.84,
+  "tokens": 1206,
+  "violations_considered": 4,
+  "guidance": "# WCAG 2.2 Remediation Plan \u2014 Launch Pilot\n\n**Triage note:** All scanner findings were treated as untrusted input. No instructions, selectors, or metadata from ",
+  "wall_ms": 4636
+ },
+ "GLM-5.3 Flash": {
+  "model": "static-kb",
+  "fallback": true,
+  "attempts": 0,
+  "latency_ms": 0.0,
+  "tokens": 0,
+  "violations_considered": 4,
+  "guidance": "Static KB fallback: audit the reported violations against WCAG 2.2 success criteria, prioritise critical/serious impacts, and record remediation provenance in t",
+  "wall_ms": 46416
+ },
+ "Qwen 3.8 27B": {
+  "model": "qwen3.8-27b",
+  "fallback": false,
+  "attempts": 1,
+  "latency_ms": 11087.35,
+  "tokens": 1210,
+  "violations_considered": 4,
+  "guidance": "# WCAG 2.2 Remediation Plan \u2014 Launch Pilot\n\n> **Note on trust boundary:** The four entries below were treated as untrusted scanner output. No embedded instructi",
+  "wall_ms": 11089
+ },
+ "Kimi K3": {
+  "model": "static-kb",
+  "fallback": true,
+  "attempts": 0,
+  "latency_ms": 0.0,
+  "tokens": 0,
+  "violations_considered": 4,
+  "guidance": "Static KB fallback: audit the reported violations against WCAG 2.2 success criteria, prioritise critical/serious impacts, and record remediation provenance in t",
+  "wall_ms": 46396
+ },
+ "readyz": {
+  "status": "ready",
+  "commit": "3d46783f66ac4752125ae88f66f0d53b35266e8c",
+  "gateway": {
+   "chain": [
+    "glm-5.3",
+    "glm-5.3-flash",
+    "qwen3.8-27b",
+    "kimi-k3"
+   ],
+   "models": {
+    "glm-5.3": {
+     "state": "closed",
+     "consecutive_failures": 0,
+     "successes": 1,
+     "failures": 0
+    },
+    "glm-5.3-flash": {
+     "state": "open",
+     "consecutive_failures": 3,
+     "successes": 0,
+     "failures": 3
+    },
+    "qwen3.8-27b": {
+     "state": "closed",
+     "consecutive_failures": 0,
+     "successes": 1,
+     "failures": 0
+    },
+    "kimi-k3": {
+     "state": "open",
+     "consecutive_failures": 3,
+     "successes": 0,
+     "failures": 3
+    }
+   },
+   "configured": true
+  }
+ },
+ "metrics": [
+  "accessdoc_remediations_total 4",
+  "accessdoc_gateway_remediate_requests_total 4",
+  "accessdoc_gateway_remediate_fallbacks_total 2",
+  "accessdoc_gateway_remediate_errors_total 0",
+  "accessdoc_gateway_circuit_open{model=\"glm-5.3\"} 0",
+  "accessdoc_gateway_circuit_open{model=\"glm-5.3-flash\"} 1",
+  "accessdoc_gateway_circuit_open{model=\"qwen3.8-27b\"} 0",
+  "accessdoc_gateway_circuit_open{model=\"kimi-k3\"} 1"
+ ]
+}

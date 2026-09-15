@@ -1,0 +1,20 @@
+{
+  "workers": 100,
+  "requests": 200,
+  "wall_seconds": 15.81,
+  "status_histogram": {
+    "413": 34,
+    "422": 35,
+    "200": 131
+  },
+  "unexpected_5xx": 0,
+  "contract_violations": 0,
+  "transport_errors": 0,
+  "latency_p50_ms": 5360.24,
+  "latency_p95_ms": 8963.55,
+  "latency_p99_ms": 10486.79,
+  "latency_max_ms": 10751.91,
+  "rss_floor_mb": 37.2,
+  "rss_ceiling_mb": 298.3,
+  "fault_recovery": "PASS"
+}
