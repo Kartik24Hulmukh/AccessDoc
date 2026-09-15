@@ -1,0 +1,31 @@
+{
+  "method": "real ModelGateway.chat(), static_fallback=False, 1 sample per model, prompt: Reply with the single word OK., credential from env only",
+  "results": {
+    "glm-5.3": {
+      "ok": true,
+      "ms": 563.1,
+      "tokens": 31,
+      "breaker": "closed"
+    },
+    "glm-5.3-flash": {
+      "ok": true,
+      "ms": 1994.8,
+      "tokens": 90,
+      "breaker": "closed"
+    },
+    "qwen3.8-27b": {
+      "ok": true,
+      "ms": 1568.3,
+      "tokens": 55,
+      "breaker": "closed"
+    },
+    "kimi-k3": {
+      "ok": true,
+      "ms": 1292.1,
+      "tokens": 178,
+      "breaker": "closed"
+    }
+  },
+  "success": "4/4",
+  "fallbacks": 0
+}

@@ -1,0 +1,30 @@
+{
+  "workers": 100,
+  "requests": 200,
+  "wall_seconds": 23.32,
+  "seed": 7,
+  "throughput_rps": 8.58,
+  "scope": "local self-hosted JSON ingestion; not a production 100x baseline",
+  "transport_attempt_errors": 0,
+  "admission_retries": 0,
+  "recovery_probes": {
+    "/healthz": 200,
+    "/api/bundle": 200
+  },
+  "rss_after_mb": 191.0,
+  "status_histogram": {
+    "413": 33,
+    "200": 134,
+    "422": 33
+  },
+  "unexpected_5xx": 0,
+  "contract_violations": 0,
+  "transport_errors": 0,
+  "latency_p50_ms": 9435.08,
+  "latency_p95_ms": 17108.12,
+  "latency_p99_ms": 17637.93,
+  "latency_max_ms": 17820.93,
+  "rss_floor_mb": 42.3,
+  "rss_ceiling_mb": 306.2,
+  "fault_recovery": "PASS"
+}

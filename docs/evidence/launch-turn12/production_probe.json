@@ -1,0 +1,17 @@
+{
+  "url": "https://access-doc.vercel.app",
+  "checked": "2026-09-15T17:23Z",
+  "healthz": {
+    "status": 200,
+    "time_s": 0.105
+  },
+  "readyz": {
+    "status": 200,
+    "time_s": 1.02,
+    "cold_start_suspected": true
+  },
+  "commit": "2bb7784c488771af4a5a31bf4f630e010585ae0a",
+  "adapter_version": "0.7.0-beta.7",
+  "gateway_configured": false,
+  "note": "MELIOUS_API_KEY not installed in Vercel env; /api/remediate degrades to 503+Retry-After by design. Operator gate."
+}

@@ -1,0 +1,42 @@
+{
+  "method": "ModelGateway(transport=synthetic) primary returns status, secondary 200; 1000 chat() calls per status; time.sleep patched out is NOT used - real code path, _log patched",
+  "ceiling_ms": 200,
+  "results": {
+    "429": {
+      "p50_ms": 0.02,
+      "p95_ms": 0.031,
+      "p99_ms": 0.043,
+      "max_ms": 0.149,
+      "primary_breaker_after": "open (1 failure)"
+    },
+    "500": {
+      "p50_ms": 0.018,
+      "p95_ms": 0.023,
+      "p99_ms": 0.028,
+      "max_ms": 0.139,
+      "primary_breaker_after": "open (3 failures)"
+    },
+    "502": {
+      "p50_ms": 0.017,
+      "p95_ms": 0.022,
+      "p99_ms": 0.03,
+      "max_ms": 2.391,
+      "primary_breaker_after": "open (3 failures)"
+    },
+    "503": {
+      "p50_ms": 0.017,
+      "p95_ms": 0.019,
+      "p99_ms": 0.026,
+      "max_ms": 0.1,
+      "primary_breaker_after": "open (3 failures)"
+    },
+    "504": {
+      "p50_ms": 0.017,
+      "p95_ms": 0.022,
+      "p99_ms": 0.025,
+      "max_ms": 1.507,
+      "primary_breaker_after": "open (3 failures)"
+    }
+  },
+  "verdict": "PASS - every failover served by chain model 2, worst case 2.4 ms"
+}
