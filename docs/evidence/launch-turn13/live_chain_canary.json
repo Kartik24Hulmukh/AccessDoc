@@ -1,59 +1,64 @@
 {
-  "window_s": 60.0,
-  "results": {
+  "run": "turn-14 post-rebase live canary",
+  "credential": "MELIOUS_API_KEY from environment only; never printed or committed",
+  "base_url": "api.melious.ai (default MELIOUS_BASE_URL)",
+  "models": {
     "glm-5.3": {
-      "samples": [
-        {
-          "status": 200,
-          "ms": 1506.5,
-          "tokens": 204,
-          "ok": true
-        }
-      ],
-      "success": 1,
-      "p50_ms": 1506.5,
-      "max_ms": 1506.5
+      "ok": 1,
+      "n": 1,
+      "p50_ms": 1434.99,
+      "tokens": 52,
+      "served_by": "glm-5.3",
+      "error": null,
+      "breaker": {
+        "state": "closed",
+        "consecutive_failures": 0,
+        "successes": 1,
+        "failures": 0
+      }
     },
     "glm-5.3-flash": {
-      "samples": [
-        {
-          "status": 200,
-          "ms": 3865.8,
-          "tokens": 273,
-          "ok": true
-        }
-      ],
-      "success": 1,
-      "p50_ms": 3865.8,
-      "max_ms": 3865.8
+      "ok": 1,
+      "n": 1,
+      "p50_ms": 1061.16,
+      "tokens": 62,
+      "served_by": "glm-5.3-flash",
+      "error": null,
+      "breaker": {
+        "state": "closed",
+        "consecutive_failures": 0,
+        "successes": 1,
+        "failures": 0
+      }
     },
     "qwen3.8-27b": {
-      "samples": [
-        {
-          "status": 200,
-          "ms": 2964.7,
-          "tokens": 285,
-          "ok": true
-        }
-      ],
-      "success": 1,
-      "p50_ms": 2964.7,
-      "max_ms": 2964.7
+      "ok": 1,
+      "n": 1,
+      "p50_ms": 994.34,
+      "tokens": 78,
+      "served_by": "qwen3.8-27b",
+      "error": null,
+      "breaker": {
+        "state": "closed",
+        "consecutive_failures": 0,
+        "successes": 1,
+        "failures": 0
+      }
     },
     "kimi-k3": {
-      "samples": [
-        {
-          "status": 200,
-          "ms": 4552.9,
-          "tokens": 399,
-          "ok": true
-        }
-      ],
-      "success": 1,
-      "p50_ms": 4552.9,
-      "max_ms": 4552.9
+      "ok": 1,
+      "n": 1,
+      "p50_ms": 1572.46,
+      "tokens": 209,
+      "served_by": "kimi-k3",
+      "error": null,
+      "breaker": {
+        "state": "closed",
+        "consecutive_failures": 0,
+        "successes": 1,
+        "failures": 0
+      }
     }
   },
-  "captured_utc": "2026-09-15T18:17:11Z",
-  "turn": 13
+  "generated_at": "2026-09-15T18:51:04Z"
 }

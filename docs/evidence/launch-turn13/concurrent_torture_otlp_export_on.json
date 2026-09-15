@@ -1,0 +1,31 @@
+{
+  "run": "turn-14 rebase re-verification (post-rebase head 75ed0e1)",
+  "otlp_export": "ON \u2014 OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 (live stub collector accepting OTLP/JSON)",
+  "workers": 100,
+  "requests": 200,
+  "seed": 7,
+  "wall_seconds": 24.59,
+  "throughput_rps": 8.13,
+  "status_histogram": {
+    "200": 134,
+    "413": 33,
+    "422": 33
+  },
+  "unexpected_5xx": 0,
+  "contract_violations": 0,
+  "transport_errors": 0,
+  "admission_retries": 0,
+  "latency_p50_ms": 9194.73,
+  "latency_p95_ms": 18195.3,
+  "latency_p99_ms": 19062.79,
+  "latency_max_ms": 19109.12,
+  "rss_floor_mb": 42.1,
+  "rss_ceiling_mb": 325.5,
+  "rss_after_mb": 211.2,
+  "recovery_probes": {
+    "/healthz": 200,
+    "/api/bundle": 200
+  },
+  "scope": "local self-hosted JSON ingestion; not a production 100x baseline",
+  "fault_recovery": "PASS"
+}
