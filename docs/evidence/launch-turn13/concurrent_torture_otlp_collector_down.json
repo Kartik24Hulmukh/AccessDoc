@@ -1,0 +1,31 @@
+{
+  "run": "turn-14 rebase re-verification (post-rebase head 75ed0e1)",
+  "otlp_export": "ON but collector UNREACHABLE (http://127.0.0.1:49999) \u2014 chaos variant; failures counted in exporter stats, never raised",
+  "workers": 100,
+  "requests": 200,
+  "seed": 7,
+  "wall_seconds": 23.43,
+  "throughput_rps": 8.53,
+  "status_histogram": {
+    "200": 134,
+    "413": 33,
+    "422": 33
+  },
+  "unexpected_5xx": 0,
+  "contract_violations": 0,
+  "transport_errors": 0,
+  "admission_retries": 0,
+  "latency_p50_ms": 9479.1,
+  "latency_p95_ms": 17260.75,
+  "latency_p99_ms": 18022.44,
+  "latency_max_ms": 18649.21,
+  "rss_floor_mb": 41.6,
+  "rss_ceiling_mb": 309.0,
+  "rss_after_mb": 191.5,
+  "recovery_probes": {
+    "/healthz": 200,
+    "/api/bundle": 200
+  },
+  "scope": "local self-hosted JSON ingestion; not a production 100x baseline",
+  "fault_recovery": "PASS"
+}

@@ -1,57 +1,17 @@
 {
-  "captured_utc": "2026-09-15T18:17:11Z",
-  "turn": 13,
-  "base": "https://access-doc.vercel.app",
-  "healthz": {
+  "/healthz": {
     "status": 200,
-    "ms": 130.8,
-    "body": {
-      "service": "AccessDoc",
-      "adapter_version": "0.7.0-beta.7",
-      "status": "ok",
-      "commit": "0a4764b335a73b5679d4565637559ec28c055d40",
-      "api_note": "Bounded ReportLab demo API. See docs for limitations.",
-      "endpoints": [
-        "/api/bundle",
-        "/api/remediate",
-        "/limits"
-      ],
-      "gateway": {
-        "configured": false,
-        "chain": [
-          "glm-5.3",
-          "glm-5.3-flash",
-          "qwen3.8-27b",
-          "kimi-k3"
-        ],
-        "models": {}
-      }
-    }
+    "ms": 1119.2,
+    "body": "{\"service\": \"AccessDoc\", \"adapter_version\": \"0.7.0-beta.7\", \"status\": \"ok\", \"commit\": \"17a01268c07e25e02393e2a605e1ecbb5c15479f\", \"api_note\": \"Bounded ReportLab demo API. See docs for limitations.\", \"endpoints\": [\"/api/bundle\", \"/api/remediate\", \"/limits\"], \"gateway\": {\"configured\": false, \"chain\": [\"glm-5.3\", \"glm-5.3-flash\", \"qwen3.8-27b\", \"kimi-k3\"], \"models\": {}}}"
   },
-  "readyz": {
+  "/readyz": {
     "status": 200,
-    "ms": 60.7,
-    "body": {
-      "service": "AccessDoc",
-      "adapter_version": "0.7.0-beta.7",
-      "status": "ok",
-      "commit": "0a4764b335a73b5679d4565637559ec28c055d40",
-      "api_note": "Bounded ReportLab demo API. See docs for limitations.",
-      "endpoints": [
-        "/api/bundle",
-        "/api/remediate",
-        "/limits"
-      ],
-      "gateway": {
-        "configured": false,
-        "chain": [
-          "glm-5.3",
-          "glm-5.3-flash",
-          "qwen3.8-27b",
-          "kimi-k3"
-        ],
-        "models": {}
-      }
-    }
-  }
+    "ms": 83.1,
+    "body": "{\"service\": \"AccessDoc\", \"adapter_version\": \"0.7.0-beta.7\", \"status\": \"ok\", \"commit\": \"17a01268c07e25e02393e2a605e1ecbb5c15479f\", \"api_note\": \"Bounded ReportLab demo API. See docs for limitations.\", \"endpoints\": [\"/api/bundle\", \"/api/remediate\", \"/limits\"], \"gateway\": {\"configured\": false, \"chain\": [\"glm-5.3\", \"glm-5.3-flash\", \"qwen3.8-27b\", \"kimi-k3\"], \"models\": {}}}"
+  },
+  "/version": {
+    "error": "<HTTPError 404: 'Not Found'>",
+    "ms": 131.3
+  },
+  "note": "turn-14 probe: production serves main @ 17a0126 (PR #52 merged); gateway.configured=false is the operator gate"
 }

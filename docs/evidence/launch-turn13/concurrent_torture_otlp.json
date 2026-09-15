@@ -1,0 +1,68 @@
+{
+ "otlp_on": {
+  "workers": 100,
+  "requests": 200,
+  "wall_seconds": 17.15,
+  "seed": 7,
+  "throughput_rps": 11.66,
+  "scope": "local self-hosted JSON ingestion; not a production 100x baseline",
+  "transport_attempt_errors": 0,
+  "admission_retries": 0,
+  "recovery_probes": {
+   "/healthz": 200,
+   "/api/bundle": 200
+  },
+  "rss_after_mb": 202.4,
+  "status_histogram": {
+   "413": 33,
+   "422": 33,
+   "200": 134
+  },
+  "unexpected_5xx": 0,
+  "contract_violations": 0,
+  "transport_errors": 0,
+  "latency_p50_ms": 6792.92,
+  "latency_p95_ms": 12334.32,
+  "latency_p99_ms": 13007.42,
+  "latency_max_ms": 13177.88,
+  "rss_floor_mb": 42.2,
+  "rss_ceiling_mb": 317.5,
+  "fault_recovery": "PASS",
+  "rc": 0
+ },
+ "otlp_collector_down": {
+  "workers": 100,
+  "requests": 200,
+  "wall_seconds": 17.3,
+  "seed": 7,
+  "throughput_rps": 11.56,
+  "scope": "local self-hosted JSON ingestion; not a production 100x baseline",
+  "transport_attempt_errors": 0,
+  "admission_retries": 0,
+  "recovery_probes": {
+   "/healthz": 200,
+   "/api/bundle": 200
+  },
+  "rss_after_mb": 219.4,
+  "status_histogram": {
+   "413": 33,
+   "200": 134,
+   "422": 33
+  },
+  "unexpected_5xx": 0,
+  "contract_violations": 0,
+  "transport_errors": 0,
+  "latency_p50_ms": 6241.68,
+  "latency_p95_ms": 12545.78,
+  "latency_p99_ms": 13273.49,
+  "latency_max_ms": 13364.35,
+  "rss_floor_mb": 42.2,
+  "rss_ceiling_mb": 325.1,
+  "fault_recovery": "PASS",
+  "rc": 0
+ },
+ "collector": {
+  "batches": 14,
+  "spans": 199
+ }
+}

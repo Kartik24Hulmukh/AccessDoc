@@ -1,50 +1,62 @@
 {
   "429": {
     "n": 1000,
-    "p50_ms": 0.005,
-    "p95_ms": 0.0079,
-    "p99_ms": 0.0097,
-    "max_ms": 0.0408,
-    "fallback_model": "glm-5.3-flash",
-    "provider_calls_per_chat": 1.001
+    "p50_ms": 0.0049,
+    "p95_ms": 0.0075,
+    "p99_ms": 0.011,
+    "max_ms": 0.0413,
+    "fallback_target": "glm-5.3-flash",
+    "ceiling_ms": 200,
+    "pass": true,
+    "transport": "injected (deterministic; no network)",
+    "fallback_model": "primary 429/5xx -> next model in CANONICAL_CHAIN"
   },
   "500": {
     "n": 1000,
-    "p50_ms": 0.005,
-    "p95_ms": 0.0052,
-    "p99_ms": 0.0063,
-    "max_ms": 0.0174,
-    "fallback_model": "glm-5.3-flash",
-    "provider_calls_per_chat": 1.003
+    "p50_ms": 0.0049,
+    "p95_ms": 0.0051,
+    "p99_ms": 0.0082,
+    "max_ms": 0.0191,
+    "fallback_target": "glm-5.3-flash",
+    "ceiling_ms": 200,
+    "pass": true,
+    "transport": "injected (deterministic; no network)",
+    "fallback_model": "primary 429/5xx -> next model in CANONICAL_CHAIN"
   },
   "502": {
     "n": 1000,
-    "p50_ms": 0.005,
-    "p95_ms": 0.0052,
-    "p99_ms": 0.0081,
-    "max_ms": 0.0246,
-    "fallback_model": "glm-5.3-flash",
-    "provider_calls_per_chat": 1.003
+    "p50_ms": 0.0049,
+    "p95_ms": 0.0051,
+    "p99_ms": 0.0083,
+    "max_ms": 0.0207,
+    "fallback_target": "glm-5.3-flash",
+    "ceiling_ms": 200,
+    "pass": true,
+    "transport": "injected (deterministic; no network)",
+    "fallback_model": "primary 429/5xx -> next model in CANONICAL_CHAIN"
   },
   "503": {
     "n": 1000,
-    "p50_ms": 0.005,
-    "p95_ms": 0.008,
-    "p99_ms": 0.0084,
-    "max_ms": 0.0157,
-    "fallback_model": "glm-5.3-flash",
-    "provider_calls_per_chat": 1.003
+    "p50_ms": 0.0049,
+    "p95_ms": 0.005,
+    "p99_ms": 0.0085,
+    "max_ms": 0.0156,
+    "fallback_target": "glm-5.3-flash",
+    "ceiling_ms": 200,
+    "pass": true,
+    "transport": "injected (deterministic; no network)",
+    "fallback_model": "primary 429/5xx -> next model in CANONICAL_CHAIN"
   },
   "504": {
     "n": 1000,
-    "p50_ms": 0.005,
-    "p95_ms": 0.0067,
-    "p99_ms": 0.0085,
-    "max_ms": 0.016,
-    "fallback_model": "glm-5.3-flash",
-    "provider_calls_per_chat": 1.003
-  },
-  "captured_utc": "2026-09-15T18:17:11Z",
-  "turn": 13,
-  "note": "injected-transport failover via real chat() path; 1000 calls per status"
+    "p50_ms": 0.0049,
+    "p95_ms": 0.005,
+    "p99_ms": 0.0058,
+    "max_ms": 0.0143,
+    "fallback_target": "glm-5.3-flash",
+    "ceiling_ms": 200,
+    "pass": true,
+    "transport": "injected (deterministic; no network)",
+    "fallback_model": "primary 429/5xx -> next model in CANONICAL_CHAIN"
+  }
 }

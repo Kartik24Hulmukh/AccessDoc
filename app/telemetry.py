@@ -80,6 +80,8 @@ def span(name, **attrs):
     prev = getattr(_local, "ctx", None)
     _local.ctx = child
     t0 = time.monotonic()
+    start_ns = time.time_ns()
+    ok = True
     otel_cm = _tracer.start_as_current_span(name) if _tracer is not None else contextlib.nullcontext()
     try:
         with otel_cm as s:
@@ -89,12 +91,28 @@ def span(name, **attrs):
                         s.set_attribute(k, v)
                     except Exception:
                         pass
-            yield child
+            try:
+                yield child
+            except BaseException:
+                ok = False
+                raise
     finally:
         _local.ctx = prev
         log_event("span", name=name, span_id=child["span_id"],
                   parent_span_id=parent["span_id"],
                   duration_ms=round((time.monotonic() - t0) * 1000, 2), **attrs)
+        _export_span(name, child, parent, start_ns, time.time_ns(), attrs, ok)
+
+
+def _export_span(name, child, parent, start_ns, end_ns, attrs, ok):
+    """Ship the finished span to the OTLP/HTTP exporter (never raises, never blocks)."""
+    try:
+        from . import otlp_export
+        otlp_export.get_exporter().record(name, child["trace_id"], child["span_id"],
+                                          parent["span_id"], start_ns, end_ns,
+                                          attrs, status_ok=ok)
+    except Exception:
+        pass
 
 
 def log_event(event, level="info", **fields):
@@ -112,3 +130,28 @@ def log_event(event, level="info", **fields):
 
 def otel_enabled():
     return _tracer is not None
+
+
+def record_server_span(ctx, method, route, status, start_ns, end_ns):
+    """Emit the SERVER span for one HTTP request (parent = inbound traceparent)."""
+    try:
+        from . import otlp_export
+        return otlp_export.get_exporter().record(
+            "%s %s" % (method, route), ctx["trace_id"], ctx["span_id"], ctx.get("parent_span_id"),
+            start_ns, end_ns,
+            {"http.request.method": str(method), "http.route": str(route),
+             "http.response.status_code": int(status), "request_id": ctx.get("request_id", "")},
+            status_ok=int(status) < 500)
+    except Exception:
+        return False
+
+
+def export_status():
+    """Operator-facing tracing status for /readyz."""
+    try:
+        from . import otlp_export
+        st = otlp_export.get_exporter().stats()
+    except Exception:
+        st = {"enabled": False}
+    st["sdk"] = otel_enabled()
+    return st
