@@ -70,7 +70,7 @@ class BudgetBoundaryTests(unittest.TestCase):
         from unittest.mock import Mock
         gw = ModelGateway(api_key="test-only")
         response = Mock(status_code=200, headers={})
-        response.json.return_value = {}
+        response.iter_content.return_value = iter([b"{}"])
         with patch.object(gw._session, "post", return_value=response) as post:
             gw._post(CANONICAL_CHAIN[0], [], remaining=0.2)
         self.assertEqual(post.call_args.kwargs["timeout"], (0.2, 0.2))

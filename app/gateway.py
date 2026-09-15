@@ -196,7 +196,11 @@ class ModelGateway:
     def __init__(self, api_key=None, transport=None, chain=None,
                  connect_timeout=5.0, read_timeout=None, max_retries=3,
                  base_backoff=0.25, max_sleep=2.0, budget_seconds=None,
-                 token_budget=None):
+                 token_budget=None, max_response_bytes=None):
+        self.max_response_bytes = int(max_response_bytes if max_response_bytes is not None
+                                      else os.getenv("GATEWAY_MAX_RESPONSE_BYTES", "1048576"))
+        if self.max_response_bytes <= 0:
+            raise ValueError("GATEWAY_MAX_RESPONSE_BYTES must be positive")
         self._api_key = api_key
         self.transport = transport
         self.chain = tuple(normalize_model(m) for m in (chain or CANONICAL_CHAIN))
@@ -243,6 +247,7 @@ class ModelGateway:
             raise GatewayError(API_KEY_ENV + " is not set", model=model)
         if remaining is not None and remaining <= 0:
             raise GatewayError("gateway time budget exhausted", status=504, model=model)
+        response_deadline = time.monotonic() + remaining if remaining is not None else None
         resp = self._session.post(
             MELIOUS_BASE_URL + CHAT_PATH,
             headers={"Authorization": "Bearer " + key,
@@ -250,12 +255,27 @@ class ModelGateway:
                      "traceparent": telemetry.traceparent_header()},
             json={"model": model, "messages": messages,
                   "max_tokens": int(max_tokens or os.getenv("GATEWAY_MAX_TOKENS", "1024"))},
+            stream=True,
             timeout=(min(self.timeout[0], remaining) if remaining is not None else self.timeout[0],
                      self.read_timeout_for(model, remaining)))
         try:
+            # Error bodies are neither needed for routing nor safe to buffer.
+            # Preserve Retry-After while closing the stream in the finally block.
+            if resp.status_code != 200:
+                return resp.status_code, dict(resp.headers), {}
+            body = bytearray()
+            for chunk in resp.iter_content(chunk_size=min(16384, self.max_response_bytes + 1)):
+                if response_deadline is not None and time.monotonic() >= response_deadline:
+                    raise GatewayError("gateway response deadline exceeded", status=504, model=model)
+                # iter_content yields decoded bytes: also bounds gzip expansion.
+                if len(body) + len(chunk) > self.max_response_bytes:
+                    raise GatewayError("gateway response exceeds decoded byte limit", status=502, model=model)
+                body.extend(chunk)
             try:
-                payload = resp.json()
-            except ValueError:
+                payload = json.loads(body)
+                if not isinstance(payload, dict):
+                    payload = {}
+            except (ValueError, RecursionError):
                 payload = {}
             return resp.status_code, dict(resp.headers), payload
         finally:

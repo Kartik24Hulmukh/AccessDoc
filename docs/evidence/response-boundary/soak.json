@@ -1,0 +1,282 @@
+{
+  "scope": "Local closed-loop, authenticated 100-instance payload; not production/staging throughput proof",
+  "results": [
+    {
+      "adapter": "api.handler",
+      "seconds": 30.04,
+      "workers": 16,
+      "finding_instances": 100,
+      "attempts": 6136,
+      "statuses": {
+        "200": 1330,
+        "503": 4806
+      },
+      "successful_bundles_per_second": 44.28,
+      "success_p50_ms": 71.9122476875782,
+      "success_p95_ms": 125.42889267206192,
+      "success_p99_ms": 202.2442575544119,
+      "cpu_seconds": 32.63,
+      "peak_rss_kib": 51648,
+      "rss_samples": [
+        {
+          "elapsed_s": 1.0,
+          "rss_bytes": 54439936
+        },
+        {
+          "elapsed_s": 2.02,
+          "rss_bytes": 55160832
+        },
+        {
+          "elapsed_s": 3.06,
+          "rss_bytes": 55431168
+        },
+        {
+          "elapsed_s": 4.07,
+          "rss_bytes": 55672832
+        },
+        {
+          "elapsed_s": 5.09,
+          "rss_bytes": 55730176
+        },
+        {
+          "elapsed_s": 6.09,
+          "rss_bytes": 55980032
+        },
+        {
+          "elapsed_s": 7.09,
+          "rss_bytes": 56037376
+        },
+        {
+          "elapsed_s": 8.11,
+          "rss_bytes": 56246272
+        },
+        {
+          "elapsed_s": 9.18,
+          "rss_bytes": 56414208
+        },
+        {
+          "elapsed_s": 10.19,
+          "rss_bytes": 57131008
+        },
+        {
+          "elapsed_s": 11.2,
+          "rss_bytes": 57327616
+        },
+        {
+          "elapsed_s": 12.2,
+          "rss_bytes": 56680448
+        },
+        {
+          "elapsed_s": 13.21,
+          "rss_bytes": 56741888
+        },
+        {
+          "elapsed_s": 14.23,
+          "rss_bytes": 56758272
+        },
+        {
+          "elapsed_s": 15.24,
+          "rss_bytes": 56770560
+        },
+        {
+          "elapsed_s": 16.24,
+          "rss_bytes": 57495552
+        },
+        {
+          "elapsed_s": 17.24,
+          "rss_bytes": 57581568
+        },
+        {
+          "elapsed_s": 18.25,
+          "rss_bytes": 57581568
+        },
+        {
+          "elapsed_s": 19.25,
+          "rss_bytes": 57675776
+        },
+        {
+          "elapsed_s": 20.25,
+          "rss_bytes": 57901056
+        },
+        {
+          "elapsed_s": 21.25,
+          "rss_bytes": 58048512
+        },
+        {
+          "elapsed_s": 22.26,
+          "rss_bytes": 58281984
+        },
+        {
+          "elapsed_s": 23.26,
+          "rss_bytes": 58384384
+        },
+        {
+          "elapsed_s": 24.27,
+          "rss_bytes": 58449920
+        },
+        {
+          "elapsed_s": 25.28,
+          "rss_bytes": 58585088
+        },
+        {
+          "elapsed_s": 26.31,
+          "rss_bytes": 58630144
+        },
+        {
+          "elapsed_s": 27.32,
+          "rss_bytes": 58732544
+        },
+        {
+          "elapsed_s": 28.33,
+          "rss_bytes": 58789888
+        },
+        {
+          "elapsed_s": 29.34,
+          "rss_bytes": 58945536
+        }
+      ],
+      "invalid_or_transport_errors": 0,
+      "recovery_status": 200,
+      "pass": true
+    },
+    {
+      "adapter": "app.main",
+      "seconds": 30.16,
+      "workers": 16,
+      "finding_instances": 100,
+      "attempts": 3434,
+      "statuses": {
+        "200": 1116,
+        "503": 2318
+      },
+      "successful_bundles_per_second": 37.01,
+      "success_p50_ms": 131.97465892881155,
+      "success_p95_ms": 215.8684190362692,
+      "success_p99_ms": 397.3109647631645,
+      "cpu_seconds": 29.98,
+      "peak_rss_kib": 60636,
+      "rss_samples": [
+        {
+          "elapsed_s": 1.01,
+          "rss_bytes": 62840832
+        },
+        {
+          "elapsed_s": 2.02,
+          "rss_bytes": 64487424
+        },
+        {
+          "elapsed_s": 3.02,
+          "rss_bytes": 64782336
+        },
+        {
+          "elapsed_s": 4.03,
+          "rss_bytes": 64380928
+        },
+        {
+          "elapsed_s": 5.03,
+          "rss_bytes": 65081344
+        },
+        {
+          "elapsed_s": 6.06,
+          "rss_bytes": 65413120
+        },
+        {
+          "elapsed_s": 7.06,
+          "rss_bytes": 64761856
+        },
+        {
+          "elapsed_s": 8.07,
+          "rss_bytes": 65413120
+        },
+        {
+          "elapsed_s": 9.09,
+          "rss_bytes": 65695744
+        },
+        {
+          "elapsed_s": 10.1,
+          "rss_bytes": 64778240
+        },
+        {
+          "elapsed_s": 11.1,
+          "rss_bytes": 65454080
+        },
+        {
+          "elapsed_s": 12.1,
+          "rss_bytes": 65777664
+        },
+        {
+          "elapsed_s": 13.13,
+          "rss_bytes": 65314816
+        },
+        {
+          "elapsed_s": 14.13,
+          "rss_bytes": 65970176
+        },
+        {
+          "elapsed_s": 15.15,
+          "rss_bytes": 66039808
+        },
+        {
+          "elapsed_s": 16.15,
+          "rss_bytes": 66224128
+        },
+        {
+          "elapsed_s": 17.16,
+          "rss_bytes": 66412544
+        },
+        {
+          "elapsed_s": 18.17,
+          "rss_bytes": 65703936
+        },
+        {
+          "elapsed_s": 19.22,
+          "rss_bytes": 66293760
+        },
+        {
+          "elapsed_s": 20.23,
+          "rss_bytes": 66244608
+        },
+        {
+          "elapsed_s": 21.32,
+          "rss_bytes": 66301952
+        },
+        {
+          "elapsed_s": 22.32,
+          "rss_bytes": 66330624
+        },
+        {
+          "elapsed_s": 23.34,
+          "rss_bytes": 66338816
+        },
+        {
+          "elapsed_s": 24.35,
+          "rss_bytes": 66396160
+        },
+        {
+          "elapsed_s": 25.36,
+          "rss_bytes": 66428928
+        },
+        {
+          "elapsed_s": 26.39,
+          "rss_bytes": 66433024
+        },
+        {
+          "elapsed_s": 27.43,
+          "rss_bytes": 65732608
+        },
+        {
+          "elapsed_s": 28.43,
+          "rss_bytes": 66256896
+        },
+        {
+          "elapsed_s": 29.45,
+          "rss_bytes": 66318336
+        }
+      ],
+      "invalid_or_transport_errors": 0,
+      "recovery_status": 200,
+      "pass": true
+    }
+  ],
+  "pass": true
+}
