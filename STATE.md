@@ -1,6 +1,6 @@
 # AccessDoc state
 
-- Release candidate: `0.7.0-beta.5`.
+- Release candidate: `0.7.0-beta.6`.
 - Decision: controlled practitioner OSS beta only; broad hosted launch is blocked.
 - Repository evidence: local tests/browser/PDF/grep gates passed; exact final ZIP receipt is external.
 - Target evidence: RUN 13 Sept 2026 against `https://access-doc.vercel.app` at commit `a934582`; see `docs/REDTEAM-PROD-2026-09-13.md` (one Markdown-injection defect in the EAA pack found and fixed).

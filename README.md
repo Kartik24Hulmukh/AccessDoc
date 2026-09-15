@@ -1,4 +1,4 @@
-# AccessDoc v0.7.0-beta.5
+# AccessDoc v0.7.0-beta.6
 
 **The receipt printer for accessibility.** AccessDoc turns raw automated scan
 output (axe-core JSON) into a defensible, tamper-evident **evidence bundle** in
@@ -16,7 +16,23 @@ pack, and an in-toto attestation whose digests cover every file.
 See [the September 13 engineering receipt](docs/HARDENING-2026-09-13.md) for
 verified fixes, local load results, compatibility changes and deployment gates.
 
-## What's new in v0.7.0-beta.5
+## What's new in v0.7.0-beta.6
+
+- **Serverless AI remediation parity.** `POST /api/remediate` is now served by
+  the Vercel adapter with the same bounded contract as the self-hosted server
+  (Content-Length ceiling, JSON-only errors, `X-Request-ID`, security headers).
+- **Bounded admission queue.** A dedicated `MAX_CONCURRENT_REMEDIATIONS` pool
+  with `REMEDIATION_QUEUE_TIMEOUT_SECONDS` queueing: a 20-request burst on an
+  8-slot pool now serves 200 x 20 with zero shed instead of rejecting 60%.
+- **Vercel function `maxDuration` raised to 60 s** so queued remediation calls
+  (21 s worst-case observed under 2.5x load) are never cut off by the platform.
+- **Gateway snapshot on health endpoints.** `GET /`, `/healthz`, `/readyz`
+  expose circuit-breaker state; missing `MELIOUS_API_KEY` degrades to
+  503 + `Retry-After`, never a 500, and never affects `/api/bundle`.
+- **UI**: "Get AI remediation plan" button; static-KB fallbacks are labelled;
+  every plan is labelled advisory (no conformance claim).
+
+## Previously in the 0.7.0 beta line
 
 - **Claims and documentation correction.** All overclaims removed: PDF/UA
   conformance language corrected to "experimental structural tagging path;
@@ -28,10 +44,10 @@ verified fixes, local load results, compatibility changes and deployment gates.
   "implemented (Sigstore keyless via GitHub Actions)." Public API
   exhaustion, ZIP bombs, Action input injection, and scanner SSRF added to
   threat list.
-- **Version metadata corrected.** Stress test version updated from
-  v0.7.0-beta.5 to v0.7.0-beta.5.
+- **Version metadata corrected.** Stress test version metadata aligned
+  with the canonical `VERSION` file.
 
-## What's new in v0.7.0-beta.5
+## Previously in the 0.7.0 beta line
 
 - **End-to-end validated Sigstore signing workflow.** The signing workflow now
   downloads a real Evidence Gate artifact, verifies the AccessDoc bundle before
@@ -39,7 +55,7 @@ verified fixes, local load results, compatibility changes and deployment gates.
   the certificate identity and issuer, and uploads the signed ZIP with its
   Sigstore bundle. No application behavior changed.
 
-## What's new in v0.7.0-beta.5
+## Previously in the 0.7.0 beta line
 
 - **Due-diligence record** (`due-diligence.md`) - proves *reasonable steps taken
   over time*, not just a point-in-time score. See `docs/DUE-DILIGENCE.md`.
@@ -51,7 +67,7 @@ verified fixes, local load results, compatibility changes and deployment gates.
   Rekor transparency log. See `docs/SIGNING.md`.
 - Meaningful PDF metadata (`/Title`, `/Lang`, `/Author`, `/Subject`).
 
-## Previously in v0.7.0-beta.5
+## Previously in the 0.7.0 beta line
 - **Security hardening:** fixed 2 stored-XSS vectors (client name, URL, and
   violation fields now HTML-escaped) and 1 YAML-injection vector (OpenACR
   scalars are JSON-encoded). Regression-tested in `tests/test_security.py`.

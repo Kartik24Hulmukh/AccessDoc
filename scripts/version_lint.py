@@ -21,7 +21,11 @@ excluded_files = {
     "STATE.md", "ERRATA.md", "GITHUB_PUBLICATION_CHECKLIST.md", "ROADMAP.md",
     "THREAT-MODEL.md", "VERCEL_DEPLOYMENT.md", "signing-plan.md", "self-audit.md",
     "outreach-emails.md", "a11y-weekly.md", "linkedin.md", "test_receipt_schema.py",
-    "test_receipt_verifier.py"
+    "test_receipt_verifier.py",
+    # Dated engineering receipts / recorded live evidence: they truthfully
+    # record the version that was deployed at the time and must not be rewritten.
+    "HARDENING-2026-09-13.md", "REDTEAM-PROD-2026-09-13.md", "live-baseline.json",
+    "RECEIPT_FORMAT.md"
 }
 
 failed = False
