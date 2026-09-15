@@ -54,7 +54,8 @@ class GenerateEndpointTests(unittest.TestCase):
             resp = urlopen(req)
             return resp.status, json.loads(resp.read())
         except HTTPError as e:
-            return e.code, json.loads(e.read())
+            with e:
+                return e.code, json.loads(e.read())
 
     def test_generate_alias_returns_201_with_download_token(self):
         status, data = self._post("/api/generate", {"scanner_input": SCANNER, "client_name": "Acme"})

@@ -47,12 +47,14 @@ class HandlerTests(unittest.TestCase):
                           headers={"Content-Type": "application/json"}, method="POST")
             with self.assertRaises(HTTPError) as cm:
                 urlopen(req)
+            self.addCleanup(cm.exception.close)
             self.assertEqual(cm.exception.code, 404)
             body = json.loads(cm.exception.read())
             self.assertIn("/api/bundle", body["error"])
             self.assertIn("request_id", body)
             with self.assertRaises(HTTPError) as cm2:
                 urlopen(f"http://127.0.0.1:{self.port}{path}")
+            self.addCleanup(cm2.exception.close)
             self.assertEqual(cm2.exception.code, 404)
             self.assertIn("/api/bundle", json.loads(cm2.exception.read())["error"])
 
@@ -90,6 +92,7 @@ class HandlerTests(unittest.TestCase):
         )
         with self.assertRaises(HTTPError) as ctx:
             urlopen(req)
+        self.addCleanup(ctx.exception.close)
         self.assertEqual(ctx.exception.code, 400)
 
     def test_empty_body_returns_400(self):
@@ -101,6 +104,7 @@ class HandlerTests(unittest.TestCase):
         )
         with self.assertRaises(HTTPError) as ctx:
             urlopen(req)
+        self.addCleanup(ctx.exception.close)
         self.assertEqual(ctx.exception.code, 400)
 
 

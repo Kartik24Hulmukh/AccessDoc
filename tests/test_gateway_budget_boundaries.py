@@ -83,3 +83,30 @@ class BudgetBoundaryTests(unittest.TestCase):
             with self.assertRaises(GatewayError):
                 gw._post(CANONICAL_CHAIN[0], [], remaining=0)
         post.assert_not_called()
+
+    def test_100_concurrent_outages_recover_on_shared_gateway(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from app.gateway import GatewayError
+        from requests import Timeout
+        counter = [0]
+        import threading
+        lock = threading.Lock()
+        def outage(model, messages):
+            with lock:
+                counter[0] += 1
+                n = counter[0]
+            if n % 3 == 0:
+                raise Timeout("injected read timeout")
+            return (429 if n % 3 == 1 else 503), {}, {}
+        gw = ModelGateway(transport=outage, max_retries=0, base_backoff=0)
+        with patch.object(gw, "_log"), ThreadPoolExecutor(max_workers=100) as pool:
+            results = list(pool.map(lambda _: gw.chat("fix contrast"), range(200)))
+        self.assertTrue(all(r.fallback and r.text for r in results))
+        for breaker in gw.breakers.values():
+            breaker.recovery_timeout = 0
+        gw.transport = lambda m, msgs: (200, {}, {"choices": [{"message": {"content": "recovered"}}]})
+        with patch.object(gw, "_log"):
+            result = gw.chat("fix contrast")
+        self.assertFalse(result.fallback)
+        self.assertEqual(result.text, "recovered")
+        self.assertEqual(gw.breakers[result.model].snapshot()["state"], "closed")

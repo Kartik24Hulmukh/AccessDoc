@@ -1,7 +1,7 @@
 """Phase 12 — Complete end-to-end user journeys.
 
 Seven journeys covering CLI, Public API, GitHub Action, MCP, Signing,
-Fresh-user install, and Production (skipped).  Tests use existing fixtures
+Fresh-user install, and opt-in Production.  Tests use existing fixtures
 and keep inputs small for fast execution.
 """
 import io
@@ -149,6 +149,7 @@ class Journey2PublicAPI(unittest.TestCase):
     def test_invalid_input_returns_400(self):
         with self.assertRaises(HTTPError) as ctx:
             self._post_json({"scanner_input": ""})
+        self.addCleanup(ctx.exception.close)
         self.assertEqual(ctx.exception.code, 400)
 
     def test_oversized_returns_413(self):
@@ -165,6 +166,7 @@ class Journey2PublicAPI(unittest.TestCase):
         with self.assertRaises((HTTPError, ConnectionAbortedError, ConnectionResetError, OSError)) as ctx:
             urlopen(req)
         if isinstance(ctx.exception, HTTPError):
+            self.addCleanup(ctx.exception.close)
             self.assertEqual(ctx.exception.code, 413)
 
 
@@ -316,11 +318,21 @@ class Journey6FreshUser(unittest.TestCase):
 # ===========================================================================
 
 class Journey7Production(unittest.TestCase):
-    """Production smoke test — skipped (requires live deployment)."""
+    """Opt-in live health validation; default suite remains offline."""
 
-    @unittest.skip("Production smoke test requires live deployment")
+    @unittest.skipUnless(os.getenv("ACCESSDOC_PRODUCTION_URL"),
+                         "Set ACCESSDOC_PRODUCTION_URL for live deployment validation")
     def test_production_health(self):
-        pass
+        base = os.environ["ACCESSDOC_PRODUCTION_URL"].rstrip("/")
+        expected = os.getenv("ACCESSDOC_EXPECTED_COMMIT")
+        for path in ("/", "/healthz", "/readyz"):
+            with self.subTest(path=path), urlopen(base + path, timeout=15) as response:
+                self.assertEqual(response.status, 200)
+                payload = json.load(response)
+                self.assertEqual(payload["service"], "AccessDoc")
+                self.assertEqual(payload["status"], "ok")
+                if expected:
+                    self.assertEqual(payload["commit"], expected)
 
 
 if __name__ == "__main__":

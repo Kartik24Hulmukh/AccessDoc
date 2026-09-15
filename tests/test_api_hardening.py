@@ -79,6 +79,7 @@ class ApiHardeningTests(unittest.TestCase):
         )
         with self.assertRaises(HTTPError) as ctx:
             urlopen(req)
+        self.addCleanup(ctx.exception.close)
         self.assertEqual(ctx.exception.code, 413)
 
     # ---- 400: negative Content-Length ----
@@ -93,6 +94,7 @@ class ApiHardeningTests(unittest.TestCase):
         )
         with self.assertRaises(HTTPError) as ctx:
             urlopen(req)
+        self.addCleanup(ctx.exception.close)
         self.assertEqual(ctx.exception.code, 400)
 
     # ---- 400: malformed JSON ----
@@ -100,12 +102,14 @@ class ApiHardeningTests(unittest.TestCase):
         body = b'{not valid json'
         with self.assertRaises(HTTPError) as ctx:
             self._post(body, {"Content-Type": "application/json"})
+        self.addCleanup(ctx.exception.close)
         self.assertEqual(ctx.exception.code, 400)
 
     # ---- 400: missing scanner_input ----
     def test_missing_scanner_input_returns_400(self):
         with self.assertRaises(HTTPError) as ctx:
             self._post_json({"client_name": "X"})
+        self.addCleanup(ctx.exception.close)
         self.assertEqual(ctx.exception.code, 400)
 
     # ---- 415: unsupported content type ----
@@ -113,6 +117,7 @@ class ApiHardeningTests(unittest.TestCase):
         body = json.dumps({"scanner_input": SAMPLE_AXE}).encode()
         with self.assertRaises(HTTPError) as ctx:
             self._post(body, {"Content-Type": "text/plain"})
+        self.addCleanup(ctx.exception.close)
         self.assertEqual(ctx.exception.code, 415)
 
     # ---- 422: malformed scanner metadata, no detail leakage ----
@@ -129,6 +134,7 @@ class ApiHardeningTests(unittest.TestCase):
         }).encode()
         with self.assertRaises(HTTPError) as ctx:
             self._post(body, {"Content-Type": "application/json"})
+        self.addCleanup(ctx.exception.close)
         self.assertEqual(ctx.exception.code, 422)
         error_body = json.loads(ctx.exception.read())
         self.assertIn("error", error_body)
@@ -142,12 +148,14 @@ class ApiHardeningTests(unittest.TestCase):
     def test_unknown_path_returns_404(self):
         with self.assertRaises(HTTPError) as ctx:
             urlopen(f"http://127.0.0.1:{self.port}/unknown")
+        self.addCleanup(ctx.exception.close)
         self.assertEqual(ctx.exception.code, 404)
 
     def test_unknown_path_post_returns_404(self):
         body = json.dumps({"scanner_input": SAMPLE_AXE}).encode()
         with self.assertRaises(HTTPError) as ctx:
             self._post(body, {"Content-Type": "application/json"}, "/unknown")
+        self.addCleanup(ctx.exception.close)
         self.assertEqual(ctx.exception.code, 404)
 
     # ---- 405: unsupported method ----
@@ -160,6 +168,7 @@ class ApiHardeningTests(unittest.TestCase):
         )
         with self.assertRaises(HTTPError) as ctx:
             urlopen(req)
+        self.addCleanup(ctx.exception.close)
         self.assertEqual(ctx.exception.code, 405)
 
     def test_delete_returns_405(self):
@@ -169,6 +178,7 @@ class ApiHardeningTests(unittest.TestCase):
         )
         with self.assertRaises(HTTPError) as ctx:
             urlopen(req)
+        self.addCleanup(ctx.exception.close)
         self.assertEqual(ctx.exception.code, 405)
 
     # ---- 200: valid request -> ZIP ----
@@ -215,6 +225,7 @@ class ApiHardeningTests(unittest.TestCase):
         }).encode()
         with self.assertRaises(HTTPError) as ctx:
             self._post(body, {"Content-Type": "application/json"})
+        self.addCleanup(ctx.exception.close)
         self.assertEqual(ctx.exception.code, 422)
 
     def test_scanner_input_not_object_returns_422(self):
@@ -223,6 +234,7 @@ class ApiHardeningTests(unittest.TestCase):
         }).encode()
         with self.assertRaises(HTTPError) as ctx:
             self._post(body, {"Content-Type": "application/json"})
+        self.addCleanup(ctx.exception.close)
         self.assertEqual(ctx.exception.code, 422)
 
     # ---- 413: too many violations ----
@@ -241,6 +253,7 @@ class ApiHardeningTests(unittest.TestCase):
         }).encode()
         with self.assertRaises(HTTPError) as ctx:
             self._post(body, {"Content-Type": "application/json"})
+        self.addCleanup(ctx.exception.close)
         self.assertEqual(ctx.exception.code, 413)
 
     # ---- pdf_engine=weasyprint is NOT exposed ----

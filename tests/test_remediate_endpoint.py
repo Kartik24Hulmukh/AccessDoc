@@ -46,7 +46,8 @@ class RemediateEndpointTests(unittest.TestCase):
             with urlopen(req) as r:
                 return r.status, json.loads(r.read()), dict(r.headers)
         except HTTPError as e:
-            return e.code, json.loads(e.read()), dict(e.headers)
+            with e:
+                return e.code, json.loads(e.read()), dict(e.headers)
 
     def _get(self, path):
         with urlopen("http://127.0.0.1:%d%s" % (self.port, path)) as r:
