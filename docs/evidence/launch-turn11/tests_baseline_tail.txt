@@ -1,0 +1,8 @@
+zipfile/__init__.py:1730: UserWarning: Duplicate name: 'manifest.json'
+  return self._open_to_write(zinfo, force_zip64=force_zip64)
+/usr/local/lib/python3.14/zipfile/__init__.py:1730: UserWarning: Duplicate name: 'report.pdf'
+  return self._open_to_write(zinfo, force_zip64=force_zip64)
+----------------------------------------------------------------------
+Ran 720 tests in 43.299s
+
+OK (skipped=12)
