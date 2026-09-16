@@ -42,25 +42,48 @@ runs:
   using: "composite"
   steps:
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
       with:
         python-version: "3.12"
     - name: Install AccessDoc
       shell: bash
-      run: pip install "reportlab>=4.0.0"
+      env:
+        ACCESSDOC_ACTION_PATH: ${{ github.action_path }}
+      run: python3 -m pip install -r "$ACCESSDOC_ACTION_PATH/requirements.txt"
     - name: Run AccessDoc evidence gate
       id: run
       shell: bash
+      env:
+        ACCESSDOC_AXE_JSON: ${{ inputs.axe-json }}
+        ACCESSDOC_FAIL_ON: ${{ inputs.fail-on }}
+        ACCESSDOC_CLIENT_NAME: ${{ inputs.client-name }}
+        ACCESSDOC_OUTPUT_DIR: ${{ inputs.output-dir }}
+        ACCESSDOC_SARIF: ${{ inputs.sarif }}
+        ACCESSDOC_MANUAL_FINDINGS: ${{ inputs.manual-findings }}
+        ACCESSDOC_ACTION_PATH: ${{ github.action_path }}
       run: |
-        set -e
+        set -euo pipefail
+        # Reject line breaks before writing GitHub's line-oriented output file.
+        if [[ "$ACCESSDOC_OUTPUT_DIR" == *$'\n'* || "$ACCESSDOC_OUTPUT_DIR" == *$'\r'* ]]; then
+          echo "output-dir must not contain line breaks" >&2
+          exit 2
+        fi
         args=(
-          --axe-json "${{ inputs.axe-json }}"
-          --fail-on "${{ inputs.fail-on }}"
-          --client-name "${{ inputs.client-name }}"
-          --output-dir "${{ inputs.output-dir }}"
+          --axe-json "$ACCESSDOC_AXE_JSON"
+          --fail-on "$ACCESSDOC_FAIL_ON"
+          --client-name "$ACCESSDOC_CLIENT_NAME"
+          --output-dir "$ACCESSDOC_OUTPUT_DIR"
         )
-        if [ "${{ inputs.sarif }}" = "true" ]; then args+=(--sarif); fi
-        if [ -n "${{ inputs.manual-findings }}" ]; then args+=(--manual-findings "${{ inputs.manual-findings }}"); fi
-        python3 "${{ github.action_path }}/scripts/ci_gate.py" "${args[@]}"
-        echo "bundle-path=${{ inputs.output-dir }}/accessdoc-bundle.zip" >> "$GITHUB_OUTPUT"
-        echo "sarif-path=${{ inputs.output-dir }}/findings.sarif.json" >> "$GITHUB_OUTPUT"
+        if [ "$ACCESSDOC_SARIF" = "true" ]; then args+=(--sarif); fi
+        if [ -n "$ACCESSDOC_MANUAL_FINDINGS" ]; then args+=(--manual-findings "$ACCESSDOC_MANUAL_FINDINGS"); fi
+        status=0
+        python3 "$ACCESSDOC_ACTION_PATH/scripts/ci_gate.py" "${args[@]}" || status=$?
+        # A severity gate failure still produces reviewable evidence. A build
+        # error must not publish paths to stale artifacts from a previous run.
+        if [ "$status" -eq 0 ] || [ "$status" -eq 1 ]; then
+          printf 'bundle-path=%s/accessdoc-bundle.zip\n' "$ACCESSDOC_OUTPUT_DIR" >> "$GITHUB_OUTPUT"
+          if [ "$ACCESSDOC_SARIF" = "true" ]; then
+            printf 'sarif-path=%s/findings.sarif.json\n' "$ACCESSDOC_OUTPUT_DIR" >> "$GITHUB_OUTPUT"
+          fi
+        fi
+        exit "$status"

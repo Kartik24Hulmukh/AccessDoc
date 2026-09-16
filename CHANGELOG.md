@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0-beta.7] - 2026-09-16 - launch security: GitHub Action template-injection fix (release PR)
+
+- **Confirmed vulnerability closed:** the composite action interpolated `${{ inputs.* }}` expressions directly into Bash source, so a hostile `client-name` could run arbitrary commands in consuming workflows (sentinel file created in a reproduced run). All inputs now pass through intermediate environment variables with quoted arrays; `output-dir` rejects CR/LF before any write to GitHub's line-oriented `$GITHUB_OUTPUT`; `actions/setup-python` pinned to commit SHA `42375524e23c412d93fb67b49958b491fce71c38` (v5.4.0).
+- Gate semantics: severity-gate failures (exit 1) still publish evidence paths; build errors (exit 2+) no longer publish stale artifact paths from previous runs.
+- `scripts/ci_gate.py`: atomic artifact writes and deterministic output-dir handling aligned with the action contract.
+- Validation: full release verifier re-run on the fixed tree - 751 tests green, 15/15 adversarial stress checks PASS, end-to-end smoke PASS, all release gates PASS (compile, secret patterns, claims, placeholders, immutable action refs, version consistency).
+
 ## [0.7.0-beta.7] - 2026-09-15 - launch turn 17: hosted UI + developer docs actually served in production (PR #56)
 
 - **Production gap closed:** `vercel.json` routes every path to `api/handler.py`, so the report builder in `public/` was never reachable on https://access-doc.vercel.app - `/` answered raw JSON to browsers and `/static/*`, `/sample/*` returned 404. The serverless adapter now serves the UI with browser content negotiation (`Accept: text/html` -> `public/index.html`; probes, curl and SDKs still get the JSON readiness document, `Vary: Accept`).
