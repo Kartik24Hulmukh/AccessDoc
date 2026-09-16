@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.7.0-beta.7] - 2026-09-16 - launch turn 8: health-ranked gateway routing + timeout-weighted breakers (release PR)
+
+- **Live finding (Melious bench, 2026-09-16 14:27 UTC, production key):** GLM-5.3 P50 5.8 s / 3/3 OK; **GLM-5.3 Flash 0/3 OK - three consecutive 25 s read timeouts (HTTP 504) before its breaker opened**; Qwen 3.8 27B P50 10.8 s / 3/3 OK; Kimi K3 P50 20.5 s / 3/3 OK. With the canonical chain, one slow second-tier model could spend 25 s of the shared 40 s request budget ahead of a healthy 11 s model.
+- `CircuitBreaker.record_timeout()`: a read timeout is one real failure counted with weight 2 toward the open threshold (a timeout burns a full 25-30 s window; a fast 5xx costs milliseconds). Raw `failures`/`timeouts` counters stay truthful - the weight only accelerates ejection (2 timeouts open a threshold-3 breaker). `snapshot()` now reports `timeouts`.
+- `ModelGateway.route_order()`: health-ranked fallback order. Models whose breaker is not CLOSED or that carry unresolved consecutive failures are demoted behind healthy models; the sort is stable so canonical priority is preserved within each tier and routing stays deterministic. Demoted models are still tried last (breaker allowing), never dropped. Recovery is immediate on the next success. Emits a `gateway_route` JSON event whenever the order differs from canonical.
+- Token-budget ceilings, immediate 429/5xx failover, per-model read windows clamped to the remaining wall-clock budget and the offline-KB last resort are unchanged.
+- Production verification (black-box, this turn): `/readyz` reports exact `main` commit `4b6dcc1` (drift from turn 7 resolved); `/healthz`, `/limits`, `/docs`, `/openapi.json`, `/index.html` all 200; hostile inputs 415/400/413; `POST /api/bundle` -> 200 ZIP, 6 members, receipt 1.2, independent `verify_bundle.py` PASS; hosted burst 48 req / 16 workers -> 48x200, 0 errors, p50 77 ms, p95 905 ms (cold starts); `/api/remediate` serves the deterministic offline plan because `MELIOUS_API_KEY` is not configured on the host (operator gate).
+- 6 new tests (tests/test_gateway_health_routing.py). Suite: 760 tests green; verify_release.py all gates PASS; 15/15 adversarial stress PASS.
+
 ## [0.7.0-beta.7] - 2026-09-16 - launch security: GitHub Action template-injection fix (release PR)
 
 - **Confirmed vulnerability closed:** the composite action interpolated `${{ inputs.* }}` expressions directly into Bash source, so a hostile `client-name` could run arbitrary commands in consuming workflows (sentinel file created in a reproduced run). All inputs now pass through intermediate environment variables with quoted arrays; `output-dir` rejects CR/LF before any write to GitHub's line-oriented `$GITHUB_OUTPUT`; `actions/setup-python` pinned to commit SHA `42375524e23c412d93fb67b49958b491fce71c38` (v5.4.0).
