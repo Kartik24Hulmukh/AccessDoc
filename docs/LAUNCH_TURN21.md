@@ -30,3 +30,6 @@ Fetched frontier-oss-ideas/docs/LEVERAGE_REPOS.md, the catalog referenced by Tur
 
 ## Launch blockers and next checks
 Rotate the two credentials exposed in task history. Configure a rotated Melious credential using deployment-platform access; verify hosted non-fallback answer on exact merged SHA. Establish WAF quotas, cost kill switch, collector receipt, staging sustained load and independent accessibility/security/legal sign-off. No Vercel credentials were supplied. Keep branch protection; merge only with all required checks green on current head. Rollback UI regression through revert of the fix commit and regeneration of assets, then rerun browser gates.
+
+## Final browser-matrix evidence
+120/120 checks PASS across 20 locale/viewport profiles; no CSP relaxation. Synthetic checks only.
