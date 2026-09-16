@@ -71,3 +71,49 @@ class HostedUITests(unittest.TestCase):
             server.shutdown()
             server.server_close()
             thread.join()
+
+    def test_file_only_upload_and_clear_restore_validation(self):
+        server = Server(("127.0.0.1", 0), Handler)
+        base = f"http://127.0.0.1:{server.server_port}"
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        env = {"ALLOWED_HOSTS": f"127.0.0.1:{server.server_port}",
+               "ALLOWED_ORIGINS": base, "RATE_LIMIT_PER_MINUTE": "100000",
+               "ACCESSDOC_REQUIRE_AUTH": "false"}
+        try:
+            with patch.dict(os.environ, env), tempfile.TemporaryDirectory() as temp, sync_playwright() as p:
+                browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
+                try:
+                    page = browser.new_page()
+                    page.goto(base)
+                    page.locator("#client").fill("File-only practitioner")
+                    page.locator("#agency").fill("QA")
+                    upload = page.locator("#evidence-file")
+                    upload.set_input_files(str(ROOT / "fixtures/axe-sample.json"))
+                    self.assertEqual(page.locator("#scanner").input_value(), "")
+                    self.assertIsNone(page.locator("#scanner").get_attribute("required"))
+                    with page.expect_download() as info:
+                        page.locator("#generate").click()
+                    target = Path(temp) / "file-only.zip"
+                    info.value.save_as(target)
+                    self.assertTrue(validate_bundle(target.read_bytes())["valid"])
+                    upload.set_input_files([])
+                    self.assertIsNotNone(page.locator("#scanner").get_attribute("required"))
+                    upload.set_input_files({"name": "corrupt.json", "mimeType": "application/json", "buffer": b"{broken"})
+                    page.locator("#generate").click()
+                    page.locator("#errors").wait_for(state="visible")
+                    self.assertFalse(page.locator("#generate").is_disabled())
+                    upload.set_input_files({"name": "oversize.json", "mimeType": "application/json", "buffer": b"x" * 2000001})
+                    page.locator("#generate").click()
+                    page.locator("#errors").wait_for(state="visible")
+                    self.assertIn("File exceeds", page.locator("#errors").inner_text())
+                    upload.set_input_files(str(ROOT / "fixtures/axe-sample.json"))
+                    with page.expect_download():
+                        page.locator("#generate").click()
+                    self.assertFalse(page.locator("#generate").is_disabled())
+                finally:
+                    browser.close()
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join()
