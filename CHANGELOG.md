@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0-beta.7] - 2026-09-16 - launch turn 9: exponential breaker recovery backoff + clamped half-open probes (launch hardening)
+
+- **Live finding (Melious bench, this turn, production key, 3 samples/model):** GLM-5.3 P50 5.05 s (3/3 OK, 1,073 tok), GLM-5.3 Flash **0/3 OK - two 25.2 s read timeouts opened the breaker (timeout weight 2), third call rejected in 0.13 ms**, Qwen 3.8 27B P50 10.86 s (3/3 OK), Kimi K3 P50 21.27 s (3/3 OK). Flash is persistently down.
+- `CircuitBreaker`: **exponential recovery backoff.** A breaker that re-opens after a failed half-open probe now waits `recovery_timeout * 2**(open_cycles-1)`, capped at `max_recovery_timeout` (default 300 s), instead of re-probing a persistently dead model every fixed 30 s. One success closes the breaker and resets `open_cycles` to 0 immediately. `snapshot()` now reports `open_cycles` and the effective `recovery_delay`; raw `failures`/`timeouts` counters remain truthful.
+- `ModelGateway.read_timeout_for()`: **half-open probes are clamped** to `GATEWAY_PROBE_TIMEOUT_SECONDS` (default 5 s, env-overridable) and still clamped to the remaining wall-clock budget. A speculative re-test of an ejected model can no longer spend 25 s of a real request 40 s budget; healthy models keep their full per-model window.
+- Tests: `tests/test_gateway_recovery_backoff.py` - 8 deterministic tests (base delay on first open, exponential growth + cap, immediate reset on success, truthful counters, no early re-probe, probe clamp, env override, healthy models unaffected). `tests/test_gateway.py` breaker-lifecycle test updated to assert the documented second-cycle delay.
+- `gateway_bench.json` refreshed with this turn live four-model run (now including `open_cycles`/`recovery_delay`).
+
 ## [0.7.0-beta.7] - 2026-09-16 - launch turn 8: health-ranked gateway routing + timeout-weighted breakers (release PR)
 
 - **Live finding (Melious bench, 2026-09-16 14:27 UTC, production key):** GLM-5.3 P50 5.8 s / 3/3 OK; **GLM-5.3 Flash 0/3 OK - three consecutive 25 s read timeouts (HTTP 504) before its breaker opened**; Qwen 3.8 27B P50 10.8 s / 3/3 OK; Kimi K3 P50 20.5 s / 3/3 OK. With the canonical chain, one slow second-tier model could spend 25 s of the shared 40 s request budget ahead of a healthy 11 s model.
