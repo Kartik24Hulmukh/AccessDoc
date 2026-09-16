@@ -1,46 +1,43 @@
 {
   "models": {
     "glm-5.3": {
-      "ok": 0,
+      "ok": 3,
       "n": 3,
-      "p50_ms": 15216.34,
-      "p95_ms": 15219.22,
-      "p99_ms": 15219.22,
+      "p50_ms": 5778.97,
+      "p95_ms": 6444.81,
+      "p99_ms": 6444.81,
       "latency_scope": "all attempts including failures",
-      "avg_tokens": 0,
+      "avg_tokens": 1073,
       "samples": [
         {
-          "ok": false,
-          "error": "transient gateway failure",
-          "status": 504,
-          "ms": 15214.12
+          "ok": true,
+          "tokens": 1073,
+          "ms": 6444.81
         },
         {
-          "ok": false,
-          "error": "transient gateway failure",
-          "status": 504,
-          "ms": 15216.34
+          "ok": true,
+          "tokens": 1073,
+          "ms": 5175.83
         },
         {
-          "ok": false,
-          "error": "transient gateway failure",
-          "status": 504,
-          "ms": 15219.22
+          "ok": true,
+          "tokens": 1073,
+          "ms": 5778.97
         }
       ],
       "breaker": {
-        "state": "open",
-        "consecutive_failures": 3,
-        "successes": 0,
-        "failures": 3
+        "state": "closed",
+        "consecutive_failures": 0,
+        "successes": 3,
+        "failures": 0
       }
     },
     "glm-5.3-flash": {
       "ok": 0,
       "n": 3,
-      "p50_ms": 25225.27,
-      "p95_ms": 25235.39,
-      "p99_ms": 25235.39,
+      "p50_ms": 25227.72,
+      "p95_ms": 25231.87,
+      "p99_ms": 25231.87,
       "latency_scope": "all attempts including failures",
       "avg_tokens": 0,
       "samples": [
@@ -48,19 +45,19 @@
           "ok": false,
           "error": "transient gateway failure",
           "status": 504,
-          "ms": 25216.37
+          "ms": 25227.72
         },
         {
           "ok": false,
           "error": "transient gateway failure",
           "status": 504,
-          "ms": 25225.27
+          "ms": 25218.26
         },
         {
           "ok": false,
           "error": "transient gateway failure",
           "status": 504,
-          "ms": 25235.39
+          "ms": 25231.87
         }
       ],
       "breaker": {
@@ -73,26 +70,26 @@
     "qwen3.8-27b": {
       "ok": 3,
       "n": 3,
-      "p50_ms": 10854.9,
-      "p95_ms": 11077.5,
-      "p99_ms": 11077.5,
+      "p50_ms": 10804.17,
+      "p95_ms": 11083.5,
+      "p99_ms": 11083.5,
       "latency_scope": "all attempts including failures",
       "avg_tokens": 1075,
       "samples": [
         {
           "ok": true,
           "tokens": 1075,
-          "ms": 11077.5
+          "ms": 11083.5
         },
         {
           "ok": true,
           "tokens": 1075,
-          "ms": 10844.25
+          "ms": 10804.17
         },
         {
           "ok": true,
           "tokens": 1075,
-          "ms": 10854.9
+          "ms": 10752.98
         }
       ],
       "breaker": {
@@ -103,37 +100,35 @@
       }
     },
     "kimi-k3": {
-      "ok": 1,
+      "ok": 3,
       "n": 3,
-      "p50_ms": 25025.87,
-      "p95_ms": 25233.77,
-      "p99_ms": 25233.77,
+      "p50_ms": 20523.68,
+      "p95_ms": 21147.66,
+      "p99_ms": 21147.66,
       "latency_scope": "all attempts including failures",
       "avg_tokens": 1193,
       "samples": [
         {
-          "ok": false,
-          "error": "transient gateway failure",
-          "status": 504,
-          "ms": 25233.77
+          "ok": true,
+          "tokens": 1193,
+          "ms": 20523.68
         },
         {
           "ok": true,
           "tokens": 1193,
-          "ms": 23164.26
+          "ms": 21147.66
         },
         {
-          "ok": false,
-          "error": "transient gateway failure",
-          "status": 504,
-          "ms": 25025.87
+          "ok": true,
+          "tokens": 1193,
+          "ms": 20119.06
         }
       ],
       "breaker": {
         "state": "closed",
-        "consecutive_failures": 1,
-        "successes": 1,
-        "failures": 2
+        "consecutive_failures": 0,
+        "successes": 3,
+        "failures": 0
       }
     }
   },
@@ -145,7 +140,7 @@
     },
     "outage_fail_fast": {
       "pass": true,
-      "ms": 221.7
+      "ms": 0.2
     },
     "static_kb_last_resort": {
       "pass": true,

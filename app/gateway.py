@@ -83,8 +83,14 @@ class CircuitBreaker:
     CLOSED, OPEN, HALF_OPEN = "closed", "open", "half_open"
 
     def __init__(self, failure_threshold=3, recovery_timeout=30.0,
-                 half_open_max_trials=2):
+                 half_open_max_trials=2, timeout_weight=2):
         self.failure_threshold = failure_threshold
+        # A read timeout burns the whole per-model window (25-30 s) while a
+        # fast 5xx costs milliseconds; weight timeouts so a slow model is
+        # ejected after two windows instead of three (live 2026-09-16 bench:
+        # GLM-5.3 Flash timed out 3x25 s before opening).
+        self.timeout_weight = max(1, int(timeout_weight))
+        self.timeouts = 0
         self.recovery_timeout = recovery_timeout
         self.half_open_max_trials = half_open_max_trials
         self._lock = threading.Lock()
@@ -130,6 +136,22 @@ class CircuitBreaker:
                 self.state = self.OPEN
                 self._opened_at = time.monotonic()
 
+    def record_timeout(self):
+        """A timeout is one real failure counted with extra weight toward opening."""
+        with self._lock:
+            self.timeouts += 1
+        for _ in range(self.timeout_weight):
+            self.record_failure()
+        # Only ONE observed failure happened; the weight only accelerates the
+        # threshold. Correct the raw counter so telemetry never fabricates N.
+        with self._lock:
+            self.failures -= self.timeout_weight - 1
+
+    def unhealthy(self):
+        """True while the model has unresolved consecutive failures or is not CLOSED."""
+        with self._lock:
+            return self.state != self.CLOSED or self.consecutive_failures > 0
+
     def trip(self):
         """Record one failure and open atomically; never synthesize failures."""
         with self._lock:
@@ -143,7 +165,8 @@ class CircuitBreaker:
         with self._lock:
             return {"state": self.state,
                     "consecutive_failures": self.consecutive_failures,
-                    "successes": self.successes, "failures": self.failures}
+                    "successes": self.successes, "failures": self.failures,
+                    "timeouts": self.timeouts}
 
 
 _STATIC_KB = (
@@ -362,6 +385,21 @@ class ModelGateway:
     def _log(**fields):
         telemetry.log_event(fields.pop("event", "gateway"), **fields)
 
+    def route_order(self, start=0):
+        """Health-ranked fallback order: canonical chain, but models whose
+        breaker is not CLOSED or that carry unresolved consecutive failures
+        (e.g. a 25 s read timeout) are demoted behind healthy models so one
+        slow provider never spends the shared budget ahead of a healthy one.
+        The sort is stable: canonical priority is preserved within each tier,
+        so routing stays deterministic. Demoted models are still tried last
+        (breaker allowing), never dropped."""
+        slice_ = list(self.chain[start:])
+        ranked = sorted(slice_, key=lambda m: 1 if self.breakers[m].unhealthy() else 0)
+        if ranked != slice_:
+            self._log(event="gateway_route", reason="health_ranked",
+                      canonical=slice_, order=ranked)
+        return tuple(ranked)
+
     def chat(self, prompt, model=None, static_fallback=True, budget_seconds=None):
         deadline = time.monotonic() + float(budget_seconds if budget_seconds is not None else self.budget_seconds)
         budget_hit = False
@@ -373,7 +411,7 @@ class ModelGateway:
         wanted = normalize_model(model)
         start = self.chain.index(wanted) if wanted in self.chain else 0
         last_err = None
-        for m in self.chain[start:]:
+        for m in self.route_order(start):
             if time.monotonic() >= deadline:
                 budget_hit = True
                 self._log(event="gateway_budget_exhausted", model=m)
@@ -445,6 +483,9 @@ class ModelGateway:
                     # Explicit rate limits atomically stop new admissions without
                     # fabricating failures or racing an unbounded retry loop.
                     breaker.trip()
+                elif status == 504:
+                    # Read timeouts are weighted: they cost a full window each.
+                    breaker.record_timeout()
                 else:
                     breaker.record_failure()
                 self._log(event="gateway_call", model=m, status=status,
