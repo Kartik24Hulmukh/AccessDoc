@@ -37,9 +37,16 @@ class BreakerLifecycleTests(unittest.TestCase):
         self.assertEqual(b.state, CircuitBreaker.HALF_OPEN)
         b.record_failure()
         self.assertEqual(b.state, CircuitBreaker.OPEN)
+        # Second open cycle re-probes after 2x the base delay (exponential
+        # recovery backoff): 0.2 s -> 0.4 s.
+        self.assertEqual(b.open_cycles, 2)
+        self.assertAlmostEqual(b.recovery_delay(), 0.4, places=6)
+        time.sleep(0.25)
+        self.assertFalse(b.allow())
         time.sleep(0.25)
         self.assertTrue(b.allow())
         b.record_success()
+        self.assertEqual(b.open_cycles, 0)
         self.assertEqual(b.state, CircuitBreaker.CLOSED)
         self.assertEqual(b.consecutive_failures, 0)
 

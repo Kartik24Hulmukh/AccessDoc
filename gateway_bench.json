@@ -3,41 +3,44 @@
     "glm-5.3": {
       "ok": 3,
       "n": 3,
-      "p50_ms": 5778.97,
-      "p95_ms": 6444.81,
-      "p99_ms": 6444.81,
+      "p50_ms": 5052.18,
+      "p95_ms": 5374.65,
+      "p99_ms": 5374.65,
       "latency_scope": "all attempts including failures",
       "avg_tokens": 1073,
       "samples": [
         {
           "ok": true,
           "tokens": 1073,
-          "ms": 6444.81
+          "ms": 5374.65
         },
         {
           "ok": true,
           "tokens": 1073,
-          "ms": 5175.83
+          "ms": 5052.18
         },
         {
           "ok": true,
           "tokens": 1073,
-          "ms": 5778.97
+          "ms": 4621.49
         }
       ],
       "breaker": {
         "state": "closed",
         "consecutive_failures": 0,
         "successes": 3,
-        "failures": 0
+        "failures": 0,
+        "timeouts": 0,
+        "open_cycles": 0,
+        "recovery_delay": 30.0
       }
     },
     "glm-5.3-flash": {
       "ok": 0,
       "n": 3,
-      "p50_ms": 25227.72,
-      "p95_ms": 25231.87,
-      "p99_ms": 25231.87,
+      "p50_ms": 25227.13,
+      "p95_ms": 25243.54,
+      "p99_ms": 25243.54,
       "latency_scope": "all attempts including failures",
       "avg_tokens": 0,
       "samples": [
@@ -45,90 +48,99 @@
           "ok": false,
           "error": "transient gateway failure",
           "status": 504,
-          "ms": 25227.72
+          "ms": 25243.54
         },
         {
           "ok": false,
           "error": "transient gateway failure",
           "status": 504,
-          "ms": 25218.26
+          "ms": 25227.13
         },
         {
           "ok": false,
-          "error": "transient gateway failure",
-          "status": 504,
-          "ms": 25231.87
+          "error": "circuit open",
+          "status": null,
+          "ms": 0.13
         }
       ],
       "breaker": {
         "state": "open",
-        "consecutive_failures": 3,
+        "consecutive_failures": 4,
         "successes": 0,
-        "failures": 3
+        "failures": 2,
+        "timeouts": 2,
+        "open_cycles": 1,
+        "recovery_delay": 30.0
       }
     },
     "qwen3.8-27b": {
       "ok": 3,
       "n": 3,
-      "p50_ms": 10804.17,
-      "p95_ms": 11083.5,
-      "p99_ms": 11083.5,
+      "p50_ms": 10862.06,
+      "p95_ms": 11069.31,
+      "p99_ms": 11069.31,
       "latency_scope": "all attempts including failures",
       "avg_tokens": 1075,
       "samples": [
         {
           "ok": true,
           "tokens": 1075,
-          "ms": 11083.5
+          "ms": 11069.31
         },
         {
           "ok": true,
           "tokens": 1075,
-          "ms": 10804.17
+          "ms": 10862.06
         },
         {
           "ok": true,
           "tokens": 1075,
-          "ms": 10752.98
+          "ms": 10834.85
         }
       ],
       "breaker": {
         "state": "closed",
         "consecutive_failures": 0,
         "successes": 3,
-        "failures": 0
+        "failures": 0,
+        "timeouts": 0,
+        "open_cycles": 0,
+        "recovery_delay": 30.0
       }
     },
     "kimi-k3": {
       "ok": 3,
       "n": 3,
-      "p50_ms": 20523.68,
-      "p95_ms": 21147.66,
-      "p99_ms": 21147.66,
+      "p50_ms": 21273.84,
+      "p95_ms": 27394.69,
+      "p99_ms": 27394.69,
       "latency_scope": "all attempts including failures",
       "avg_tokens": 1193,
       "samples": [
         {
           "ok": true,
           "tokens": 1193,
-          "ms": 20523.68
+          "ms": 27394.69
         },
         {
           "ok": true,
           "tokens": 1193,
-          "ms": 21147.66
+          "ms": 21273.84
         },
         {
           "ok": true,
           "tokens": 1193,
-          "ms": 20119.06
+          "ms": 20595.18
         }
       ],
       "breaker": {
         "state": "closed",
         "consecutive_failures": 0,
         "successes": 3,
-        "failures": 0
+        "failures": 0,
+        "timeouts": 0,
+        "open_cycles": 0,
+        "recovery_delay": 30.0
       }
     }
   },
@@ -140,11 +152,16 @@
     },
     "outage_fail_fast": {
       "pass": true,
-      "ms": 0.2
+      "ms": 0.1
     },
     "static_kb_last_resort": {
       "pass": true,
       "model": "static-kb"
     }
+  },
+  "_meta": {
+    "captured_utc": "2026-09-16T14:58:28Z",
+    "samples_per_model": 3,
+    "note": "live Melious run on harden/accessdoc-v1-launch; includes open_cycles/recovery_delay breaker fields"
   }
 }

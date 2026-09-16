@@ -83,7 +83,8 @@ class CircuitBreaker:
     CLOSED, OPEN, HALF_OPEN = "closed", "open", "half_open"
 
     def __init__(self, failure_threshold=3, recovery_timeout=30.0,
-                 half_open_max_trials=2, timeout_weight=2):
+                 half_open_max_trials=2, timeout_weight=2,
+                 max_recovery_timeout=300.0):
         self.failure_threshold = failure_threshold
         # A read timeout burns the whole per-model window (25-30 s) while a
         # fast 5xx costs milliseconds; weight timeouts so a slow model is
@@ -92,6 +93,12 @@ class CircuitBreaker:
         self.timeout_weight = max(1, int(timeout_weight))
         self.timeouts = 0
         self.recovery_timeout = recovery_timeout
+        # A model that is persistently down (live 2026-09-16: Flash, 25 s read
+        # timeouts) must not be re-probed every fixed 30 s: each half-open probe
+        # costs a real request a slice of its 40 s budget. Consecutive open
+        # cycles back the re-probe off exponentially, capped.
+        self.max_recovery_timeout = float(max_recovery_timeout)
+        self.open_cycles = 0
         self.half_open_max_trials = half_open_max_trials
         self._lock = threading.Lock()
         self.state = self.CLOSED
@@ -101,12 +108,17 @@ class CircuitBreaker:
         self.successes = 0
         self.failures = 0
 
+    def recovery_delay(self):
+        """Re-probe delay for the current open cycle (exponential, capped)."""
+        cycles = max(0, self.open_cycles - 1)
+        return min(self.recovery_timeout * (2 ** cycles), self.max_recovery_timeout)
+
     def allow(self):
         with self._lock:
             if self.state == self.CLOSED:
                 return True
             if self.state == self.OPEN:
-                if time.monotonic() - self._opened_at >= self.recovery_timeout:
+                if time.monotonic() - self._opened_at >= self.recovery_delay():
                     self.state = self.HALF_OPEN
                     self._trials = 0
                 else:
@@ -123,6 +135,7 @@ class CircuitBreaker:
             self.state = self.CLOSED
             self.consecutive_failures = 0
             self._trials = 0
+            self.open_cycles = 0
             self.successes += 1
 
     def record_failure(self):
@@ -132,9 +145,11 @@ class CircuitBreaker:
             if self.state == self.HALF_OPEN:
                 self.state = self.OPEN
                 self._opened_at = time.monotonic()
+                self.open_cycles += 1
             elif self.state == self.CLOSED and                     self.consecutive_failures >= self.failure_threshold:
                 self.state = self.OPEN
                 self._opened_at = time.monotonic()
+                self.open_cycles += 1
 
     def record_timeout(self):
         """A timeout is one real failure counted with extra weight toward opening."""
@@ -160,13 +175,16 @@ class CircuitBreaker:
             self.state = self.OPEN
             self._opened_at = time.monotonic()
             self._trials = 0
+            self.open_cycles += 1
 
     def snapshot(self):
         with self._lock:
             return {"state": self.state,
                     "consecutive_failures": self.consecutive_failures,
                     "successes": self.successes, "failures": self.failures,
-                    "timeouts": self.timeouts}
+                    "timeouts": self.timeouts,
+                    "open_cycles": self.open_cycles,
+                    "recovery_delay": round(self.recovery_delay(), 3)}
 
 
 _STATIC_KB = (
@@ -275,6 +293,17 @@ class ModelGateway:
         except ValueError:
             t = self.timeout[1]
         t = max(t, self.timeout[1]) if env is None else t
+        # A half-open probe is speculative: it must never spend a real request's
+        # whole budget re-testing a model that has already been ejected. Clamp
+        # probe reads to GATEWAY_PROBE_TIMEOUT_SECONDS (default 5 s).
+        breaker = self.breakers.get(model) if isinstance(getattr(self, "breakers", None), dict) else None
+        if breaker is not None and breaker.state == breaker.HALF_OPEN:
+            try:
+                probe = float(os.getenv("GATEWAY_PROBE_TIMEOUT_SECONDS", "5"))
+            except ValueError:
+                probe = 5.0
+            if probe > 0:
+                t = min(t, probe)
         if remaining is not None:
             t = min(t, remaining)
         return t
