@@ -77,17 +77,22 @@ def main():
         print(f"ERROR: build failed: {exc}", file=sys.stderr)
         sys.exit(2)
 
-    os.makedirs(args.output_dir, exist_ok=True)
-    out_path = os.path.join(args.output_dir, "accessdoc-bundle.zip")
-    with open(out_path, "wb") as f:
-        f.write(zip_bytes)
-    print(f"Bundle written to {out_path} ({len(zip_bytes):,} bytes)")
+    try:
+        os.makedirs(args.output_dir, exist_ok=True)
+        out_path = os.path.join(args.output_dir, "accessdoc-bundle.zip")
+        with open(out_path, "wb") as f:
+            f.write(zip_bytes)
+        print(f"Bundle written to {out_path} ({len(zip_bytes):,} bytes)")
 
-    if args.sarif and artifacts.sarif_json:
-        sarif_path = os.path.join(args.output_dir, "findings.sarif.json")
-        with open(sarif_path, "w", encoding="utf-8") as f:
-            f.write(artifacts.sarif_json)
-        print(f"SARIF written to {sarif_path}")
+        if args.sarif and artifacts.sarif_json:
+            sarif_path = os.path.join(args.output_dir, "findings.sarif.json")
+            with open(sarif_path, "w", encoding="utf-8") as f:
+                f.write(artifacts.sarif_json)
+            print(f"SARIF written to {sarif_path}")
+
+    except OSError as exc:
+        print(f"ERROR: cannot write artifacts: {exc}", file=sys.stderr)
+        sys.exit(2)
 
     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as z:
         receipt = json.loads(z.read("receipt.json"))

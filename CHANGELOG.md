@@ -8,7 +8,8 @@
 - Headers: `Permissions-Policy`, `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy: same-origin` on every serverless response; `X-Request-ID` now present on GET/HEAD as well as POST for support triage.
 - UI copy: result panel names all six ZIP members and labels `report.html` as the accessible primary and `report.pdf` as the untagged convenience copy; footer links to `/docs`.
 - production-smoke: asserts the hosted UI, static assets, `/docs` and `/openapi.json` on every deploy and daily.
-- 10 new tests (tests/test_hosted_surface.py). Suite: 751 tests green; verify_release.py all gates PASS.
+- **Follow-up (PR #57):** the first production deploy proved Vercel strips `public/` from the Python function bundle (assets 404 while headers deployed). Allowlisted assets are now embedded as base64 + SHA-256 in generated `api/public_assets.py` (`scripts/embed_public_assets.py`, `--check` mode); the handler prefers disk and falls back to the embedded copy. A test fails if the module drifts from `public/`.
+- 13 new tests (tests/test_hosted_surface.py). Suite: 754 tests green; verify_release.py all gates PASS.
 
 ## [0.7.0-beta.7] - 2026-09-15 - launch cut: listen-backlog fix, pypdf security bump, test hygiene (PR #45)
 
