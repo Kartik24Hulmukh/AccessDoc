@@ -62,6 +62,13 @@ _ALIASES = {
 }
 
 
+WIRE_MODEL_IDS = {
+    "qwen-27b": "qwen3-30b-a3b-instruct",
+}
+
+def wire_model_id(canonical):
+    return WIRE_MODEL_IDS.get(canonical, canonical)
+
 def normalize_model(name):
     """Map vendor aliases onto canonical Melious model identifiers."""
     key = re.sub(r"[\s_]+", "-", str(name or "").strip().lower())
@@ -317,12 +324,13 @@ class ModelGateway:
         if remaining is not None and remaining <= 0:
             raise GatewayError("gateway time budget exhausted", status=504, model=model)
         response_deadline = time.monotonic() + remaining if remaining is not None else None
+        wire_m = wire_model_id(model)
         resp = self._session.post(
             MELIOUS_BASE_URL + CHAT_PATH,
             headers={"Authorization": "Bearer " + key,
                      "Content-Type": "application/json",
                      "traceparent": telemetry.traceparent_header()},
-            json={"model": model, "messages": messages,
+            json={"model": wire_m, "messages": messages,
                   "max_tokens": int(max_tokens or os.getenv("GATEWAY_MAX_TOKENS", "1024"))},
             stream=True,
             timeout=(min(self.timeout[0], remaining) if remaining is not None else self.timeout[0],
