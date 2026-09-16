@@ -3,26 +3,26 @@
     "glm-5.3": {
       "ok": 3,
       "n": 3,
-      "p50_ms": 5052.18,
-      "p95_ms": 5374.65,
-      "p99_ms": 5374.65,
+      "p50_ms": 3829.68,
+      "p95_ms": 4507.76,
+      "p99_ms": 4507.76,
       "latency_scope": "all attempts including failures",
       "avg_tokens": 1073,
       "samples": [
         {
           "ok": true,
           "tokens": 1073,
-          "ms": 5374.65
+          "ms": 4507.76
         },
         {
           "ok": true,
           "tokens": 1073,
-          "ms": 5052.18
+          "ms": 3829.68
         },
         {
           "ok": true,
           "tokens": 1073,
-          "ms": 4621.49
+          "ms": 3661.19
         }
       ],
       "breaker": {
@@ -36,66 +36,63 @@
       }
     },
     "glm-5.3-flash": {
-      "ok": 0,
+      "ok": 3,
       "n": 3,
-      "p50_ms": 25227.13,
-      "p95_ms": 25243.54,
-      "p99_ms": 25243.54,
+      "p50_ms": 16784.62,
+      "p95_ms": 19190.86,
+      "p99_ms": 19190.86,
       "latency_scope": "all attempts including failures",
-      "avg_tokens": 0,
+      "avg_tokens": 1076,
       "samples": [
         {
-          "ok": false,
-          "error": "transient gateway failure",
-          "status": 504,
-          "ms": 25243.54
+          "ok": true,
+          "tokens": 1076,
+          "ms": 15705.32
         },
         {
-          "ok": false,
-          "error": "transient gateway failure",
-          "status": 504,
-          "ms": 25227.13
+          "ok": true,
+          "tokens": 1076,
+          "ms": 16784.62
         },
         {
-          "ok": false,
-          "error": "circuit open",
-          "status": null,
-          "ms": 0.13
+          "ok": true,
+          "tokens": 1076,
+          "ms": 19190.86
         }
       ],
       "breaker": {
-        "state": "open",
-        "consecutive_failures": 4,
-        "successes": 0,
-        "failures": 2,
-        "timeouts": 2,
-        "open_cycles": 1,
+        "state": "closed",
+        "consecutive_failures": 0,
+        "successes": 3,
+        "failures": 0,
+        "timeouts": 0,
+        "open_cycles": 0,
         "recovery_delay": 30.0
       }
     },
     "qwen3.8-27b": {
       "ok": 3,
       "n": 3,
-      "p50_ms": 10862.06,
-      "p95_ms": 11069.31,
-      "p99_ms": 11069.31,
+      "p50_ms": 10841.48,
+      "p95_ms": 11025.0,
+      "p99_ms": 11025.0,
       "latency_scope": "all attempts including failures",
       "avg_tokens": 1075,
       "samples": [
         {
           "ok": true,
           "tokens": 1075,
-          "ms": 11069.31
+          "ms": 11025.0
         },
         {
           "ok": true,
           "tokens": 1075,
-          "ms": 10862.06
+          "ms": 10841.48
         },
         {
           "ok": true,
           "tokens": 1075,
-          "ms": 10834.85
+          "ms": 10776.24
         }
       ],
       "breaker": {
@@ -111,26 +108,26 @@
     "kimi-k3": {
       "ok": 3,
       "n": 3,
-      "p50_ms": 21273.84,
-      "p95_ms": 27394.69,
-      "p99_ms": 27394.69,
+      "p50_ms": 16853.65,
+      "p95_ms": 17366.56,
+      "p99_ms": 17366.56,
       "latency_scope": "all attempts including failures",
       "avg_tokens": 1193,
       "samples": [
         {
           "ok": true,
           "tokens": 1193,
-          "ms": 27394.69
+          "ms": 16853.65
         },
         {
           "ok": true,
           "tokens": 1193,
-          "ms": 21273.84
+          "ms": 17366.56
         },
         {
           "ok": true,
           "tokens": 1193,
-          "ms": 20595.18
+          "ms": 16784.67
         }
       ],
       "breaker": {
@@ -159,9 +156,12 @@
       "model": "static-kb"
     }
   },
-  "_meta": {
-    "captured_utc": "2026-09-16T14:58:28Z",
+  "run": {
+    "turn": 11,
+    "timestamp_utc": "2026-09-16T16:15Z",
     "samples_per_model": 3,
-    "note": "live Melious run on harden/accessdoc-v1-launch; includes open_cycles/recovery_delay breaker fields"
+    "environment": "daytona-sandbox",
+    "production_key": true,
+    "all_models_ok": true
   }
 }
