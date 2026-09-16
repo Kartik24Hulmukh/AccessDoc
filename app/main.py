@@ -103,6 +103,8 @@ class Handler(BaseHTTPRequestHandler):
  def _security(self,ctype):
   self.send_header('Content-Type',ctype);self.send_header('X-Content-Type-Options','nosniff');self.send_header('X-Frame-Options','DENY');self.send_header('Referrer-Policy','no-referrer');self.send_header('Permissions-Policy','camera=(), microphone=(), geolocation=()');self.send_header('Cross-Origin-Resource-Policy','same-origin');self.send_header('Cross-Origin-Opener-Policy','same-origin');self.send_header('Cache-Control','no-store');self.send_header('Pragma','no-cache');self.send_header('X-Request-ID',self.request_id);self.send_header('traceparent',telemetry.traceparent_header(self._trace()));self.send_header('Content-Security-Policy',"default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
  def _send(self,status,body=b'',ctype='application/json; charset=utf-8',extra=None):
+  # Preserve the intended HTTP result even if the client disconnects on write.
+  self._status=status
   self.send_response(status);self._security(ctype)
   for k,v in (extra or {}).items():self.send_header(k,safe_external(v,300))
   if self.close_connection:self.send_header('Connection','close')

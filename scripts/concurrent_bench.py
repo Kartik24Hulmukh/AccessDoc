@@ -65,7 +65,7 @@ def main():
     def sampler():
         nonlocal rss_peak
         while not stop.is_set():
-            rss_peak = max(rss_peak, rss_mb()); time.sleep(0.02)
+            rss_peak = max(rss_peak, rss_mb()); stop.wait(0.02)
     sampler_thread = threading.Thread(target=sampler, daemon=True)
     sampler_thread.start()
 
@@ -110,10 +110,12 @@ def main():
     # Recovery is a fresh healthy request after hostile traffic, not inferred
     # from the absence of 5xx in the traffic under test.
     recovery = {}
-    for path in ("/healthz", "/api/bundle"):
+    recovery_ms = {}
+    for path in ("/healthz", "/readyz", "/api/bundle"):
         data = payload("tiny", 0) if path == "/api/bundle" else None
         req = urllib.request.Request("http://127.0.0.1:%d%s" % (port, path), data=data,
                                      headers={"Content-Type": "application/json"})
+        probe_start = time.monotonic()
         try:
             with urllib.request.urlopen(req, timeout=15) as response:
                 response.read()
@@ -122,6 +124,7 @@ def main():
             recovery[path] = str(exc)
             if hasattr(exc, "close"):
                 exc.close()
+        recovery_ms[path] = round((time.monotonic() - probe_start) * 1000, 2)
     stop.set(); sampler_thread.join(timeout=2)
     srv.shutdown(); srv.server_close()
     gc.collect()
@@ -143,7 +146,9 @@ def main():
         "scope": "local self-hosted JSON ingestion; not a production 100x baseline",
         "transport_attempt_errors": sum(r["transport_attempt_errors"] for r in results),
         "admission_retries": sum(r["admission_retries"] for r in results),
-        "recovery_probes": recovery, "rss_after_mb": round(rss_after, 1),
+        "recovery_probes": recovery, "recovery_latency_ms": recovery_ms,
+        "recovery_under_200ms": all(ms < 200 for ms in recovery_ms.values()),
+        "rss_after_mb": round(rss_after, 1),
         "status_histogram": hist,
         "unexpected_5xx": len(unexpected_5xx),
         "contract_violations": len(viol),
@@ -152,7 +157,9 @@ def main():
         "latency_p99_ms": pct(0.99), "latency_max_ms": lat[-1] if lat else 0,
         "rss_floor_mb": round(rss_floor, 1), "rss_ceiling_mb": round(rss_peak, 1),
         "fault_recovery": "PASS" if (not unexpected_5xx and not viol and not bad_transport
-                                     and all(v == 200 for v in recovery.values())) else "FAIL",
+                                     and all(v == 200 for v in recovery.values())
+                                     and all(ms < 200 for ms in recovery_ms.values())
+                                     and not any(r["transport_attempt_errors"] or r["admission_retries"] for r in results)) else "FAIL",
     }
     print(json.dumps(verdict, indent=2))
     out = os.path.join(ROOT, "bench_results.json")

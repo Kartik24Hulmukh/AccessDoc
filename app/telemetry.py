@@ -30,7 +30,11 @@ except Exception:  # pragma: no cover - exercised when SDK absent
 
 def parse_traceparent(value):
     """Return (trace_id, parent_span_id, flags) for a valid W3C header, else None."""
-    m = _TP.match(str(value or "").strip().lower()[:55])
+    # Never normalize invalid IDs or silently truncate attacker-controlled
+    # headers into a valid context. Accept the fixed W3C header shape only.
+    if not isinstance(value, str) or len(value) != 55:
+        return None
+    m = _TP.fullmatch(value)
     if not m or m.group(1) == "ff":
         return None
     trace_id, span_id = m.group(2), m.group(3)
