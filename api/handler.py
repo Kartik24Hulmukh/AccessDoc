@@ -132,6 +132,7 @@ GENERATION_CAPACITY = threading.BoundedSemaphore(max(1, int(os.getenv("MAX_CONCU
 # generation, so they admit from their own bounded pool.
 REMEDIATION_CAPACITY = threading.BoundedSemaphore(max(1, int(os.getenv("MAX_CONCURRENT_REMEDIATIONS", "4"))))
 _REMEDIATE_PATHS = ("/api/remediate", "/api/v1/remediate")
+GENERATION_QUEUE_TIMEOUT = 0.05  # bounded semaphore handoff, not a retry sleep
 REMEDIATION_QUEUE_TIMEOUT = max(0.0, float(os.getenv("REMEDIATION_QUEUE_TIMEOUT_SECONDS", "10")))
 
 # Only these keys from the request body are forwarded to build_artifacts.
@@ -553,11 +554,13 @@ class handler(BaseHTTPRequestHandler):
         _rem = _p in _REMEDIATE_PATHS
         pool = REMEDIATION_CAPACITY if _rem else GENERATION_CAPACITY
         # Model round-trips are seconds long, so remediation waits briefly in an
-        # admission queue before shedding; generation stays fail-fast.
+        # admission queue before shedding. Generation gets a bounded handoff
+        # wait: response bytes can reach a client before the previous handler
+        # releases its slot. Keep the slot through writes to bound live memory.
         if _rem:
             acquired = pool.acquire(timeout=REMEDIATION_QUEUE_TIMEOUT)
         else:
-            acquired = pool.acquire(blocking=False)
+            acquired = pool.acquire(timeout=GENERATION_QUEUE_TIMEOUT)
         try:
             if not acquired:
                 self._send_json(503, {"error": "Generation capacity exhausted", "request_id": self.request_id}, {"Retry-After": "1"})

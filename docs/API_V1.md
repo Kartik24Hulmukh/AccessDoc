@@ -31,3 +31,13 @@ rate limiter or a distributed quota. Provider/WAF limits remain required.
 Every error, including stdlib-level parse rejections (400 malformed request
 line, 414 URI too long, 431 header too large), is JSON with the security
 headers and `X-Request-ID`; client-supplied request text is never reflected.
+
+### Hosted admission handoff
+
+The hosted generation pool retains its slot through response writes (including slow
+clients), and waits at most 50 ms for a slot before returning JSON 503 with
+`Retry-After: 1`. This condition-variable wait replaces zero-wait rejection: a
+closed-loop successor can arrive after receiving all response bytes but before
+the previous handler releases capacity. It does not increase generation capacity
+or promise all-200 responses under overload. Remediation keeps its independent
+pool and queue budget. Limits remain per-process, not a global serverless quota.
