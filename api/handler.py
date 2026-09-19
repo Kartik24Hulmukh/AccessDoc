@@ -42,6 +42,54 @@ ADAPTER_VERSION = VERSION
 
 _STARTED_MONO = time.monotonic()
 
+_METRICS_LOCK = threading.Lock()
+_METRICS = {
+    "requests_total": 0,
+    "errors_total": 0,
+    "reports_total": 0,
+    "overload_rejections_total": 0,
+    "client_disconnects_total": 0,
+}
+
+
+def _bump(name, n=1):
+    """Bounded per-process counter increment backing the hosted /metrics surface."""
+    with _METRICS_LOCK:
+        _METRICS[name] = _METRICS.get(name, 0) + n
+
+
+def _metrics_text():
+    """Prometheus exposition mirroring app/main.py /metrics plus RAM floor/ceiling."""
+    lines = []
+    with _METRICS_LOCK:
+        snapshot = dict(_METRICS)
+    for key in ("requests_total", "errors_total", "reports_total",
+                "overload_rejections_total", "client_disconnects_total"):
+        lines.append("accessdoc_%s %d" % (key, snapshot.get(key, 0)))
+    models, chain = {}, []
+    try:
+        from app import remediate as remediation
+        snap = remediation.health() or {}
+        models = snap.get("models", {}) or {}
+        chain = list(snap.get("chain", []) or [])
+    except Exception:
+        models, chain = {}, []
+    if not chain:
+        try:
+            from app.gateway import CANONICAL_CHAIN
+            chain = list(CANONICAL_CHAIN)
+        except Exception:
+            chain = []
+    for model in sorted(set(chain) | set(models)):
+        state = 1 if (models.get(model) or {}).get("state") == "open" else 0
+        lines.append('accessdoc_gateway_circuit_open{model="%s"} %d' % (model, state))
+    stats = _process_stats()
+    for key in ("rss_kib", "max_rss_kib", "threads"):
+        if key in stats:
+            lines.append("accessdoc_process_%s %d" % (key, int(stats[key])))
+    lines.append("accessdoc_runtime_uptime_seconds %s" % round(time.monotonic() - _STARTED_MONO, 1))
+    return "\n".join(lines) + "\n"
+
 
 def _process_stats():
     """Best-effort process memory snapshot for /healthz capacity claims.
@@ -84,6 +132,7 @@ GENERATION_CAPACITY = threading.BoundedSemaphore(max(1, int(os.getenv("MAX_CONCU
 # generation, so they admit from their own bounded pool.
 REMEDIATION_CAPACITY = threading.BoundedSemaphore(max(1, int(os.getenv("MAX_CONCURRENT_REMEDIATIONS", "4"))))
 _REMEDIATE_PATHS = ("/api/remediate", "/api/v1/remediate")
+GENERATION_QUEUE_TIMEOUT = 0.05  # bounded semaphore handoff, not a retry sleep
 REMEDIATION_QUEUE_TIMEOUT = max(0.0, float(os.getenv("REMEDIATION_QUEUE_TIMEOUT_SECONDS", "10")))
 
 # Only these keys from the request body are forwarded to build_artifacts.
@@ -196,6 +245,9 @@ class handler(BaseHTTPRequestHandler):
         """Send a JSON response with security headers. Never renders HTML."""
         body = json.dumps(payload).encode("utf-8")
         self._status = status
+        _bump("requests_total")
+        if status >= 400:
+            _bump("errors_total")
         self.send_response(status)
         if hasattr(self, "request_id"):
             self.send_header("X-Request-ID", self.request_id)
@@ -208,7 +260,10 @@ class handler(BaseHTTPRequestHandler):
             for k, v in extra_headers.items():
                 self.send_header(k, v)
         self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            _bump("client_disconnects_total")
 
     def _trace(self):
         """Adopt the inbound W3C traceparent (or mint a root span) once per request."""
@@ -383,6 +438,7 @@ class handler(BaseHTTPRequestHandler):
         if loaded is None:
             return False
         body, ctype = loaded
+        _bump("requests_total")
         self._status = 200
         self.send_response(200)
         self.send_header("X-Request-ID", self.request_id)
@@ -396,7 +452,30 @@ class handler(BaseHTTPRequestHandler):
             self.send_header(k, v)
         self.end_headers()
         if not head_only:
-            self.wfile.write(body)
+            try:
+                self.wfile.write(body)
+            except (BrokenPipeError, ConnectionResetError):
+                _bump("client_disconnects_total")
+        return True
+
+    def _send_text_metrics(self):
+        """Prometheus exposition format on the hosted adapter; HEAD-safe."""
+        body = _metrics_text().encode("utf-8")
+        _bump("requests_total")
+        self._status = 200
+        self.send_response(200)
+        self.send_header("X-Request-ID", self.request_id)
+        self.send_header("traceparent", telemetry.traceparent_header(self._trace()))
+        self.send_header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        for k, v in _SECURITY_HEADERS.items():
+            self.send_header(k, v)
+        self.end_headers()
+        if self.command != "HEAD":
+            try:
+                self.wfile.write(body)
+            except (BrokenPipeError, ConnectionResetError):
+                _bump("client_disconnects_total")
         return True
 
     def do_GET(self):
@@ -423,6 +502,9 @@ class handler(BaseHTTPRequestHandler):
                 "process": _process_stats(),
                 "runtime": {"python": platform.python_version(), "uptime_seconds": round(time.monotonic() - _STARTED_MONO, 1)},
             })
+            return
+        if path == "/metrics":
+            self._send_text_metrics()
             return
         if path == "/limits":
             limits = dict(limits_summary())
@@ -472,11 +554,13 @@ class handler(BaseHTTPRequestHandler):
         _rem = _p in _REMEDIATE_PATHS
         pool = REMEDIATION_CAPACITY if _rem else GENERATION_CAPACITY
         # Model round-trips are seconds long, so remediation waits briefly in an
-        # admission queue before shedding; generation stays fail-fast.
+        # admission queue before shedding. Generation gets a bounded handoff
+        # wait: response bytes can reach a client before the previous handler
+        # releases its slot. Keep the slot through writes to bound live memory.
         if _rem:
             acquired = pool.acquire(timeout=REMEDIATION_QUEUE_TIMEOUT)
         else:
-            acquired = pool.acquire(blocking=False)
+            acquired = pool.acquire(timeout=GENERATION_QUEUE_TIMEOUT)
         try:
             if not acquired:
                 self._send_json(503, {"error": "Generation capacity exhausted", "request_id": self.request_id}, {"Retry-After": "1"})
@@ -485,6 +569,10 @@ class handler(BaseHTTPRequestHandler):
         finally:
             if acquired:
                 pool.release()
+            if not acquired:
+                _bump("overload_rejections_total")
+            elif self._status == 200 and not _rem:
+                _bump("reports_total")
             print(json.dumps({"event": "request", "request_id": self.request_id,
                               "method": "POST", "status": self._status,
                               "duration_ms": round((time.monotonic() - start) * 1000, 2)}), flush=True)
@@ -578,6 +666,7 @@ class handler(BaseHTTPRequestHandler):
             return
 
         # 9. Send the ZIP.
+        _bump("requests_total")
         self._status = 200
         self.send_response(200)
         self.send_header("X-Request-ID", request_id)
@@ -590,7 +679,10 @@ class handler(BaseHTTPRequestHandler):
         for k, v in _SECURITY_HEADERS.items():
             self.send_header(k, v)
         self.end_headers()
-        self.wfile.write(zip_bytes)
+        try:
+            self.wfile.write(zip_bytes)
+        except (BrokenPipeError, ConnectionResetError):
+            _bump("client_disconnects_total")
 
     def _remediate(self, body, request_id):
         """POST /api/remediate - AI remediation plan via the Melious gateway.
@@ -654,6 +746,9 @@ class handler(BaseHTTPRequestHandler):
         if path == "/" and _wants_html(self.headers.get("Accept")) and self._send_static("/index.html", head_only=True):
             return
         if path in _STATIC_FILES and self._send_static(path, head_only=True):
+            return
+        if path == "/metrics":
+            self._send_text_metrics()
             return
         if path not in ("/", "/readyz", "/healthz", "/health", "/api/bundle", "/limits") + _REMEDIATE_PATHS:
             self._error(404, "Not found")
