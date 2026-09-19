@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0-beta.7] - 2026-09-19 - launch turn 10: operator-pinnable chain + immediate ejection of catalog-unknown models (launch hardening)
+
+- **Live finding (Melious, 2026-09-19 16:5x UTC, production key):** the canonical 4-model chain is fully LIVE again on the catalog (67 models listed; all four chain IDs 200 OK, direct P50 0.8-4.6 s, 20-way concurrent burst P50 1.07 s / P95 1.43 s / max 1.55 s, 0 static fallbacks). The Session-9 report that found the chain 404 across the board reflects a provider catalog rotation: model availability at Melious changes between sessions, so the chain must be an operator knob, not a release.
+- `ModelGateway`: **`GATEWAY_MODELS="a,b,c"` operator override** (`configured_chain()`). Entries are alias-normalised and de-duplicated in order; blank/invalid values fall back to `CANONICAL_CHAIN` so a typo can never produce an empty chain. An explicit `chain=` argument still wins.
+- `ModelGateway.chat()`: an **HTTP 404 (model_not_found) now trips the breaker at once** (like 429) instead of after three requests. Live drill through a pinned `ghost-model-x,<primary>` chain: first request paid 355 ms for the 404 then served from the primary (1,168 ms total); second request skipped the ghost entirely and served in 605 ms. Raw `failures` stays truthful (1).
+- Tests: `tests/test_gateway_operator_chain.py` - 9 deterministic tests (fallback on empty env, normalise + dedupe, alias resolution, env vs explicit precedence, 404 single-attempt ejection, subsequent-request skip + health-ranked demotion, all-404 chain lands on static-KB without raising). Full suite: 769 passed, 13 skipped (baseline before patch: 760 passed, 13 skipped).
+
 ## [0.7.0-beta.7] - 2026-09-16 - launch turn 9: exponential breaker recovery backoff + clamped half-open probes (launch hardening)
 
 - **Live finding (Melious bench, this turn, production key, 3 samples/model):** GLM-5.3 P50 5.05 s (3/3 OK, 1,073 tok), GLM-5.3 Flash **0/3 OK - two 25.2 s read timeouts opened the breaker (timeout weight 2), third call rejected in 0.13 ms**, Qwen 3.8 27B P50 10.86 s (3/3 OK), Kimi K3 P50 21.27 s (3/3 OK). Flash is persistently down.
