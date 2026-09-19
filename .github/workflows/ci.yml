@@ -62,6 +62,8 @@ jobs:
           path: hardening-load.json
       - run: python -m compileall -q app api tests
       - run: python -W error::ResourceWarning -m unittest discover -s tests -v
+      - name: Collect all tests including function-based gateway regressions
+        run: python -m pytest tests -q
       - run: find . -type d -name __pycache__ -exec rm -rf {} +
       - run: python scripts/verify_release.py
       - run: docker build -t accessdoc:${{ github.sha }} .
