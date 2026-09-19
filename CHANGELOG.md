@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0-beta.7] - 2026-09-19 - launch turn 11: process-memory telemetry on health probes (launch hardening)
+
+- **Launch-telemetry gap closed (Sessions 8/9/10 all recorded it):** no RAM floor/ceiling numbers were ever emitted by either runtime, so capacity claims in launch reports were unverifiable. `/healthz` (and the hosted `/readyz`) now report a bounded `process` block - `max_rss_kib` (peak since process start, `resource.ru_maxrss`), `rss_kib` (live resident set from `/proc/self/status` on Linux), `threads` (active thread count) - plus a `runtime` block (`python` version, `uptime_seconds`). Best-effort, bounded integers, no PII, zero added latency budget.
+- Implemented in both serving paths: `api/handler.py` (Vercel serverless adapter) and `app/main.py` (Docker/Fly/Render threaded server) so the contract is identical across deployment targets.
+- **Live Melious finding (this turn, production key):** catalog rotated again - `[redacted]-27b` is currently 404 (`model_not_found`) while `[redacted]-5.3`, `[redacted]-5.3-[redacted]` and `[redacted]-k3` are 200 OK with non-empty content; `/v1/models` still lists 67 entries. The turn-10 fix is doing exactly its job: one ~350 ms 404 probe trips the breaker and `GATEWAY_MODELS` lets ops re-pin without a release. No code change required.
+- Tests: `tests/test_process_telemetry.py` - 4 tests (hosted adapter + threaded server, helper boundedness). Full suite: 773 passed, 13 skipped (baseline before patch: 769 passed, 13 skipped, 0 regressions).
+
 ## [0.7.0-beta.7] - 2026-09-19 - launch turn 10: operator-pinnable chain + immediate ejection of catalog-unknown models (launch hardening)
 
 - **Live finding (Melious, 2026-09-19 16:5x UTC, production key):** the canonical 4-model chain is fully LIVE again on the catalog (67 models listed; all four chain IDs 200 OK, direct P50 0.8-4.6 s, 20-way concurrent burst P50 1.07 s / P95 1.43 s / max 1.55 s, 0 static fallbacks). The Session-9 report that found the chain 404 across the board reflects a provider catalog rotation: model availability at Melious changes between sessions, so the chain must be an operator knob, not a release.
