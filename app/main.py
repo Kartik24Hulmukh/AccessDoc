@@ -1,6 +1,6 @@
 from __future__ import annotations
 # Version: 0.7.0-beta.7
-import json,mimetypes,os,re,secrets,signal,threading,time
+import json,mimetypes,os,platform,re,resource,secrets,signal,threading,time
 from http.server import ThreadingHTTPServer,BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse
@@ -34,6 +34,21 @@ CONNECTION_CAPACITY=threading.BoundedSemaphore(int(os.getenv('MAX_CONNECTIONS','
 RATE={};RATE_LOCK=threading.Lock();METRICS={'requests_total':0,'errors_total':0,'reports_total':0,'overload_rejections_total':0,'client_disconnects_total':0};METRICS_LOCK=threading.Lock()
 ACTIVE_GENERATIONS=0;ACTIVE_CONDITION=threading.Condition()
 READY=True
+STARTED_MONO=time.monotonic()
+
+def process_stats():
+ '''Best-effort process memory snapshot (RAM floor/ceiling telemetry gap, Sessions 8/9/10).'''
+ out={}
+ try:out['max_rss_kib']=int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+ except Exception:pass
+ try:
+  with open('/proc/self/status','rb') as fh:
+   for line in fh:
+    if line.startswith(b'VmRSS:'):out['rss_kib']=int(line.split()[1]);break
+ except Exception:pass
+ try:out['threads']=int(threading.active_count())
+ except Exception:pass
+ return out
 
 def slug(s):
  x=re.sub(r'[^a-zA-Z0-9._-]+','-',str(s)).strip('-')[:80];return x or 'accessibility-assessment'
@@ -167,7 +182,7 @@ class Handler(BaseHTTPRequestHandler):
  def do_GET(self):
   if not self._preflight():return
   p=urlparse(self.path);path=p.path
-  if path in ('/health','/healthz','/livez','/health/live'):return self._json(200,{'status':'ok','service':'accessdoc','version':os.getenv('ACCESSDOC_VERSION',VERSION),'commit':_commit_sha()})
+  if path in ('/health','/healthz','/livez','/health/live'):return self._json(200,{'status':'ok','service':'accessdoc','version':os.getenv('ACCESSDOC_VERSION',VERSION),'commit':_commit_sha(),'process':process_stats(),'runtime':{'python':platform.python_version(),'uptime_seconds':round(time.monotonic()-STARTED_MONO,1)}})
   if path=='/version':return self._json(200,{'service':'accessdoc','version':os.getenv('ACCESSDOC_VERSION',VERSION),'catalog':'wcag-2.2-accessdoc-2026-01','commit':_commit_sha()})
   if path in ('/readyz','/health/ready'):return self._json(200 if READY else 503,{'status':'ready' if READY else 'not_ready','commit':_commit_sha(),'gateway':remediation.health(),'tracing':telemetry.export_status()})
   if path=='/metrics':

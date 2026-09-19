@@ -13,6 +13,7 @@ import json
 import sys
 import os
 import uuid
+import platform
 import threading
 import time
 
@@ -38,6 +39,37 @@ from app.limits import (
 )
 
 ADAPTER_VERSION = VERSION
+
+_STARTED_MONO = time.monotonic()
+
+
+def _process_stats():
+    """Best-effort process memory snapshot for /healthz capacity claims.
+
+    Launch telemetry gap (Sessions 8/9/10): no RAM floor/ceiling was ever
+    exposed, so capacity claims were unverifiable. ru_maxrss is monotonic
+    (peak since process start); /proc/self/status VmRSS gives the live
+    resident set on Linux. Everything is bounded integers, no PII.
+    """
+    out = {}
+    try:
+        import resource
+        out["max_rss_kib"] = int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    except Exception:
+        pass
+    try:
+        with open("/proc/self/status", "rb") as fh:
+            for line in fh:
+                if line.startswith(b"VmRSS:"):
+                    out["rss_kib"] = int(line.split()[1])
+                    break
+    except Exception:
+        pass
+    try:
+        out["threads"] = int(threading.active_count())
+    except Exception:
+        pass
+    return out
 
 # The self-hosted adapter (app/main.py) serves /api/generate with a download
 # token flow; the stateless serverless adapter cannot store artifacts, so it
@@ -388,6 +420,8 @@ class handler(BaseHTTPRequestHandler):
                 "endpoints": ["/api/bundle", "/api/remediate", "/limits", "/docs", "/openapi.json"],
                 "ui": "/index.html",
                 "gateway": self._gateway_snapshot(),
+                "process": _process_stats(),
+                "runtime": {"python": platform.python_version(), "uptime_seconds": round(time.monotonic() - _STARTED_MONO, 1)},
             })
             return
         if path == "/limits":
