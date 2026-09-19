@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.7.0-beta.7] - 2026-09-19 - launch turn 13: hosted /metrics exposition + write-fault counters on the serverless adapter (launch hardening)
+
+- **Telemetry parity gap closed:** the threaded server (`app/main.py`) has always exposed a Prometheus `/metrics` surface, but the Vercel serverless adapter (`api/handler.py`) answered **404** there - SREs scraping the hosted production target saw zero counters. `/metrics` now exists on the hosted adapter in Prometheus exposition format (`text/plain; version=0.0.4`), HEAD-safe, and mirrors the threaded server exactly.
+- Series exposed: the five lifecycle counters (`accessdoc_requests_total`, `accessdoc_errors_total`, `accessdoc_reports_total`, `accessdoc_overload_rejections_total`, `accessdoc_client_disconnects_total`), per-model circuit gauges `accessdoc_gateway_circuit_open{model=...}` for every chain entry, and the turn-11 RAM/telemetry gauges (`accessdoc_process_rss_kib`, `accessdoc_process_max_rss_kib`, `accessdoc_process_threads`, `accessdoc_runtime_uptime_seconds`) so the RAM floor/ceiling is scrapeable, not just JSON-inspectable.
+- **Write-fault accounting:** client disconnects mid-write (BrokenPipe/ConnectionReset - the abrupt tab-closed / mid-flight-cancel persona class) now increment `accessdoc_client_disconnects_total` instead of surfacing as unhandled socket exceptions; `_send_json`/`_send_static` wrap the body write. Overload sheds increment `accessdoc_overload_rejections_total`; successful bundle generations increment `accessdoc_reports_total`.
+- Live Melious catalog probe (this turn, production key): all four canonical chain models 200 OK again (`[redacted]-5.3` 534 ms, `[redacted]-5.3-[redacted]`, `[redacted]-27b` 705 ms - **restored since Session 12's 404**, `[redacted]-k3`); `ghost-model-x` 404 in 341 ms confirming the instant-ejection path.
+- Tests: `tests/test_hosted_metrics.py` - 5 tests (exposition contract, counters move on traffic, HEAD bodyless, bounded secret-free output, threaded-server parity).
+
+# Changelog
+
 ## [0.7.0-beta.7] - 2026-09-19 - launch turn 11: process-memory telemetry on health probes (launch hardening)
 
 - **Launch-telemetry gap closed (Sessions 8/9/10 all recorded it):** no RAM floor/ceiling numbers were ever emitted by either runtime, so capacity claims in launch reports were unverifiable. `/healthz` (and the hosted `/readyz`) now report a bounded `process` block - `max_rss_kib` (peak since process start, `resource.ru_maxrss`), `rss_kib` (live resident set from `/proc/self/status` on Linux), `threads` (active thread count) - plus a `runtime` block (`python` version, `uptime_seconds`). Best-effort, bounded integers, no PII, zero added latency budget.
