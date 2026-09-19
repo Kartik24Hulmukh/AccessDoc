@@ -68,6 +68,28 @@ def normalize_model(name):
     return _ALIASES.get(key, key)
 
 
+CHAIN_ENV = "GATEWAY_MODELS"
+
+
+def configured_chain(env=None):
+    """Operator-pinnable fallback chain.
+
+    ``GATEWAY_MODELS="a,b,c"`` pins the chain without a code change so a
+    provider catalog rotation (live Melious re-listed the canonical chain
+    between 2026-09-19 sessions) is an env flip, not a release. Entries are
+    alias-normalised and de-duplicated in order; an empty/blank value or a
+    value with no usable entries falls back to CANONICAL_CHAIN, so a typo can
+    never yield an empty chain (which would make every call a static-KB miss).
+    """
+    raw = os.getenv(CHAIN_ENV, "") if env is None else env
+    out = []
+    for part in str(raw or "").replace(";", ",").split(","):
+        m = normalize_model(part)
+        if m and m not in out:
+            out.append(m)
+    return tuple(out) if out else CANONICAL_CHAIN
+
+
 class GatewayError(Exception):
     """Raised when the gateway cannot serve a request at all."""
 
@@ -261,7 +283,7 @@ class ModelGateway:
             raise ValueError("GATEWAY_MAX_RESPONSE_BYTES must be positive")
         self._api_key = api_key
         self.transport = transport
-        self.chain = tuple(normalize_model(m) for m in (chain or CANONICAL_CHAIN))
+        self.chain = tuple(normalize_model(m) for m in chain) if chain else configured_chain()
         self.breakers = {m: CircuitBreaker() for m in self.chain}
         if read_timeout is None:
             read_timeout = float(os.getenv("GATEWAY_READ_TIMEOUT_SECONDS", "15"))
@@ -511,6 +533,13 @@ class ModelGateway:
                 if status == 429:
                     # Explicit rate limits atomically stop new admissions without
                     # fabricating failures or racing an unbounded retry loop.
+                    breaker.trip()
+                elif status == 404:
+                    # The provider does not serve this model id at all (catalog
+                    # rotation / typo). Re-trying it on the next two requests
+                    # only buys ~0.3 s of dead latency each; eject at once and
+                    # let the exponential half-open probe re-admit it if the
+                    # catalog lists it again.
                     breaker.trip()
                 elif status == 504:
                     # Read timeouts are weighted: they cost a full window each.
