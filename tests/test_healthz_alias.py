@@ -28,10 +28,25 @@ class HealthzAliasTests(unittest.TestCase):
         with urlopen("http://127.0.0.1:%d%s" % (self.port, path)) as r:
             return r.status, json.loads(r.read())
 
+    @staticmethod
+    def _stable(body):
+        """Strip fields that legitimately vary between two sequential calls
+        (live RSS, uptime clock) so alias parity is judged on the stable
+        contract, not on wall-clock jitter (CI flake seen at 25.2 vs 25.3 s)."""
+        body = dict(body)
+        proc = dict(body.pop("process", {}))
+        rt = dict(body.pop("runtime", {}))
+        return body, sorted(proc), sorted(rt)
+
     def test_healthz_matches_health(self):
         s1, health = self._get("/health")
         s2, healthz = self._get("/healthz")
-        self.assertEqual((s1, health), (s2, healthz))
+        self.assertEqual(s1, s2)
+        self.assertEqual(self._stable(health), self._stable(healthz))
+        # both probes must still expose the telemetry block (turn-11 contract)
+        for body in (health, healthz):
+            self.assertGreater(body["process"]["max_rss_kib"], 0)
+            self.assertGreaterEqual(body["runtime"]["uptime_seconds"], 0)
         self.assertEqual(healthz["status"], "ok")
         self.assertIn("commit", healthz)
 
