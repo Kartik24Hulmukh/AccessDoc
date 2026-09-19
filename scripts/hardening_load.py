@@ -89,7 +89,8 @@ def main():
             failures.append("concurrent deterministic output differs")
         results["load"] = {"seconds": round(elapsed, 4), "requests_per_second": round(100 / elapsed, 2),
                            "p50_seconds": round(statistics.median(latencies), 4),
-                           "p95_seconds": round(latencies[94], 4), "max_seconds": round(max(latencies), 4),
+                           "p95_seconds": round(latencies[94], 4), "p99_seconds": round(latencies[98], 4), "max_seconds": round(max(latencies), 4),
+                           "status_counts": {str(code): sum(r[0] == code for r in responses) for code in sorted(set(r[0] for r in responses))},
                            "unique_bundle_digests": len(digests), "all_200": all(r[0] == 200 for r in responses)}
         for scale in (1, 100):
             scanner = dict(fixture, violations=[{"id": "image-alt", "impact": "critical", "nodes": [
