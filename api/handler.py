@@ -663,6 +663,7 @@ class handler(BaseHTTPRequestHandler):
             return
 
         # 9. Send the ZIP.
+        _bump("requests_total")
         self._status = 200
         self.send_response(200)
         self.send_header("X-Request-ID", request_id)
@@ -675,7 +676,10 @@ class handler(BaseHTTPRequestHandler):
         for k, v in _SECURITY_HEADERS.items():
             self.send_header(k, v)
         self.end_headers()
-        self.wfile.write(zip_bytes)
+        try:
+            self.wfile.write(zip_bytes)
+        except (BrokenPipeError, ConnectionResetError):
+            _bump("client_disconnects_total")
 
     def _remediate(self, body, request_id):
         """POST /api/remediate - AI remediation plan via the Melious gateway.
