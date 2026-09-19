@@ -12,6 +12,7 @@ Structural remediation for the gateway-cascade deadlock failure mode:
 from __future__ import annotations
 
 import json
+import math
 import os
 import random
 import re
@@ -133,7 +134,15 @@ class CircuitBreaker:
     def recovery_delay(self):
         """Re-probe delay for the current open cycle (exponential, capped)."""
         cycles = max(0, self.open_cycles - 1)
-        return min(self.recovery_timeout * (2 ** cycles), self.max_recovery_timeout)
+        # Saturate BEFORE exponentiation. A long outage (or many concurrent
+        # 429s) can exceed 1024 cycles; constructing 2**cycles first both
+        # allocates an unbounded integer and overflows float conversion.
+        base, cap = self.recovery_timeout, self.max_recovery_timeout
+        if base <= 0:
+            return 0.0
+        if cap <= base or cycles >= math.log2(cap) - math.log2(base):
+            return cap
+        return min(math.ldexp(base, cycles), cap)
 
     def allow(self):
         with self._lock:
