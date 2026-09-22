@@ -4,4 +4,4 @@ PyYAML>=6.0
 jsonschema>=4.26.0
 
 # Collect function-based gateway regressions as well as unittest cases.
-pytest>=8.3,<10
+pytest>=9.1.1,<10
