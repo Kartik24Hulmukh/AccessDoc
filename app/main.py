@@ -1,6 +1,6 @@
 from __future__ import annotations
 # Version: 0.7.0-beta.7
-import json,mimetypes,os,platform,re,resource,secrets,signal,threading,time
+import json,mimetypes,os,platform,re,secrets,signal,threading,time
 from http.server import ThreadingHTTPServer,BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse
@@ -39,7 +39,9 @@ STARTED_MONO=time.monotonic()
 def process_stats():
  '''Best-effort process memory snapshot (RAM floor/ceiling telemetry gap, Sessions 8/9/10).'''
  out={}
- try:out['max_rss_kib']=int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+ try:
+  import resource
+  out['max_rss_kib']=int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
  except Exception:pass
  try:
   with open('/proc/self/status','rb') as fh:
