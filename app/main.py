@@ -37,21 +37,12 @@ READY=True
 STARTED_MONO=time.monotonic()
 
 def process_stats():
- '''Best-effort process memory snapshot (RAM floor/ceiling telemetry gap, Sessions 8/9/10).'''
- out={}
- try:
-  import resource
-  out['max_rss_kib']=int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
- except Exception:pass
- try:
-  with open('/proc/self/status','rb') as fh:
-   for line in fh:
-    if line.startswith(b'VmRSS:'):out['rss_kib']=int(line.split()[1]);break
- except Exception:pass
- try:out['threads']=int(threading.active_count())
- except Exception:pass
- return out
+ '''Best-effort process telemetry (RAM floor/ceiling, Session 8/9/10 gap).
 
+ Delegates to app.procstats so both the threaded server and the hosted
+ adapter report identical numbers on every platform (POSIX + Windows).'''
+ from app.procstats import process_stats as _shared
+ return _shared()
 def slug(s):
  x=re.sub(r'[^a-zA-Z0-9._-]+','-',str(s)).strip('-')[:80];return x or 'accessibility-assessment'
 
