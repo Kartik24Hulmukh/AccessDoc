@@ -72,3 +72,35 @@ jobs:
           python scripts/smoke.py http://127.0.0.1:8000
           docker logs accessdoc
           docker rm -f accessdoc
+
+  portability:
+    # Non-POSIX / non-Linux gate. Every defect fixed in PR #73 (top-level
+    # `resource` import, POSIX-only RSS probe, 413-as-TCP-reset, CRLF asset
+    # hashes) was invisible to the ubuntu-only matrix. This job makes that
+    # whole class of regression fail at PR time.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+        with:
+          python-version: '3.13'
+          cache: pip
+      - run: pip install --requirement requirements-dev.txt
+      - run: python -m compileall -q app api tests
+      - name: Application imports cleanly on this platform
+        run: python -c "import app.main, api.handler, app.procstats; print(app.procstats.process_stats())"
+      - name: Full test suite
+        run: python -m pytest tests -q
+      - name: Bounded local concurrency and malformed-input contract gate
+        run: python scripts/hardening_load.py --output hardening-load-${{ matrix.os }}.json
+      - name: Archive portability load metrics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: hardening-load-${{ matrix.os }}
+          path: hardening-load-${{ matrix.os }}.json
