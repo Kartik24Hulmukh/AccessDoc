@@ -36,12 +36,12 @@ DEFAULT_TOKEN_BUDGET = 6000
 # chain. Live Melious benchmarks: 2026-09-15 turn-10 measured the PRIMARY at
 # 0/3 because it alone inherited the 15 s default (1024-token generations ran
 # past 15 s); a 60 s-window probe the same day then measured it 5/5 at
-# P50 ~1.1 s / max 9.8 s. Fourth model P50 ~16.5-20 s. Override per model with
+# P50 ~1.1 s / max 9.8 s. Fourth model P50 ~16.5-20 s; turn-80 p95 was 29.26 s, so its window is 35 s. Override per model with
 # GATEWAY_READ_TIMEOUT_<MODEL> (non-alnum -> _, upper-case). Windows are always
 # clamped to the remaining GATEWAY_BUDGET_SECONDS, so the total wall clock for
 # a chat() is unchanged: a slow primary now fails over with budget to spare
 # instead of burning 15 s and returning nothing.
-MODEL_READ_TIMEOUTS = {"glm-5.3": 25.0, "glm-5.3-flash": 25.0, "qwen3.8-27b": 25.0, "kimi-k3": 30.0}
+MODEL_READ_TIMEOUTS = {"glm-5.3": 25.0, "glm-5.3-flash": 25.0, "qwen3.8-27b": 25.0, "kimi-k3": 35.0}
 
 MELIOUS_BASE_URL = os.getenv("MELIOUS_BASE_URL", "https://api.melious.ai/v1")
 CHAT_PATH = "/chat/completions"
