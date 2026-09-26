@@ -16,7 +16,8 @@ class DisconnectChaosCliGuard(unittest.TestCase):
             proc = subprocess.run([sys.executable, str(SCRIPT)], cwd=tmp,
                                   capture_output=True, text=True, timeout=300)
             self.assertNotIn("IndexError", proc.stderr)
-            self.assertEqual(proc.returncode, 0, proc.stderr[-2000:])
+            self.assertEqual(proc.returncode, 0,
+                             "stderr:\n" + proc.stderr[-2000:] + "\nstdout tail (gate verdict):\n" + proc.stdout[-1500:])
             report = json.loads((Path(tmp) / "chaos_report.json").read_text())
             self.assertTrue(report["pass"])
             self.assertEqual(report["unhandled_thread_exceptions"], [])

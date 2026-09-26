@@ -5,6 +5,9 @@ import json
 import time
 import unittest
 
+from tests._wallclock import shifted_wall_clock
+from app import intoto as _intoto
+
 from app.intoto import normalize_timestamp, build_intoto_bundle
 from app.service import build_artifacts
 from app.bundle import build_bundle
@@ -47,16 +50,28 @@ class TestAttestationDeterminism(unittest.TestCase):
     def test_identical_across_second_boundary(self):
         """THE regression test. The old check slept 0s and passed by luck."""
         a = build_intoto_bundle({"a.txt": b"x"}, timestamp=normalize_timestamp("2026-07-25"))
-        time.sleep(1.1)
-        b = build_intoto_bundle({"a.txt": b"x"}, timestamp=normalize_timestamp("2026-07-25"))
+        with shifted_wall_clock():
+            # Guard: the clock really moved (to 2100, not a 1.1 s sleep).
+            self.assertEqual(_intoto._utc_now(), "2100-01-01T00:00:00Z")
+            b = build_intoto_bundle({"a.txt": b"x"}, timestamp=normalize_timestamp("2026-07-25"))
         self.assertEqual(a, b, "attestation changed across a second boundary")
 
+
+    def test_harness_detects_a_wall_clock_leak(self):
+        """Guard the guard: with no explicit timestamp the attestation falls back
+        to the wall clock, so the shifted clock MUST change the bytes. If this
+        ever passes as equal, shifted_wall_clock() has stopped moving time."""
+        a = build_intoto_bundle({"a.txt": b"x"})
+        with shifted_wall_clock():
+            b = build_intoto_bundle({"a.txt": b"x"})
+        self.assertNotEqual(a, b)
 
 class TestBundleReproducibility(unittest.TestCase):
     def test_bundle_byte_identical_across_delayed_runs(self):
         z1 = build_bundle(build_artifacts(dict(BODY)))
-        time.sleep(1.1)
-        z2 = build_bundle(build_artifacts(dict(BODY)))
+        with shifted_wall_clock():
+            self.assertEqual(time.gmtime().tm_year, 2100)
+            z2 = build_bundle(build_artifacts(dict(BODY)))
         self.assertEqual(z1, z2, "bundle not byte-reproducible across a second boundary")
 
 
