@@ -519,10 +519,10 @@ class ModelGateway:
         last_err = None
         token_budget_hit = False
 
-        def lane(m, tb, remaining):
+        def lane(m, tb, remaining, ready):
             try:
                 r = self._chat_serial(prompt, m, False, remaining, order=(m,),
-                                      token_budget=tb, cancel=cancel)
+                                      token_budget=tb, cancel=cancel, ready=ready)
                 results.put((m, r, None))
             except Exception as exc:  # routed to the dispatcher, never lost
                 results.put((m, None, exc))
@@ -543,8 +543,12 @@ class ModelGateway:
                 state["launched"] += 1
                 state["reserved"] += tb
                 state["inflight"] += 1
-                threading.Thread(target=lane, args=(m, tb, remaining),
+                ready = threading.Event()
+                threading.Thread(target=lane, args=(m, tb, remaining, ready),
                                  name="gateway-hedge", daemon=True).start()
+                # Bound the wait: a lane that cannot even open its socket
+                # within the hedge window must not stall the next dispatch.
+                ready.wait(hedge)
                 self._log(event="gateway_dispatch", model=m, reason=reason,
                           lane=state["launched"],
                           since_start_ms=round((time.monotonic() - t_start) * 1000, 3))
@@ -597,7 +601,7 @@ class ModelGateway:
         raise last_err or GatewayError("all models unavailable")
 
     def _chat_serial(self, prompt, model=None, static_fallback=True, budget_seconds=None,
-                     order=None, token_budget=None, cancel=None):
+                     order=None, token_budget=None, cancel=None, ready=None):
         tb = self.token_budget if token_budget is None else int(token_budget)
         deadline = time.monotonic() + float(budget_seconds if budget_seconds is not None else self.budget_seconds)
         budget_hit = False
@@ -643,6 +647,11 @@ class ModelGateway:
                     # A hedged sibling already won: never make another billable call.
                     last_err = GatewayError("hedge cancelled", status=499, model=m)
                     break
+                if ready is not None:
+                    # Hedge clock starts when this lane's request is in flight,
+                    # not when its thread was scheduled (see _chat_hedged).
+                    ready.set()
+                    ready = None
                 t0 = time.monotonic()
                 status, headers, payload = 0, {}, {}
                 try:
