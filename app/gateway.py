@@ -17,6 +17,7 @@ import os
 import random
 import re
 import socket
+import queue
 import threading
 import time
 import weakref
@@ -468,7 +469,127 @@ class ModelGateway:
                       canonical=slice_, order=ranked)
         return tuple(ranked)
 
+    def hedge_delay(self):
+        """Seconds before a still-pending attempt is hedged to the next model.
+
+        Issue #86: a stalled upstream is indistinguishable from a slow (multi-
+        second) generation until its read window expires, so lowering read
+        windows cannot meet a <200 ms failover bar without killing healthy
+        calls. Instead the next healthy model is dispatched after
+        GATEWAY_HEDGE_DELAY_MS (default 150) while the first keeps running;
+        the first success wins and siblings are cancelled before any further
+        billable call. A negative value disables hedging (serial failover).
+        """
+        raw = os.getenv("GATEWAY_HEDGE_DELAY_MS", "150")
+        try:
+            value = float(raw)
+        except ValueError:
+            value = 150.0
+        if value != value or value < 0:
+            return None
+        return value / 1000.0
+
     def chat(self, prompt, model=None, static_fallback=True, budget_seconds=None):
+        hedge = self.hedge_delay()
+        real_http = (self.transport is None and "_post" not in vars(self)
+                     and getattr(type(self)._post, "__func__", type(self)._post) is ModelGateway.__dict__["_post"]
+                     and bool(self._key()))
+        if hedge is None or not real_http:
+            # Injected transports / patched _post are deterministic in-process
+            # doubles, and a missing credential must keep its explicit error
+            # contract; hedging only applies to real credentialed HTTP.
+            return self._chat_serial(prompt, model, static_fallback, budget_seconds)
+        return self._chat_hedged(prompt, model, static_fallback, budget_seconds, hedge)
+
+    def _chat_hedged(self, prompt, model, static_fallback, budget_seconds, hedge):
+        budget = float(budget_seconds if budget_seconds is not None else self.budget_seconds)
+        t_start = time.monotonic()
+        deadline = t_start + budget
+        wanted = normalize_model(model)
+        start = self.chain.index(wanted) if wanted in self.chain else 0
+        lanes = list(self.route_order(start))
+        try:
+            max_inflight = max(1, int(os.getenv("GATEWAY_HEDGE_MAX_INFLIGHT", "2")))
+        except ValueError:
+            max_inflight = 2
+        per_call = int(os.getenv("GATEWAY_MAX_TOKENS", "1024"))
+        results = queue.Queue()
+        cancel = threading.Event()
+        state = {"reserved": 0, "inflight": 0, "launched": 0}
+        last_err = None
+        token_budget_hit = False
+
+        def lane(m, tb, remaining):
+            try:
+                r = self._chat_serial(prompt, m, False, remaining, order=(m,),
+                                      token_budget=tb, cancel=cancel)
+                results.put((m, r, None))
+            except Exception as exc:  # routed to the dispatcher, never lost
+                results.put((m, None, exc))
+
+        def launch(reason):
+            nonlocal token_budget_hit
+            while state["launched"] < len(lanes):
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    return False
+                # Bounded spend: every lane reserves its max completion up front,
+                # so concurrent lanes can never exceed the per-chat token ceiling.
+                tb = min(per_call, self.token_budget - state["reserved"])
+                if tb <= 0:
+                    token_budget_hit = True
+                    return False
+                m = lanes[state["launched"]]
+                state["launched"] += 1
+                state["reserved"] += tb
+                state["inflight"] += 1
+                threading.Thread(target=lane, args=(m, tb, remaining),
+                                 name="gateway-hedge", daemon=True).start()
+                self._log(event="gateway_dispatch", model=m, reason=reason,
+                          lane=state["launched"],
+                          since_start_ms=round((time.monotonic() - t_start) * 1000, 3))
+                return True
+            return False
+
+        launch("primary")
+        # Lanes enforce the same strict wall-clock deadline themselves; a short
+        # grace lets them report their terminal status so breaker accounting is
+        # never lost to a dispatcher/lane race at the deadline edge.
+        grace = 0.25
+        while state["inflight"]:
+            remaining = deadline - time.monotonic()
+            if remaining + grace <= 0:
+                break
+            can_hedge = (remaining > 0 and state["launched"] < len(lanes)
+                         and state["inflight"] < max_inflight)
+            try:
+                m, r, exc = results.get(timeout=min(remaining, hedge) if can_hedge else remaining + grace)
+            except queue.Empty:
+                if can_hedge:
+                    launch("hedge")
+                continue
+            state["inflight"] -= 1
+            if r is not None and not r.fallback:
+                cancel.set()
+                self._log(event="gateway_hedge_win", model=m,
+                          latency_ms=round((time.monotonic() - t_start) * 1000, 3),
+                          lanes_dispatched=state["launched"])
+                return r
+            last_err = exc or last_err
+            if state["inflight"] < max_inflight:
+                launch("failover")
+        cancel.set()
+        if static_fallback:
+            self._log(event="gateway_static_fallback",
+                      reason="token_budget_exhausted" if token_budget_hit else
+                      ("budget_exhausted" if time.monotonic() >= deadline else "chain_exhausted"))
+            return GatewayResult("static-kb", static_answer(prompt), 0, 0.0,
+                                 0, True, "static-kb")
+        raise last_err or GatewayError("all models unavailable")
+
+    def _chat_serial(self, prompt, model=None, static_fallback=True, budget_seconds=None,
+                     order=None, token_budget=None, cancel=None):
+        tb = self.token_budget if token_budget is None else int(token_budget)
         deadline = time.monotonic() + float(budget_seconds if budget_seconds is not None else self.budget_seconds)
         budget_hit = False
         tokens_spent = 0
@@ -479,16 +600,16 @@ class ModelGateway:
         wanted = normalize_model(model)
         start = self.chain.index(wanted) if wanted in self.chain else 0
         last_err = None
-        for m in self.route_order(start):
+        for m in (order if order is not None else self.route_order(start)):
             if time.monotonic() >= deadline:
                 budget_hit = True
                 self._log(event="gateway_budget_exhausted", model=m)
                 last_err = GatewayError("gateway time budget exhausted", status=504, model=m)
                 break
-            if tokens_spent >= self.token_budget:
+            if tokens_spent >= tb:
                 token_budget_hit = True
                 self._log(event="gateway_token_budget_exhausted", model=m,
-                          tokens_spent=tokens_spent, token_budget=self.token_budget)
+                          tokens_spent=tokens_spent, token_budget=tb)
                 last_err = GatewayError("gateway token budget exhausted", status=429, model=m)
                 break
             breaker = self.breakers[m]
@@ -505,15 +626,19 @@ class ModelGateway:
                     budget_hit = True
                     last_err = GatewayError("gateway time budget exhausted", status=504, model=m)
                     break
-                if tokens_spent >= self.token_budget:
+                if tokens_spent >= tb:
                     token_budget_hit = True
                     last_err = GatewayError("gateway token budget exhausted", status=429, model=m)
+                    break
+                if cancel is not None and cancel.is_set():
+                    # A hedged sibling already won: never make another billable call.
+                    last_err = GatewayError("hedge cancelled", status=499, model=m)
                     break
                 t0 = time.monotonic()
                 status, headers, payload = 0, {}, {}
                 try:
                     per_call = min(int(os.getenv("GATEWAY_MAX_TOKENS", "1024")),
-                                   self.token_budget - tokens_spent)
+                                   tb - tokens_spent)
                     status, headers, payload = self._post(
                         m, messages, per_call, remaining=deadline - time.monotonic())
                 except requests.Timeout as exc:
