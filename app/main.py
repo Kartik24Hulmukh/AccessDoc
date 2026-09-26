@@ -57,16 +57,25 @@ def safe_external(v,limit=160):return re.sub(r'[\x00-\x1f\x7f\x1b]','',str(v or 
 def metric(name,n=1):
  with METRICS_LOCK:METRICS[name]=METRICS.get(name,0)+n
 
-def allowed(ip):
+def rate_limit_state(ip):
+ # Returns (allowed, retry_after_seconds). RFC 6585 s.4: a 429 without
+ # Retry-After leaves clients hot-looping, which is what turned the
+ # 120-profile journey run into a 429 storm. retry_after is the whole
+ # number of seconds until the oldest in-window request ages out.
  now=time.monotonic();window=60;limit=int(os.getenv('RATE_LIMIT_PER_MINUTE','30'))
  with RATE_LOCK:
   entries=[x for x in RATE.get(ip,[]) if now-x<window]
-  if len(entries)>=limit:RATE[ip]=entries;return False
+  if len(entries)>=limit:
+   RATE[ip]=entries
+   wait=(window-(now-entries[0])) if entries else float(window)
+   return False,max(1,min(window,int(wait)+1))
   entries.append(now);RATE[ip]=entries
   if len(RATE)>10000:
    for k in list(RATE)[:1000]:
     if not RATE[k] or now-RATE[k][-1]>=window:RATE.pop(k,None)
-  return True
+  return True,0
+
+def allowed(ip):return rate_limit_state(ip)[0]
 
 class Server(ThreadingHTTPServer):
  daemon_threads=True;allow_reuse_address=True;request_queue_size=max(128,int(os.getenv('LISTEN_BACKLOG','512')))
@@ -124,9 +133,9 @@ class Handler(BaseHTTPRequestHandler):
   self.send_header('Content-Length',str(len(body)));self.end_headers()
   if self.command!='HEAD':self.wfile.write(body)
   self._status=status
- def _json(self,status,obj):
+ def _json(self,status,obj,extra=None):
   if isinstance(obj,dict) and 'error' in obj:obj['error']['requestId']=self.request_id
-  self._send(status,json.dumps(obj,ensure_ascii=False).encode(),'application/json; charset=utf-8')
+  self._send(status,json.dumps(obj,ensure_ascii=False).encode(),'application/json; charset=utf-8',extra)
  def _validate_host(self):
   hosts=self.headers.get_all('Host') or []
   return len(hosts)==1 and safe_external(hosts[0]).lower() in allowed_hosts()
@@ -235,7 +244,10 @@ class Handler(BaseHTTPRequestHandler):
    status,code=denied;return self._json(status,{'error':{'code':code,'message':'API access denied'}})
   if not self._validate_origin():return self._json(403,{'error':{'code':'CROSS_SITE_REQUEST','message':'Cross-site requests are not allowed'}})
   if not READY:return self._json(503,{'error':{'code':'DRAINING','message':'Server is shutting down. Try again shortly.'}})
-  if not allowed(self.client_address[0]):return self._json(429,{'error':{'code':'RATE_LIMITED','message':'Too many requests. Try again shortly.'}})
+  _ok,_retry=rate_limit_state(self.client_address[0])
+  if not _ok:
+   metric('rate_limited_total')
+   return self._json(429,{'error':{'code':'RATE_LIMITED','message':'Too many requests. Try again shortly.'}},{'Retry-After':str(_retry)})
   capacity=REMEDIATION_CAPACITY if path=='/api/remediate' else GENERATION_CAPACITY
   if not capacity.acquire(timeout=float(os.getenv('GENERATION_QUEUE_TIMEOUT_SECONDS','0.05'))):
    metric('overload_rejections_total');return self._send(503,b'{"error":{"code":"BUSY","message":"Report generation is at capacity"}}','application/json; charset=utf-8',{'Retry-After':'1'})
