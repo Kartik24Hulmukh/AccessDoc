@@ -133,7 +133,8 @@ class TestSelfAccessibility(unittest.TestCase):
                     page.add_script_tag(
                         url="https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.11.0/axe.min.js"
                     )
-                time.sleep(1)
+                # Wait on the real readiness condition, not a fixed sleep.
+                page.wait_for_function("() => typeof window.axe !== 'undefined'", timeout=10000)
                 result = page.evaluate(
                     "async () => { try { return await axe.run(document, "
                     "{resultTypes:['violations']}); } catch(e) { "
