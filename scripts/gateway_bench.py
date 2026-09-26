@@ -1,10 +1,44 @@
 #!/usr/bin/env python3
 """Melious gateway benchmark: p50/p95/p99 per frontier model + resilience probes.
-Credential comes exclusively from $MELIOUS_API_KEY. Usage: gateway_bench.py [repo_root]"""
-import json, os, sys, time, statistics
-ROOT = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else os.getcwd())
-sys.path.insert(0, ROOT)
-from app.gateway import ModelGateway, CANONICAL_CHAIN, GatewayError
+
+Credential comes exclusively from $MELIOUS_API_KEY.
+
+Usage: gateway_bench.py [repo_root] [--output PATH] [--probes-only]
+
+Exit codes (so the bench can act as a real validation gate):
+  0  every resilience probe passed (and, in live mode, a credential was present)
+  1  at least one resilience probe failed
+  2  live mode requested but $MELIOUS_API_KEY is unset (nothing was measured)
+"""
+import argparse, json, os, sys, time, statistics
+
+
+def parse_args(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("root", nargs="?", default=os.getcwd(),
+                    help="repository root (default: cwd)")
+    ap.add_argument("--output", default=None,
+                    help="JSON report path (default: <root>/gateway_bench.json)")
+    ap.add_argument("--probes-only", action="store_true",
+                    help="run offline resilience probes only; no credential needed")
+    return ap.parse_args(argv)
+
+
+def exit_code(data, key_present, probes_only):
+    """Map a report to a gate verdict. Pure, so it is unit-testable."""
+    if not probes_only and not key_present:
+        return 2
+    probes = data.get("resilience") or {}
+    if not probes or not all(bool(v.get("pass")) for v in probes.values()):
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    ARGS = parse_args()
+    ROOT = os.path.abspath(ARGS.root)
+    sys.path.insert(0, ROOT)
+from app.gateway import ModelGateway, CANONICAL_CHAIN, GatewayError, API_KEY_ENV
 
 PROMPT = ("Explain how to remediate WCAG 1.1.1 Non-text Content failures "
           "found by axe-core in a public-sector dashboard.")
@@ -67,7 +101,17 @@ def probes():
     return out
 
 if __name__ == "__main__":
-    data = {"models": bench(), "resilience": probes()}
+    key_present = bool(os.getenv(API_KEY_ENV, "").strip())
+    if not ARGS.probes_only and not key_present:
+        print(json.dumps({"error": API_KEY_ENV + " is unset; refusing to report a "
+                          "live bench with zero real samples (use --probes-only)"}),
+              file=sys.stderr)
+        sys.exit(2)
+    data = {"models": {} if ARGS.probes_only else bench(), "resilience": probes()}
+    code = exit_code(data, key_present, ARGS.probes_only)
+    data["verdict"] = {"exit_code": code, "probes_only": ARGS.probes_only}
     print(json.dumps(data, indent=2))
-    with open(os.path.join(ROOT, "gateway_bench.json"), "w", encoding="utf-8") as fh:
+    out = ARGS.output or os.path.join(ROOT, "gateway_bench.json")
+    with open(out, "w", encoding="utf-8") as fh:
         json.dump(data, fh, indent=2)
+    sys.exit(code)

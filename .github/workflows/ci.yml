@@ -48,6 +48,8 @@ jobs:
         run: python scripts/hardening_load.py --output hardening-load.json
       - name: Local authenticated overload and recovery gate (both adapters)
         run: python scripts/hosted_soak.py --seconds 5 --workers 8 --output hosted-soak.json
+      - name: Offline Melious gateway resilience gate (429 failover, 503 fail-fast, static-KB)
+        run: python scripts/gateway_bench.py --probes-only --output gateway-probes.json
       - name: Archive hosted soak metrics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

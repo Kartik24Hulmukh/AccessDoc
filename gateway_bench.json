@@ -3,26 +3,26 @@
     "glm-5.3": {
       "ok": 3,
       "n": 3,
-      "p50_ms": 4281.58,
-      "p95_ms": 4530.13,
-      "p99_ms": 4530.13,
+      "p50_ms": 3717.21,
+      "p95_ms": 4193.16,
+      "p99_ms": 4193.16,
       "latency_scope": "all attempts including failures",
       "avg_tokens": 1073,
       "samples": [
         {
           "ok": true,
           "tokens": 1073,
-          "ms": 4281.58
+          "ms": 4193.16
         },
         {
           "ok": true,
           "tokens": 1073,
-          "ms": 3961.14
+          "ms": 3589.15
         },
         {
           "ok": true,
           "tokens": 1073,
-          "ms": 4530.13
+          "ms": 3717.21
         }
       ],
       "breaker": {
@@ -38,26 +38,26 @@
     "glm-5.3-flash": {
       "ok": 3,
       "n": 3,
-      "p50_ms": 8156.25,
-      "p95_ms": 8563.07,
-      "p99_ms": 8563.07,
+      "p50_ms": 5211.44,
+      "p95_ms": 6098.39,
+      "p99_ms": 6098.39,
       "latency_scope": "all attempts including failures",
       "avg_tokens": 1076,
       "samples": [
         {
           "ok": true,
           "tokens": 1076,
-          "ms": 8563.07
+          "ms": 6098.39
         },
         {
           "ok": true,
           "tokens": 1076,
-          "ms": 8156.25
+          "ms": 5211.44
         },
         {
           "ok": true,
           "tokens": 1076,
-          "ms": 8150.41
+          "ms": 4811.48
         }
       ],
       "breaker": {
@@ -73,26 +73,26 @@
     "qwen3.8-27b": {
       "ok": 3,
       "n": 3,
-      "p50_ms": 10871.08,
-      "p95_ms": 11776.32,
-      "p99_ms": 11776.32,
+      "p50_ms": 10798.79,
+      "p95_ms": 11038.17,
+      "p99_ms": 11038.17,
       "latency_scope": "all attempts including failures",
       "avg_tokens": 1075,
       "samples": [
         {
           "ok": true,
           "tokens": 1075,
-          "ms": 11776.32
+          "ms": 11038.17
         },
         {
           "ok": true,
           "tokens": 1075,
-          "ms": 10871.08
+          "ms": 10798.79
         },
         {
           "ok": true,
           "tokens": 1075,
-          "ms": 10809.35
+          "ms": 10778.24
         }
       ],
       "breaker": {
@@ -108,26 +108,26 @@
     "kimi-k3": {
       "ok": 3,
       "n": 3,
-      "p50_ms": 22714.95,
-      "p95_ms": 25778.01,
-      "p99_ms": 25778.01,
+      "p50_ms": 19686.82,
+      "p95_ms": 22908.35,
+      "p99_ms": 22908.35,
       "latency_scope": "all attempts including failures",
       "avg_tokens": 1193,
       "samples": [
         {
           "ok": true,
           "tokens": 1193,
-          "ms": 21429.47
+          "ms": 19686.82
         },
         {
           "ok": true,
           "tokens": 1193,
-          "ms": 25778.01
+          "ms": 22908.35
         },
         {
           "ok": true,
           "tokens": 1193,
-          "ms": 22714.95
+          "ms": 19165.67
         }
       ],
       "breaker": {

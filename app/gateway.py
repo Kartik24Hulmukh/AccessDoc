@@ -107,7 +107,11 @@ class CircuitBreaker:
 
     def __init__(self, failure_threshold=3, recovery_timeout=30.0,
                  half_open_max_trials=2, timeout_weight=2,
-                 max_recovery_timeout=300.0):
+                 max_recovery_timeout=300.0, clock=None):
+        # Injectable monotonic clock: lets tests drive the open/half-open
+        # lifecycle deterministically instead of racing wall-clock sleeps
+        # (the sleep-based test flaked on loaded macOS CI runners).
+        self._clock = clock or time.monotonic
         self.failure_threshold = failure_threshold
         # A read timeout burns the whole per-model window (25-30 s) while a
         # fast 5xx costs milliseconds; weight timeouts so a slow model is
@@ -149,7 +153,7 @@ class CircuitBreaker:
             if self.state == self.CLOSED:
                 return True
             if self.state == self.OPEN:
-                if time.monotonic() - self._opened_at >= self.recovery_delay():
+                if self._clock() - self._opened_at >= self.recovery_delay():
                     self.state = self.HALF_OPEN
                     self._trials = 0
                 else:
@@ -175,11 +179,11 @@ class CircuitBreaker:
             self.consecutive_failures += 1
             if self.state == self.HALF_OPEN:
                 self.state = self.OPEN
-                self._opened_at = time.monotonic()
+                self._opened_at = self._clock()
                 self.open_cycles += 1
             elif self.state == self.CLOSED and                     self.consecutive_failures >= self.failure_threshold:
                 self.state = self.OPEN
-                self._opened_at = time.monotonic()
+                self._opened_at = self._clock()
                 self.open_cycles += 1
 
     def record_timeout(self):
@@ -204,7 +208,7 @@ class CircuitBreaker:
             self.failures += 1
             self.consecutive_failures += 1
             self.state = self.OPEN
-            self._opened_at = time.monotonic()
+            self._opened_at = self._clock()
             self._trials = 0
             self.open_cycles += 1
 
