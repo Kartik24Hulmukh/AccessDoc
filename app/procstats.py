@@ -65,7 +65,53 @@ def _posix_rss_kib():
                     break
     except Exception:
         current = None
+    if current is None and sys.platform == "darwin":
+        current = _darwin_current_rss_kib()
     return peak, current
+
+
+def _darwin_current_rss_kib():
+    """Current RSS KiB on macOS via mach ``task_info(MACH_TASK_BASIC_INFO)``.
+
+    macOS has no ``/proc``, so without this the probes silently dropped
+    ``rss_kib`` (caught by the macOS portability CI job). Native syscall, no
+    subprocess; returns None on any failure.
+    """
+    try:
+        import ctypes
+
+        class _TimeValue(ctypes.Structure):
+            _fields_ = [("seconds", ctypes.c_int), ("microseconds", ctypes.c_int)]
+
+        class _MachTaskBasicInfo(ctypes.Structure):
+            _pack_ = 4
+            _fields_ = [
+                ("virtual_size", ctypes.c_uint64),
+                ("resident_size", ctypes.c_uint64),
+                ("resident_size_max", ctypes.c_uint64),
+                ("user_time", _TimeValue),
+                ("system_time", _TimeValue),
+                ("policy", ctypes.c_int),
+                ("suspend_count", ctypes.c_int),
+            ]
+
+        libc = ctypes.CDLL("/usr/lib/libSystem.B.dylib")
+        task = ctypes.c_uint.in_dll(libc, "mach_task_self_")
+        info = _MachTaskBasicInfo()
+        count = ctypes.c_uint(ctypes.sizeof(info) // ctypes.sizeof(ctypes.c_uint))
+        libc.task_info.argtypes = [
+            ctypes.c_uint,
+            ctypes.c_int,
+            ctypes.c_void_p,
+            ctypes.POINTER(ctypes.c_uint),
+        ]
+        libc.task_info.restype = ctypes.c_int
+        MACH_TASK_BASIC_INFO = 20
+        if libc.task_info(task, MACH_TASK_BASIC_INFO, ctypes.byref(info), ctypes.byref(count)) != 0:
+            return None
+        return int(info.resident_size) // 1024
+    except Exception:
+        return None
 
 
 def _windows_rss_kib():
