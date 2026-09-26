@@ -16,6 +16,8 @@ import time
 import unittest
 import zipfile
 
+from tests._wallclock import shifted_wall_clock
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.service import build_artifacts
@@ -407,8 +409,10 @@ class DeterminismStressTests(unittest.TestCase):
     def test_delay_across_3_seconds_same_hash(self):
         """Same --audit-date, 3-second delay -> byte-identical bundle."""
         b1 = build_bundle(build_artifacts(dict(self.BODY)))
-        time.sleep(3.1)
-        b2 = build_bundle(build_artifacts(dict(self.BODY)))
+        # Deterministic clock jump (to 2100) instead of a real 3.1 s sleep.
+        with shifted_wall_clock():
+            self.assertEqual(time.gmtime().tm_year, 2100)
+            b2 = build_bundle(build_artifacts(dict(self.BODY)))
         h1 = hashlib.sha256(b1).hexdigest()
         h2 = hashlib.sha256(b2).hexdigest()
         self.assertEqual(h1, h2,
