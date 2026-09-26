@@ -170,7 +170,8 @@ class Handler(BaseHTTPRequestHandler):
   try:return json.loads(raw,parse_constant=lambda x:(_ for _ in ()).throw(ValueError('Non-finite JSON number')))
   except json.JSONDecodeError:raise ValueError('Invalid JSON request')
  def handle_one_request(self):
-  self.request_id=secrets.token_hex(16);self._status=500;start=time.monotonic();start_ns=time.time_ns();telemetry.clear();self._trace_ctx=None
+  # Reset per-request state first: on a keep-alive socket an idle timeout raises before a new request line is read, and stale values from the previous request would otherwise be logged as a phantom HTTP 500 on that old route.
+  self.raw_requestline=b'';self.command=None;self.path='';self.request_id=secrets.token_hex(16);self._status=500;start=time.monotonic();start_ns=time.time_ns();telemetry.clear();self._trace_ctx=None
   try:
    super().handle_one_request()
   except (TimeoutError,ConnectionError,BrokenPipeError,OSError):self.close_connection=True;metric('client_disconnects_total')
