@@ -25,14 +25,15 @@ def ok_transport(model, messages):
 
 class BreakerLifecycleTests(unittest.TestCase):
     def test_opens_after_threshold_half_open_then_closes(self):
+        now = [1000.0]
         b = CircuitBreaker(failure_threshold=3, recovery_timeout=0.2,
-                           half_open_max_trials=1)
+                           half_open_max_trials=1, clock=lambda: now[0])
         self.assertTrue(b.allow())
         for _ in range(3):
             b.record_failure()
         self.assertEqual(b.state, CircuitBreaker.OPEN)
         self.assertFalse(b.allow())
-        time.sleep(0.25)
+        now[0] += 0.25
         self.assertTrue(b.allow())
         self.assertEqual(b.state, CircuitBreaker.HALF_OPEN)
         b.record_failure()
@@ -41,9 +42,9 @@ class BreakerLifecycleTests(unittest.TestCase):
         # recovery backoff): 0.2 s -> 0.4 s.
         self.assertEqual(b.open_cycles, 2)
         self.assertAlmostEqual(b.recovery_delay(), 0.4, places=6)
-        time.sleep(0.25)
+        now[0] += 0.25
         self.assertFalse(b.allow())
-        time.sleep(0.25)
+        now[0] += 0.25
         self.assertTrue(b.allow())
         b.record_success()
         self.assertEqual(b.open_cycles, 0)
