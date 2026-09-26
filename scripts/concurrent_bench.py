@@ -49,11 +49,14 @@ EXPECT = {"tiny": 200, "medium": 200, "large": 200, "hostile": 200,
           "oversize": 413, "corrupt": 422}
 
 def rss_mb():
-    with open("/proc/self/status") as f:
-        for line in f:
-            if line.startswith("VmRSS:"):
-                return int(line.split()[1]) / 1024.0
-    return 0.0
+    """Current RSS in MiB. Platform-neutral via app.procstats (Windows + POSIX)."""
+    sys.path.insert(0, ROOT)
+    try:
+        from app.procstats import current_rss_kib
+        kib = current_rss_kib()
+        return (kib / 1024.0) if kib else 0.0
+    except Exception:
+        return 0.0
 
 def main():
     srv = Server(("127.0.0.1", 0), Handler)

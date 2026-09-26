@@ -9,6 +9,11 @@ from .http_policy import auth_error, public_body, auth_required, remediation_bod
 from .limits import LimitExceeded, MAX_HTTP_BODY_BYTES, limits_summary
 from . import telemetry
 READ_CHUNK_BYTES=64*1024
+# Bounded drain on the oversize path: read at most this much of an over-limit
+# body before answering 413, so the client receives the status instead of a
+# connection reset from a close with unread data. Past the cap we close
+# deliberately -- bounded memory, never an unbounded read.
+DRAIN_MAX_BYTES=16*1024*1024
 from .service import build_artifacts
 from .bundle import build_bundle
 from . import remediate as remediation
@@ -130,6 +135,16 @@ class Handler(BaseHTTPRequestHandler):
   if origin and origin.rstrip('/') not in allowed_origins():return False
   if fetch and fetch not in ('same-origin','same-site','none'):return False
   return True
+ def _drain(self,n):
+  '''Consume up to DRAIN_MAX_BYTES of an over-limit body so the 413 is delivered.
+  Returns early on a short read (client already gone). Past the cap the socket is
+  closed without reading further, which bounds memory at O(READ_CHUNK_BYTES).'''
+  remaining=min(n,DRAIN_MAX_BYTES)
+  while remaining>0:
+   chunk=self.rfile.read(min(remaining,READ_CHUNK_BYTES))
+   if not chunk:break
+   remaining-=len(chunk)
+  if n>DRAIN_MAX_BYTES:self.close_connection=True
  def _read(self,limit):
   if self.headers.get('Transfer-Encoding'):raise ValueError('Transfer-Encoding is not supported')
   if self.headers.get('Content-Encoding'):raise ValueError('Content-Encoding is not supported')
@@ -137,7 +152,9 @@ class Handler(BaseHTTPRequestHandler):
   if len(vals)!=1:raise ValueError('A single Content-Length is required')
   try:n=int(vals[0])
   except:raise ValueError('Invalid Content-Length')
-  if n>limit:raise LimitExceeded('Request body exceeds limit',limit_name='MAX_HTTP_BODY_BYTES',limit=limit,actual=n)
+  if n>limit:
+   self._drain(n)
+   raise LimitExceeded('Request body exceeds limit',limit_name='MAX_HTTP_BODY_BYTES',limit=limit,actual=n)
   if n<=0:raise ValueError('Invalid Content-Length')
   # Chunked streaming read: bounded 64 KiB slices, abort on short read, never a single oversized allocation.
   raw=bytearray();remaining=n
