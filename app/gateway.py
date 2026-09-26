@@ -41,7 +41,11 @@ DEFAULT_TOKEN_BUDGET = 6000
 # clamped to the remaining GATEWAY_BUDGET_SECONDS, so the total wall clock for
 # a chat() is unchanged: a slow primary now fails over with budget to spare
 # instead of burning 15 s and returning nothing.
-MODEL_READ_TIMEOUTS = {"glm-5.3": 25.0, "glm-5.3-flash": 25.0, "qwen3.8-27b": 25.0, "kimi-k3": 35.0}
+# Turn 81: #82 set 35 s; live K3 p95 measured 29.26 s against a 30 s window (turn 80), so a
+# normal K3 reply was one jitter away from a timeout. K3 is last in the chain
+# and every window is clamped to the remaining budget (default 40 s), so
+# widening it to 40 s adds headroom without extending total chat() wall clock.
+MODEL_READ_TIMEOUTS = {"glm-5.3": 25.0, "glm-5.3-flash": 25.0, "qwen3.8-27b": 25.0, "kimi-k3": 40.0}
 
 MELIOUS_BASE_URL = os.getenv("MELIOUS_BASE_URL", "https://api.melious.ai/v1")
 CHAT_PATH = "/chat/completions"
