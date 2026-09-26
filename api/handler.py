@@ -92,33 +92,15 @@ def _metrics_text():
 
 
 def _process_stats():
-    """Best-effort process memory snapshot for /healthz capacity claims.
+    '''Best-effort process telemetry for /healthz capacity claims.
 
     Launch telemetry gap (Sessions 8/9/10): no RAM floor/ceiling was ever
-    exposed, so capacity claims were unverifiable. ru_maxrss is monotonic
-    (peak since process start); /proc/self/status VmRSS gives the live
-    resident set on Linux. Everything is bounded integers, no PII.
-    """
-    out = {}
-    try:
-        import resource
-        out["max_rss_kib"] = int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-    except Exception:
-        pass
-    try:
-        with open("/proc/self/status", "rb") as fh:
-            for line in fh:
-                if line.startswith(b"VmRSS:"):
-                    out["rss_kib"] = int(line.split()[1])
-                    break
-    except Exception:
-        pass
-    try:
-        out["threads"] = int(threading.active_count())
-    except Exception:
-        pass
-    return out
-
+    exposed, so capacity claims were unverifiable. Delegates to
+    app.procstats -- one cross-platform implementation shared with the
+    threaded server so both runtimes report identical bounded integers.
+    '''
+    from app.procstats import process_stats as _shared
+    return _shared()
 # The self-hosted adapter (app/main.py) serves /api/generate with a download
 # token flow; the stateless serverless adapter cannot store artifacts, so it
 # answers those aliases with an actionable hint instead of a bare 404.

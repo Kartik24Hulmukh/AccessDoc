@@ -1,10 +1,11 @@
 from __future__ import annotations
-import concurrent.futures, gc, hashlib, io, json, os, resource, statistics, subprocess, sys, time, zipfile
+import concurrent.futures, gc, hashlib, io, json, os, statistics, subprocess, sys, time, zipfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from app.bundle import MEMBERS, build_bundle, validate_bundle
 from app.service import build_artifacts
+from app.procstats import peak_rss_kib
 SOURCE=(ROOT/'fixtures/axe-sample.json').read_text()
 def payload(i:int):
  return {'client_name':f'STRESS-{i:04d}','audit_date':'2026-07-21','agency_name':'Stress QA','primary_color':'#185ABD','format_hint':'axe','scanner_input':SOURCE,'manual_findings':f'Keyboard review marker {i:04d}.','source_filename':f'fixture-{i:04d}.json'}
@@ -22,10 +23,10 @@ def percentile(values,p):
  values=sorted(values);return values[min(len(values)-1,max(0,int((len(values)-1)*p)))]
 def main():
  count=int(os.getenv('ACCESSDOC_STRESS_REQUESTS','200'));workers=int(os.getenv('ACCESSDOC_STRESS_WORKERS','16'))
- before=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+ before=peak_rss_kib()
  started=time.perf_counter()
  with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:results=list(pool.map(one,range(count)))
- wall=time.perf_counter()-started;gc.collect();after=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+ wall=time.perf_counter()-started;gc.collect();after=peak_rss_kib()
  lat=[x[0] for x in results];sizes=[x[1] for x in results]
  cold_code="from app.bundle import build_bundle;from app.service import build_artifacts;from pathlib import Path;import hashlib;body={'client_name':'Cold','audit_date':'2026-07-21','format_hint':'axe','scanner_input':Path('fixtures/axe-sample.json').read_text()};print(hashlib.sha256(build_bundle(build_artifacts(body))).hexdigest())"
  cold=[]

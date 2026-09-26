@@ -1,0 +1,17 @@
+# Deterministic checkouts across platforms.
+#
+# api/public_assets.py embeds the exact bytes of the allowlisted public/ assets
+# (base64 + sha256). Those hashes are the tamper-evidence surface for the
+# hosted adapter, so the working-tree bytes must equal the committed blobs on
+# every OS. With core.autocrlf=true a Windows checkout rewrote public/*.html to
+# CRLF, which changed the hashes and made scripts/embed_public_assets.py --check
+# (and the hosted-surface contract test) fail on Windows while passing on the
+# LF-based CI runner. Pin these paths to LF so the manifest is reproducible
+# everywhere instead of depending on the developer's git config.
+public/** text eol=lf
+api/public_assets.py text eol=lf
+
+# Generated artifacts that must stay byte-stable.
+*.png binary
+*.pdf binary
+*.zip binary
