@@ -20,6 +20,37 @@ from app.limits import MAX_HTTP_BODY_BYTES
 with open(os.path.join(ROOT, "public", "sample", "axe-sample.json"), encoding="utf-8") as _fh:
     SAMPLE = json.load(_fh)
 
+
+RETRY_AFTER_CAP_S = 5.0
+
+
+def retry_after_seconds(value, cap=RETRY_AFTER_CAP_S, default=0.25):
+    """Parse a Retry-After header (delta-seconds or HTTP-date, RFC 9110 10.2.3) into a bounded delay.
+
+    Never raises: malformed, negative, NaN or HTTP-date values in the past fall back to
+    [0, cap] so a hostile or misconfigured server cannot crash or stall a bench worker.
+    """
+    import email.utils, math
+    if value is None:
+        return default
+    text = str(value).strip()
+    try:
+        secs = float(text)
+    except ValueError:
+        try:
+            when = email.utils.parsedate_to_datetime(text)
+        except (TypeError, ValueError, IndexError):
+            return default
+        if when is None:
+            return default
+        import datetime
+        if when.tzinfo is None:
+            when = when.replace(tzinfo=datetime.timezone.utc)
+        secs = (when - datetime.datetime.now(datetime.timezone.utc)).total_seconds()
+    if math.isnan(secs):
+        return default
+    return min(max(secs, 0.0), cap)
+
 def payload(kind, i):
     if kind == "tiny":
         return json.dumps({"scanner_input": SAMPLE}).encode()
@@ -91,7 +122,7 @@ def main():
                 e.close()
                 if status == 503 and ra:
                     admission_retries += 1
-                    time.sleep(float(ra)); continue
+                    time.sleep(retry_after_seconds(ra)); continue
                 break
             except OSError as e:
                 transport_attempt_errors += 1
