@@ -19,3 +19,6 @@ Guard tests: `tests/test_gateway_bench_gate.py` (4 tests; functions pulled out w
 - Live Melious (`gateway_bench.json` refreshed): all 4 models 3/3 OK, breakers closed. Samples in ms: GLM-5.3 4193/3589/3717; GLM-5.3 Flash 6098/5211/4811; Qwen 3.8 27B 11038/10799/10778; Kimi K3 19687/22908/19166. 429 storm fails over on attempt 1; outage fails fast in 0.2 ms; static-KB works.
 
 No product code path changed, so no latency gain is claimed. `repos.md` has still not been supplied, so no connectors were integrated.
+
+## CI-surfaced defect (fixed in the same PR)
+The first CI run of this PR failed `portability (macos-latest)` in `tests/test_gateway.py::BreakerLifecycleTests::test_opens_after_threshold_half_open_then_closes` with `AssertionError: True is not false` at line 45. That code predates this PR. The test drove the breaker with `time.sleep(0.25)` against a 0.4 s window, and the loaded macOS runner overslept past the window. Fix: `CircuitBreaker(clock=...)` takes an injectable monotonic clock (the default is still `time.monotonic`, so production behavior is unchanged), and the test uses a fake clock with no sleeps. Local results: 2000 deterministic lifecycle iterations with 0 failures; full suite 809 passed / 13 skipped (53.99 s); chaos gate pass (/healthz 1.50 ms, /readyz 0.83 ms).
