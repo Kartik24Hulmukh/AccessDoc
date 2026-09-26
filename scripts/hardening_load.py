@@ -23,6 +23,7 @@ from api.handler import handler
 from app.bundle import validate_bundle
 from app.service import build_artifacts
 from app.parser import parse_axe_json
+from app.procstats import process_stats
 
 
 def parse_args(argv=None):
@@ -44,6 +45,8 @@ def main():
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     port = server.server_address[1]
+    # RAM floor: resident set of the warm, idle server before any load.
+    ram_floor = process_stats()
     results = {"scope": "loopback only; 8 workers, 100 requests; not capacity certification",
                "workers": 8, "requests": 100, "contract": [], "scale": []}
     fixture = {"url": "https://example.com", "testEngine": {"version": "4.11.0"},
@@ -102,6 +105,13 @@ def main():
                            "p95_seconds": round(latencies[94], 4), "p99_seconds": round(latencies[98], 4), "max_seconds": round(max(latencies), 4),
                            "status_counts": {str(code): sum(r[0] == code for r in responses) for code in sorted(set(r[0] for r in responses))},
                            "unique_bundle_digests": len(digests), "all_200": all(r[0] == 200 for r in responses)}
+        # RAM ceiling: peak resident set after the 100-request burst (monotonic
+        # ru_maxrss), plus current RSS to show memory is returned, not retained.
+        ram_after = process_stats()
+        results["memory"] = {"floor_rss_kib": ram_floor.get("rss_kib"),
+                             "ceiling_max_rss_kib": ram_after.get("max_rss_kib"),
+                             "post_load_rss_kib": ram_after.get("rss_kib"),
+                             "threads_after": ram_after.get("threads")}
         for scale in (1, 100):
             scanner = dict(fixture, violations=[{"id": "image-alt", "impact": "critical", "nodes": [
                 {"target": [f"#n-{i}"]} for i in range(scale)]}])
