@@ -145,11 +145,55 @@ def _is_safe_ip(ip: str) -> bool:
     return True
 
 
+def _whatwg_ipv4(host: str):
+    """Canonical dotted-quad for *host* if a browser would parse it as IPv4.
+
+    Chromium follows the WHATWG URL host parser, where ``0177.0.0.1``,
+    ``0x7f.1`` and ``2130706433`` all mean 127.0.0.1. Leaving that to the
+    platform resolver is not safe: glibc agrees with the browser, but macOS
+    libc resolves ``0177.0.0.1`` to the *public* 177.0.0.1, so the SSRF
+    pre-check passed while the browser would dial loopback (caught by the
+    macOS portability CI job). Returns None when *host* is not numeric IPv4.
+    """
+    parts = host.split(".")
+    if len(parts) > 1 and parts[-1] == "":
+        parts.pop()
+    if not parts or len(parts) > 4:
+        return None
+    nums = []
+    for part in parts:
+        if part == "":
+            return None
+        base, digits = 10, part
+        if part[:2] in ("0x", "0X"):
+            base, digits = 16, part[2:]
+        elif len(part) > 1 and part[0] == "0":
+            base, digits = 8, part[1:]
+        if digits == "":
+            nums.append(0)
+            continue
+        try:
+            nums.append(int(digits, base))
+        except ValueError:
+            return None
+        if not digits.isalnum():
+            return None
+    if any(n > 255 for n in nums[:-1]) or nums[-1] >= 256 ** (5 - len(nums)):
+        return None
+    value = nums[-1]
+    for i, n in enumerate(nums[:-1]):
+        value += n << (8 * (3 - i))
+    return str(ipaddress.IPv4Address(value))
+
+
 def _resolve_host(hostname: str):
     """Resolve *hostname* to a list of IP address strings.
 
     Returns an empty list if resolution fails.
     """
+    numeric = _whatwg_ipv4(hostname)
+    if numeric is not None:
+        return [numeric]
     try:
         infos = socket.getaddrinfo(hostname, None)
     except (socket.gaierror, socket.herror, UnicodeError, OSError):
@@ -208,6 +252,12 @@ def validate_url(raw_url: str, allow_private_network: bool = False) -> str:
 
     if host in DENIED_HOSTNAMES:
         raise UnsafeTargetError(f"Hostname '{host}' is a denied loopback alias")
+
+    # Canonicalise browser-numeric IPv4 forms (octal/hex/short) first so the
+    # decision never depends on the platform resolver's parsing rules.
+    numeric = _whatwg_ipv4(host)
+    if numeric is not None:
+        host = numeric
 
     # If the host is already a literal IP, validate it directly.
     try:
