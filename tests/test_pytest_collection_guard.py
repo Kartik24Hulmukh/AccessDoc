@@ -10,6 +10,7 @@ try:  # py>=3.11
     import tomllib
 except ModuleNotFoundError:  # requires-python is >=3.10
     tomllib = None
+import importlib.util
 import unittest
 from pathlib import Path
 
@@ -23,6 +24,8 @@ class PytestCollectionGuard(unittest.TestCase):
         opts = cfg["tool"]["pytest"]["ini_options"]
         self.assertEqual(opts["testpaths"], ["tests"])
 
+    @unittest.skipIf(importlib.util.find_spec("pytest") is None,
+                     "pytest not installed (unittest-only runner, e.g. accessdoc-evidence)")
     def test_bare_collect_from_root_never_touches_scripts(self):
         r = subprocess.run(
             [sys.executable, "-m", "pytest", "--collect-only", "-q", "-p", "no:cacheprovider"],
