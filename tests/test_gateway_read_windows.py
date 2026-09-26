@@ -27,6 +27,10 @@ class ReadWindowTests(unittest.TestCase):
         for model in CANONICAL_CHAIN:
             self.assertGreaterEqual(MODEL_READ_TIMEOUTS.get(model, 0), 25.0, model)
 
+    def test_k3_window_has_headroom_over_measured_p95(self):
+        # Turn-80 live p95 was 29.26 s; a 30 s window had < 1 s jitter margin.
+        self.assertGreaterEqual(MODEL_READ_TIMEOUTS[CANONICAL_CHAIN[-1]], 35.0)
+
     def test_primary_is_not_left_on_narrow_default(self):
         # Regression: turn-10 live benchmark, primary 0/3 at the 15 s default.
         gw = ModelGateway()
