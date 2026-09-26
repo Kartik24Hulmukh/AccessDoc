@@ -38,3 +38,10 @@ py-modules = ["cli"]
 
 [tool.setuptools.packages.find]
 include = ["app*", "mcp*", "api*"]
+
+[tool.pytest.ini_options]
+# Collect only the real suite. Without this, a bare `pytest` from the repo root
+# imports scripts/stress_test.py (matches *_test.py), whose module-level
+# sys.exit() aborts collection with INTERNALERROR and runs zero tests.
+testpaths = ["tests"]
+minversion = "9.1"
