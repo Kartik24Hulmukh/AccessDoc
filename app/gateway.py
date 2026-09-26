@@ -476,15 +476,15 @@ class ModelGateway:
         second) generation until its read window expires, so lowering read
         windows cannot meet a <200 ms failover bar without killing healthy
         calls. Instead the next healthy model is dispatched after
-        GATEWAY_HEDGE_DELAY_MS (default 150) while the first keeps running;
+        GATEWAY_HEDGE_DELAY_MS (default 100) while the first keeps running;
         the first success wins and siblings are cancelled before any further
         billable call. A negative value disables hedging (serial failover).
         """
-        raw = os.getenv("GATEWAY_HEDGE_DELAY_MS", "150")
+        raw = os.getenv("GATEWAY_HEDGE_DELAY_MS", "100")
         try:
             value = float(raw)
         except ValueError:
-            value = 150.0
+            value = 100.0
         if value != value or value < 0:
             return None
         return value / 1000.0
@@ -552,6 +552,11 @@ class ModelGateway:
             return False
 
         launch("primary")
+        # Absolute hedge deadline anchored at the last dispatch. A relative
+        # per-wait timeout drifts whenever an unrelated result wakes the
+        # dispatcher, and the 150 ms default left only 50 ms of headroom for
+        # thread start + connect on loaded macOS runners (213 ms measured in CI).
+        next_hedge = time.monotonic() + hedge
         # Lanes enforce the same strict wall-clock deadline themselves; a short
         # grace lets them report their terminal status so breaker accounting is
         # never lost to a dispatcher/lane race at the deadline edge.
@@ -563,10 +568,13 @@ class ModelGateway:
             can_hedge = (remaining > 0 and state["launched"] < len(lanes)
                          and state["inflight"] < max_inflight)
             try:
-                m, r, exc = results.get(timeout=min(remaining, hedge) if can_hedge else remaining + grace)
+                wait = (max(0.0, min(remaining, next_hedge - time.monotonic()))
+                        if can_hedge else remaining + grace)
+                m, r, exc = results.get(timeout=wait)
             except queue.Empty:
-                if can_hedge:
-                    launch("hedge")
+                if can_hedge and time.monotonic() >= next_hedge:
+                    if launch("hedge"):
+                        next_hedge = time.monotonic() + hedge
                 continue
             state["inflight"] -= 1
             if r is not None and not r.fallback:
@@ -577,7 +585,8 @@ class ModelGateway:
                 return r
             last_err = exc or last_err
             if state["inflight"] < max_inflight:
-                launch("failover")
+                if launch("failover"):
+                    next_hedge = time.monotonic() + hedge
         cancel.set()
         if static_fallback:
             self._log(event="gateway_static_fallback",

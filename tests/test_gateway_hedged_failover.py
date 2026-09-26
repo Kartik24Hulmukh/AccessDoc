@@ -63,9 +63,10 @@ class HedgedFailoverTests(unittest.TestCase):
         up = _Upstream(behaviours)
         self.addCleanup(up.close)
         env = dict(env or {})
-        env.setdefault("GATEWAY_HEDGE_DELAY_MS", "150")
         with mock.patch.object(gateway, "MELIOUS_BASE_URL", up.url), \
                 mock.patch.dict(os.environ, env):
+            if "GATEWAY_HEDGE_DELAY_MS" not in env:
+                os.environ.pop("GATEWAY_HEDGE_DELAY_MS", None)  # exercise the production default
             for k in [k for k in os.environ if k.startswith("GATEWAY_READ_TIMEOUT")]:
                 os.environ.pop(k)
             gw = gateway.ModelGateway(api_key="sk-test", chain=(PRIMARY, FALLBACK), **gw_kwargs)
@@ -114,7 +115,7 @@ class HedgedFailoverTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {"GATEWAY_HEDGE_DELAY_MS": "nan"}):
             self.assertIsNone(gateway.ModelGateway(api_key="k").hedge_delay())
         with mock.patch.dict(os.environ, {"GATEWAY_HEDGE_DELAY_MS": "bogus"}):
-            self.assertEqual(gateway.ModelGateway(api_key="k").hedge_delay(), 0.15)
+            self.assertEqual(gateway.ModelGateway(api_key="k").hedge_delay(), 0.1)
 
 
 if __name__ == "__main__":
