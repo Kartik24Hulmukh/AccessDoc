@@ -6,8 +6,8 @@ Credential comes exclusively from $MELIOUS_API_KEY.
 Usage: gateway_bench.py [repo_root] [--output PATH] [--probes-only]
 
 Exit codes (so the bench can act as a real validation gate):
-  0  every resilience probe passed (and, in live mode, a credential was present)
-  1  at least one resilience probe failed
+  0  every resilience probe passed; live mode also requires 3/3 samples/model
+  1  a resilience probe or live model sample failed, or live evidence is incomplete
   2  live mode requested but $MELIOUS_API_KEY is unset (nothing was measured)
 """
 import argparse, json, os, sys, time, statistics
@@ -31,6 +31,17 @@ def exit_code(data, key_present, probes_only):
     probes = data.get("resilience") or {}
     if not probes or not all(bool(v.get("pass")) for v in probes.values()):
         return 1
+    if not probes_only:
+        # Offline fault injection cannot certify the real provider. Fail closed
+        # on missing models, missing samples, or a single failed live attempt.
+        models = data.get("models") or {}
+        if set(models) != set(CANONICAL_CHAIN):
+            return 1
+        for row in models.values():
+            samples = row.get("samples") or []
+            if (row.get("n") != 3 or row.get("ok") != 3 or len(samples) != 3
+                    or any(sample.get("ok") is not True for sample in samples)):
+                return 1
     return 0
 
 
