@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Loopback-only disconnect/malformed-input chaos; no human participants."""
+"""Loopback-only disconnect/malformed-input chaos; no human participants.
+
+Usage: python scripts/disconnect_chaos.py [output.json]; defaults to chaos_report.json.
+"""
 import concurrent.futures
 import http.client
 import json
@@ -83,7 +86,8 @@ def main():
               "new_threads_after_shutdown": leaked}
     report["pass"] = (all(r["pass"] for r in rows) and not uncaught and not leaked
                       and all(p["status"] == 200 and p["ms"] < 200 for p in probes.values()))
-    Path(sys.argv[1]).write_text(json.dumps(report, indent=2))
+    out_path = Path(sys.argv[1] if len(sys.argv) > 1 else "chaos_report.json")
+    out_path.write_text(json.dumps(report, indent=2))
     print(json.dumps({k: v for k, v in report.items() if k != "workflows"}))
     return 0 if report["pass"] else 1
 
