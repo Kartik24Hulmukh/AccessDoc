@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Bounded LOCAL load/contract gate. Never stress-tests a public endpoint.
 
-Usage: python scripts/hardening_load.py --output hardening-load.json
+Usage: python scripts/hardening_load.py [OUTPUT] [--output hardening-load.json]
 100x denotes 1 -> 100 generated finding instances, NOT throughput capacity.
 """
 import argparse
@@ -25,10 +25,20 @@ from app.service import build_artifacts
 from app.parser import parse_axe_json
 
 
-def main():
+def parse_args(argv=None):
+    """CLI parity with disconnect_chaos.py: the report path may be given
+    positionally or via --output; --output wins when both are present."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", default="hardening-load.json")
-    args = parser.parse_args()
+    parser.add_argument("output_positional", nargs="?", default=None,
+                        metavar="OUTPUT", help="report path (same as --output)")
+    parser.add_argument("--output", default=None)
+    args = parser.parse_args(argv)
+    args.output = args.output or args.output_positional or "hardening-load.json"
+    return args
+
+
+def main():
+    args = parse_args()
     adapter.GENERATION_CAPACITY = threading.BoundedSemaphore(8)
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
