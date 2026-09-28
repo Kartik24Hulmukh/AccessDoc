@@ -43,10 +43,40 @@ def main():
                 upload = page.locator("#evidence-file")
                 scanner = page.locator("#scanner")
                 def download():
-                    with page.expect_download(timeout=20000) as event:
-                        page.locator("#generate").click()
-                    target = Path(tmp) / "bundle.zip"
-                    event.value.save_as(target)
+                    # 429-aware: a correct rate-limit gate may answer a burst with
+                    # 429 + Retry-After. The surface contract is graceful recovery:
+                    # an error hint must appear, then a retry succeeds. Blindly
+                    # asserting a download on every profile turns a correct throttle
+                    # into a false failure.
+                    try:
+                        with page.expect_download(timeout=20000) as event:
+                            page.locator("#generate").click()
+                        target = Path(tmp) / "bundle.zip"
+                        event.value.save_as(target)
+                    except Exception:
+                        # No download: is the rate limit surfaced and recoverable?
+                        # A burst from one IP may hit the 30/min gate repeatedly;
+                        # the contract is graceful recovery: error hint visible,
+                        # then a retry succeeds. Retry up to 3 times with backoff.
+                        recovered = False
+                        last = None
+                        for attempt in range(3):
+                            try:
+                                page.locator("#errors").wait_for(state="visible", timeout=3000)
+                                text = page.locator("#errors").inner_text()
+                                assert "rate" in text.lower(), ("unexpected error without rate hint", text[:300])
+                                assert page.locator("#generate").is_enabled()
+                                time.sleep(6 + attempt * 4)
+                                with page.expect_download(timeout=30000) as event:
+                                    page.locator("#generate").click()
+                                target = Path(tmp) / "bundle.zip"
+                                event.value.save_as(target)
+                                recovered = True
+                                break
+                            except Exception as e:
+                                last = e
+                        if not recovered:
+                            raise AssertionError("no recovery from rate limit: %s" % (last,))
                     assert validate_bundle(target.read_bytes())["valid"]
                     assert not errors, errors
                 def check(name, fn):
