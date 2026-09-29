@@ -38,13 +38,14 @@ def error_response_matches(status, body, expected):
         return False
     # Inspect decoded strings, not JSON escape sequences that can hide quotes
     # or Unicode characters in an exception traceback.
-    stack = list(payload.values())
+    stack = [payload]
     while stack:
         value = stack.pop()
         if isinstance(value, str):
             if any(marker in value for marker in ("Traceback", "Exception", 'File "')):
                 return False
         elif isinstance(value, dict):
+            stack.extend(value.keys())
             stack.extend(value.values())
         elif isinstance(value, list):
             stack.extend(value)

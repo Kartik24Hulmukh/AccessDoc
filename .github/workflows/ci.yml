@@ -28,6 +28,7 @@ jobs:
           name: axe-self-audit
           path: axe-self-audit.json
       - name: Validate generated OpenACR against GSA CLI validator
+        shell: bash
         run: |
           git clone --depth 1 https://github.com/GSA/openacr.git /tmp/openacr-upstream
           cd /tmp/openacr-upstream && npm ci && cd $GITHUB_WORKSPACE

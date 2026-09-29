@@ -55,6 +55,35 @@ class ReleaseValidationIntegrityTests(unittest.TestCase):
             body = json.dumps({"error": text}).encode()
             self.assertFalse(error_response_matches(422, body, 422))
 
+    def test_negative_contract_rejects_exception_leakage_in_keys(self):
+        for payload in (
+                {"error": "Invalid input", "Traceback": "redacted"},
+                {"error": "Invalid input", "diagnostics": {
+                    'File "private.py"': "redacted"}},
+                {"error": ["Invalid input", {"Exception": "redacted"}]}):
+            with self.subTest(payload=payload):
+                self.assertFalse(error_response_matches(
+                    422, json.dumps(payload).encode(), 422))
+
+    @unittest.skipIf(sys.platform == "win32", "GitHub Linux bash gate")
+    def test_gsa_validator_nonzero_exit_cannot_pass_with_valid_output(self):
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        step = next(s for s in workflow["jobs"]["test"]["steps"]
+                    if "GSA CLI validator" in s.get("name", ""))
+        # Reproduce only the gate pipeline and checks, without cloning or npm.
+        run = step["run"]
+        run = run[run.index("npx --prefix"):].replace(
+            "npx --prefix /tmp/openacr-upstream ts-node "
+            "/tmp/openacr-upstream/src/openacr.ts validate -f /tmp/test_acr.yaml",
+            '{ printf "Valid!\\n"; exit 42; }')
+        flags = ["-e", "-o", "pipefail"] if step.get("shell") == "bash" else ["-e"]
+        with tempfile.TemporaryDirectory() as directory:
+            run = run.replace("/tmp/gsa.out", str(Path(directory) / "gsa.out"))
+            result = subprocess.run(["bash", "--noprofile", "--norc",
+                                     *flags, "-c", run], capture_output=True,
+                                    text=True, timeout=5)
+        self.assertEqual(result.returncode, 42, result.stdout + result.stderr)
+
     def test_bypass_credential_cannot_follow_cross_origin_redirect(self):
         request = Request("https://candidate.vercel.app/healthz",
                           headers={"x-vercel-protection-bypass": "local-test"})
