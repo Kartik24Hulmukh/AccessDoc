@@ -17,3 +17,8 @@ See [hardening receipt](docs/HARDENING-2026-09-13.md): 600 tests (one live-targe
 ## September 26 hardening turn (PR #76)
 
 See [hardening receipt](docs/HARDENING-2026-09-26.md): fresh-clone baseline 795 passed / 13 skipped / 0 failed; local load gate 100/100 HTTP 200 (p50 66.2 ms, p95 83.2 ms, p99 88.7 ms, 123.0 rps, 1 bundle digest); adversarial stress matrix 15/15; live Melious completions HTTP 200 on all four canonical chain models. `repos.md` was again not supplied, so no external connectors were integrated. Hosted-launch human gates remain as recorded above.
+
+
+## September 29 hardening turn (evidence-only)
+
+See [hardening receipt](docs/HARDENING-2026-09-29.md): fresh-clone baseline re-verified 834 passed / 13 skipped / 0 failed (no regressions). Fresh live Melious 4-model bench attempted with the real key: the provider returned HTTP 429 on all four canonical models this turn (external rate limit, not an AccessDoc defect); the circuit breaker opened correctly after 1 failure per model and fail-fast on repeat attempts measured ~100ms (well inside the <200ms auto-recovery bar), and the offline 429-storm/outage/static-KB resilience probes all still pass. No new successful live latency sample exists to replace the last-known-good P50/P95/P99 in `gateway_bench.json`, so that file is unchanged; the fabricated alternative was rejected on integrity grounds. `repos.md` remains unsupplied in every session to date, so no external connector was integrated on a guessed catalog. Human sign-off, security/legal review, and practitioner acceptance remain the only launch blockers.

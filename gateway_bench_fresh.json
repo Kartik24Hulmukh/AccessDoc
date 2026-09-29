@@ -1,0 +1,175 @@
+{
+  "models": {
+    "glm-5.3": {
+      "ok": 0,
+      "n": 3,
+      "p50_ms": 100.76,
+      "p95_ms": 365.03,
+      "p99_ms": 365.03,
+      "latency_scope": "all attempts including failures",
+      "avg_tokens": 0,
+      "samples": [
+        {
+          "ok": false,
+          "error": "transient gateway failure",
+          "status": 429,
+          "ms": 365.03
+        },
+        {
+          "ok": false,
+          "error": "circuit open",
+          "status": null,
+          "ms": 100.76
+        },
+        {
+          "ok": false,
+          "error": "circuit open",
+          "status": null,
+          "ms": 100.68
+        }
+      ],
+      "breaker": {
+        "state": "open",
+        "consecutive_failures": 1,
+        "successes": 0,
+        "failures": 1,
+        "timeouts": 0,
+        "open_cycles": 1,
+        "recovery_delay": 30.0
+      }
+    },
+    "glm-5.3-flash": {
+      "ok": 0,
+      "n": 3,
+      "p50_ms": 100.63,
+      "p95_ms": 378.2,
+      "p99_ms": 378.2,
+      "latency_scope": "all attempts including failures",
+      "avg_tokens": 0,
+      "samples": [
+        {
+          "ok": false,
+          "error": "transient gateway failure",
+          "status": 429,
+          "ms": 378.2
+        },
+        {
+          "ok": false,
+          "error": "circuit open",
+          "status": null,
+          "ms": 100.63
+        },
+        {
+          "ok": false,
+          "error": "circuit open",
+          "status": null,
+          "ms": 100.62
+        }
+      ],
+      "breaker": {
+        "state": "open",
+        "consecutive_failures": 1,
+        "successes": 0,
+        "failures": 1,
+        "timeouts": 0,
+        "open_cycles": 1,
+        "recovery_delay": 30.0
+      }
+    },
+    "qwen3.8-27b": {
+      "ok": 0,
+      "n": 3,
+      "p50_ms": 100.95,
+      "p95_ms": 369.4,
+      "p99_ms": 369.4,
+      "latency_scope": "all attempts including failures",
+      "avg_tokens": 0,
+      "samples": [
+        {
+          "ok": false,
+          "error": "transient gateway failure",
+          "status": 429,
+          "ms": 369.4
+        },
+        {
+          "ok": false,
+          "error": "circuit open",
+          "status": null,
+          "ms": 100.76
+        },
+        {
+          "ok": false,
+          "error": "circuit open",
+          "status": null,
+          "ms": 100.95
+        }
+      ],
+      "breaker": {
+        "state": "open",
+        "consecutive_failures": 1,
+        "successes": 0,
+        "failures": 1,
+        "timeouts": 0,
+        "open_cycles": 1,
+        "recovery_delay": 30.0
+      }
+    },
+    "kimi-k3": {
+      "ok": 0,
+      "n": 3,
+      "p50_ms": 101.17,
+      "p95_ms": 407.27,
+      "p99_ms": 407.27,
+      "latency_scope": "all attempts including failures",
+      "avg_tokens": 0,
+      "samples": [
+        {
+          "ok": false,
+          "error": "transient gateway failure",
+          "status": 429,
+          "ms": 407.27
+        },
+        {
+          "ok": false,
+          "error": "circuit open",
+          "status": null,
+          "ms": 100.68
+        },
+        {
+          "ok": false,
+          "error": "circuit open",
+          "status": null,
+          "ms": 101.17
+        }
+      ],
+      "breaker": {
+        "state": "open",
+        "consecutive_failures": 1,
+        "successes": 0,
+        "failures": 1,
+        "timeouts": 0,
+        "open_cycles": 1,
+        "recovery_delay": 30.0
+      }
+    }
+  },
+  "resilience": {
+    "429_storm_fallback": {
+      "served_by": "glm-5.3-flash",
+      "attempts": 1,
+      "pass": true
+    },
+    "outage_fail_fast": {
+      "pass": true,
+      "ms": 0.2
+    },
+    "static_kb_last_resort": {
+      "pass": true,
+      "model": "static-kb"
+    }
+  },
+  "verdict": {
+    "exit_code": 1,
+    "probes_only": false
+  }
+}
