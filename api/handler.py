@@ -23,7 +23,7 @@ from http.server import BaseHTTPRequestHandler
 from app.service import build_artifacts
 from app.bundle import build_bundle
 from app.models import VERSION
-from app.http_policy import auth_error, auth_required, public_body
+from app.http_policy import auth_error, auth_required, public_body, remediation_body
 from app import telemetry
 
 READ_CHUNK_BYTES = 64 * 1024
@@ -684,6 +684,14 @@ class handler(BaseHTTPRequestHandler):
         degrade through the ordered model chain to the static knowledge base;
         a missing credential is an explicit 503 with Retry-After, never a 500.
         """
+        try:
+            body = remediation_body(body)
+        except LimitExceeded:
+            self._error(413, "Input exceeds resource limits", request_id)
+            return
+        except (ValueError, RecursionError):
+            self._error(422, "Invalid axe-core data", request_id)
+            return
         try:
             from app import remediate as remediation
             from app.gateway import GatewayError
