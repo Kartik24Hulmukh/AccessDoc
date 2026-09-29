@@ -13,9 +13,14 @@ Accepted input shapes for parse_manual_findings():
 import csv
 import io
 from .models import AuditViolation, SOURCE_MANUAL
+from .limits import MAX_MANUAL_FINDINGS, LimitExceeded
 
 _VALID_IMPACTS = {"critical", "serious", "moderate", "minor"}
 _MANUAL_NO_TARGET = "manual:no-target"
+_ROW_FIELDS = frozenset({
+    "id", "rule", "impact", "description", "desc", "help_url", "helpUrl",
+    "wcag_scs", "wcag", "sc", "nodes", "target", "selector",
+})
 
 
 def _norm_impact(value):
@@ -50,20 +55,49 @@ def _row_to_violation(row):
     )
 
 
+def _column_indexes(header):
+    # Last duplicate header wins, matching DictReader. Ignored columns never
+    # create thousands of padded dictionary entries for each narrow row.
+    return {name: i for i, name in enumerate(header) if name in _ROW_FIELDS}
+
+
+def _project_cells(cells, indexes):
+    return {name: cells[i] if i < len(cells) else None
+            for name, i in indexes.items()}
+
+
 def _parse_markdown_table(text):
-    lines = [ln.strip() for ln in text.strip().splitlines() if ln.strip().startswith("|")]
-    if len(lines) < 2:
-        return []
-    header = [c.strip().lower() for c in lines[0].strip("|").split("|")]
-    rows = []
-    for ln in lines[1:]:
+    indexes = None
+    for line in io.StringIO(text, newline=None):
+        ln = line.strip()
+        if not ln.startswith("|"):
+            continue
         cells = [c.strip() for c in ln.strip("|").split("|")]
+        if indexes is None:
+            indexes = _column_indexes([c.lower() for c in cells])
+            continue
         if set("".join(cells)) <= set("-: "):  # separator row
             continue
-        if len(cells) < len(header):
-            cells += [""] * (len(header) - len(cells))
-        rows.append(dict(zip(header, cells)))
-    return rows
+        yield _project_cells(cells, indexes)
+
+
+def _parse_csv(text):
+    reader = csv.reader(io.StringIO(text, newline=None))
+    indexes = _column_indexes(next(reader, []))
+    for cells in reader:
+        if cells:  # DictReader ignores blank lines.
+            yield _project_cells(cells, indexes)
+
+
+def _bounded_findings(rows):
+    findings = []
+    for index, row in enumerate(rows):
+        if index >= MAX_MANUAL_FINDINGS:
+            raise LimitExceeded("too many manual findings",
+                                limit_name="MAX_MANUAL_FINDINGS",
+                                limit=MAX_MANUAL_FINDINGS, actual=index + 1)
+        findings.append(_row_to_violation(row))
+    return findings
 
 
 def parse_manual_findings(data):
@@ -71,7 +105,6 @@ def parse_manual_findings(data):
     if not data:
         return []
     if isinstance(data, list):
-        from .limits import MAX_MANUAL_FINDINGS, LimitExceeded
         if len(data) > MAX_MANUAL_FINDINGS:
             raise LimitExceeded("too many manual findings")
         if any(not isinstance(r, dict) for r in data):
@@ -80,10 +113,9 @@ def parse_manual_findings(data):
     if isinstance(data, str):
         stripped = data.strip()
         if stripped.startswith("|"):
-            return parse_manual_findings(_parse_markdown_table(stripped))
+            return _bounded_findings(_parse_markdown_table(stripped))
         # treat as CSV
-        reader = csv.DictReader(io.StringIO(stripped))
-        return parse_manual_findings(list(reader))
+        return _bounded_findings(_parse_csv(stripped))
     raise ValueError("manual_findings must be a list, CSV or Markdown string")
 
 
