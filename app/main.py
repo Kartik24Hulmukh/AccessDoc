@@ -281,7 +281,7 @@ class Handler(BaseHTTPRequestHandler):
    metric('reports_total');self._json(201,{'report_token':token,'download_url':f'/download/{token}','html_companion_url':f'/download-html/{token}','receipt_url':f'/download-receipt/{token}','detected_format':'axe','finding_count':summary['total_violations'],'instance_count':summary['total_violations'],'severity_counts':counts,'catalog_review_required':summary.get('unknown',0),'expires_in_seconds':STORE.ttl_seconds,'input_evidence_receipt':receipt})
   except LimitExceeded:self._json(413,{'error':{'code':'INPUT_TOO_LARGE','message':'Input exceeds resource limits'}})
   except (RecursionError,UnicodeDecodeError):self._json(422,{'error':{'code':'INVALID_INPUT','message':'Invalid JSON request'}})
-  except ValueError as e:self._json(422,{'error':{'code':'INVALID_INPUT','message':str(e)}})
+  except ValueError:self._json(422,{'error':{'code':'INVALID_INPUT','message':'Invalid input'}})
   except remediation.GatewayError as e:self._send(503,json.dumps({'error':{'code':'GATEWAY_UNAVAILABLE','message':'AI remediation is temporarily unavailable','requestId':self.request_id}}).encode(),'application/json; charset=utf-8',{'Retry-After':'5'})
   except BodyDeadlineExceeded:
    self.close_connection=True;self._json(408,{'error':{'code':'REQUEST_TIMEOUT','message':'Request body deadline exceeded'}})

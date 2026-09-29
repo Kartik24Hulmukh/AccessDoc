@@ -13,7 +13,7 @@ Accepted input shapes for parse_manual_findings():
 import csv
 import io
 from .models import AuditViolation, SOURCE_MANUAL
-from .limits import MAX_MANUAL_FINDINGS, LimitExceeded
+from .limits import MAX_MANUAL_FINDINGS, MAX_NODES_PER_VIOLATION, LimitExceeded
 
 _VALID_IMPACTS = {"critical", "serious", "moderate", "minor"}
 _MANUAL_NO_TARGET = "manual:no-target"
@@ -39,6 +39,35 @@ def _split_scs(value):
     return [p.strip() for p in parts if p.strip()]
 
 
+def _node_count(value):
+    """Optional bounded count: integers or ASCII decimal cells, never bools.
+
+    Test the decimal length before conversion so interpreter integer-string
+    limits cannot leak cell contents or change the public error contract.
+    """
+    if value is None:
+        return 0
+    if isinstance(value, str):
+        value = value.strip()
+        if not value:
+            return 0
+        if not value.isascii() or not value.isdecimal():
+            raise ValueError("Invalid manual finding node count")
+        value = value.lstrip("0") or "0"
+        if len(value) > len(str(MAX_NODES_PER_VIOLATION)):
+            raise LimitExceeded("Manual finding node count exceeds limit",
+                                limit_name="MAX_NODES_PER_VIOLATION",
+                                limit=MAX_NODES_PER_VIOLATION)
+        value = int(value)
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ValueError("Invalid manual finding node count")
+    if value > MAX_NODES_PER_VIOLATION:
+        raise LimitExceeded("Manual finding node count exceeds limit",
+                            limit_name="MAX_NODES_PER_VIOLATION",
+                            limit=MAX_NODES_PER_VIOLATION)
+    return value
+
+
 def _row_to_violation(row):
     target = str(row.get("target") or row.get("selector") or "").strip()
     if not target:
@@ -49,7 +78,7 @@ def _row_to_violation(row):
         description=str(row.get("description") or row.get("desc") or "").strip(),
         help_url=str(row.get("help_url") or row.get("helpUrl") or "").strip(),
         wcag_scs=_split_scs(row.get("wcag_scs") or row.get("wcag") or row.get("sc")),
-        nodes=int(row.get("nodes") or 0) if str(row.get("nodes") or "").strip().isdigit() else 0,
+        nodes=_node_count(row.get("nodes")),
         source=SOURCE_MANUAL,
         target=target,
     )
