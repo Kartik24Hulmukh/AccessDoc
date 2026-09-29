@@ -10,6 +10,10 @@ class BodyDeadlineExceeded(TimeoutError):
     """The complete upload/drain exceeded its wall-clock budget."""
 
 
+class TruncatedBodyError(ValueError):
+    """Declared upload length was not received; safe public transport error."""
+
+
 def body_deadline():
     seconds = float(os.getenv("BODY_TIMEOUT_SECONDS", "15"))
     if not math.isfinite(seconds) or seconds <= 0:

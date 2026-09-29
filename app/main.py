@@ -8,7 +8,7 @@ from .models import VERSION
 from .http_policy import auth_error, public_body, auth_required, remediation_body
 from .limits import LimitExceeded, MAX_HTTP_BODY_BYTES, limits_summary
 from . import telemetry
-from .http_body import BodyDeadlineExceeded, body_deadline, read_body
+from .http_body import BodyDeadlineExceeded, TruncatedBodyError, body_deadline, read_body
 READ_CHUNK_BYTES=64*1024
 # Bounded drain on the oversize path: read at most this much of an over-limit
 # body before answering 413, so the client receives the status instead of a
@@ -169,7 +169,7 @@ class Handler(BaseHTTPRequestHandler):
   # Chunked streaming read: bounded 64 KiB slices, abort on short read, never a single oversized allocation.
   raw,remaining=read_body(self.rfile,getattr(self,'connection',None),n,
                           READ_CHUNK_BYTES,deadline)
-  if remaining:raise ValueError('Truncated request body')
+  if remaining:raise TruncatedBodyError('Truncated request body')
   return bytes(raw)
  def _read_json(self):
   if self.headers.get_content_type()!='application/json':raise ValueError('Content-Type must be application/json')
@@ -280,6 +280,7 @@ class Handler(BaseHTTPRequestHandler):
    counts={k:summary.get(k,0) for k in ('critical','serious','moderate','minor','unknown')}
    metric('reports_total');self._json(201,{'report_token':token,'download_url':f'/download/{token}','html_companion_url':f'/download-html/{token}','receipt_url':f'/download-receipt/{token}','detected_format':'axe','finding_count':summary['total_violations'],'instance_count':summary['total_violations'],'severity_counts':counts,'catalog_review_required':summary.get('unknown',0),'expires_in_seconds':STORE.ttl_seconds,'input_evidence_receipt':receipt})
   except LimitExceeded:self._json(413,{'error':{'code':'INPUT_TOO_LARGE','message':'Input exceeds resource limits'}})
+  except TruncatedBodyError:self._json(422,{'error':{'code':'INVALID_INPUT','message':'Truncated request body'}})
   except (RecursionError,UnicodeDecodeError):self._json(422,{'error':{'code':'INVALID_INPUT','message':'Invalid JSON request'}})
   except ValueError:self._json(422,{'error':{'code':'INVALID_INPUT','message':'Invalid input'}})
   except remediation.GatewayError as e:self._send(503,json.dumps({'error':{'code':'GATEWAY_UNAVAILABLE','message':'AI remediation is temporarily unavailable','requestId':self.request_id}}).encode(),'application/json; charset=utf-8',{'Retry-After':'5'})
