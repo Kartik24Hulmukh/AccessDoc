@@ -45,3 +45,8 @@ include = ["app*", "mcp*", "api*"]
 # sys.exit() aborts collection with INTERNALERROR and runs zero tests.
 testpaths = ["tests"]
 minversion = "9.1"
+filterwarnings = [
+    "error::ResourceWarning",
+    "error::pytest.PytestUnraisableExceptionWarning",
+    "error::pytest.PytestUnhandledThreadExceptionWarning",
+]
