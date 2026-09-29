@@ -106,3 +106,30 @@ jobs:
         with:
           name: hardening-load-${{ matrix.os }}
           path: hardening-load-${{ matrix.os }}.json
+
+  dependency-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - name: Install and freeze the candidate dependency snapshot
+        run: |
+          pip install --requirement requirements-dev.txt
+          python -m pip freeze > dependency-snapshot.txt
+      - name: Fail closed on known advisories and emit CycloneDX SBOM
+        run: |
+          pip install pip-audit==2.10.1
+          python -m pip_audit --disable-pip --no-deps -r dependency-snapshot.txt --format cyclonedx-json --output dependency-audit.cdx.json
+      - name: Archive dependency snapshot and SBOM
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: dependency-security-${{ github.sha }}
+          path: |
+            dependency-snapshot.txt
+            dependency-audit.cdx.json

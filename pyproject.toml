@@ -27,8 +27,8 @@ dependencies = [
 
 [project.optional-dependencies]
 scan = ["playwright>=1.40.0"]
-test = ["PyYAML>=6.0"]
-dev = ["PyYAML>=6.0", "playwright>=1.40.0"]
+test = ["PyYAML>=6.0", "pytest>=9.1.1,<10"]
+dev = ["PyYAML>=6.0", "playwright>=1.40.0", "pytest>=9.1.1,<10"]
 
 [project.scripts]
 accessdoc = "cli:main"

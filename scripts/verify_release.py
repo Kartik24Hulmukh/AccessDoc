@@ -7,7 +7,7 @@ def add(name,ok,detail=''):
 def run(name,cmd):
  env={**os.environ,'PYTHONPYCACHEPREFIX':tempfile.mkdtemp(prefix='accessdoc-pycache-')};p=subprocess.run(cmd,cwd=root,text=True,capture_output=True,env=env);checks[name]={'status':'PASS' if p.returncode==0 else 'FAIL','exitCode':p.returncode,'stdout':p.stdout[-3000:],'stderr':p.stderr[-3000:]};return p.returncode==0
 ok=run('compile',[sys.executable,'-m','compileall','-q','app','api','tests'])
-ok=run('tests',[sys.executable,'-W','error::ResourceWarning','-m','unittest','discover','-s','tests','-v']) and ok
+ok=run('tests',[sys.executable,'-W','error::ResourceWarning','-m','pytest','tests','-q']) and ok
 for pyc in root.rglob('__pycache__'):
  import shutil; shutil.rmtree(pyc, ignore_errors=True)
 files=[p for p in root.rglob('*') if p.is_file() and not any(x in p.parts for x in {'.git','dist','artifacts','__pycache__','.venv','node_modules','plan'}) and p.name!='verify_release.py' and p.stat().st_size<3_000_000]
