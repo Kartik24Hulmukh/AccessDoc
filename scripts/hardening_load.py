@@ -105,12 +105,16 @@ def main():
                            "p95_seconds": round(latencies[94], 4), "p99_seconds": round(latencies[98], 4), "max_seconds": round(max(latencies), 4),
                            "status_counts": {str(code): sum(r[0] == code for r in responses) for code in sorted(set(r[0] for r in responses))},
                            "unique_bundle_digests": len(digests), "all_200": all(r[0] == 200 for r in responses)}
-        # RAM ceiling: peak resident set after the 100-request burst (monotonic
-        # ru_maxrss), plus current RSS to show memory is returned, not retained.
+        # Same-source Linux VmHWM/VmRSS snapshot (or platform equivalents);
+        # peak is process-lifetime, not an isolated burst-only measurement.
         ram_after = process_stats()
+        peak = ram_after.get("max_rss_kib")
+        current = ram_after.get("rss_kib")
+        if peak is not None and current is not None and peak < current:
+            failures.append("memory telemetry inconsistent: peak below current RSS")
         results["memory"] = {"floor_rss_kib": ram_floor.get("rss_kib"),
-                             "ceiling_max_rss_kib": ram_after.get("max_rss_kib"),
-                             "post_load_rss_kib": ram_after.get("rss_kib"),
+                             "ceiling_max_rss_kib": peak,
+                             "post_load_rss_kib": current,
                              "threads_after": ram_after.get("threads")}
         for scale in (1, 100):
             scanner = dict(fixture, violations=[{"id": "image-alt", "impact": "critical", "nodes": [
