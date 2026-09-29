@@ -1,0 +1,113 @@
+{
+  "head": "42758c9c0c0706dc263283e3adf74f93bd705594",
+  "draft": true,
+  "combined_status": "failure",
+  "statuses": [
+    {
+      "context": "accessdoc/live-gateway",
+      "state": "failure",
+      "target_url": null
+    },
+    {
+      "context": "accessdoc/exact-target-smoke",
+      "state": "pending",
+      "target_url": null
+    },
+    {
+      "context": "Vercel",
+      "state": "success",
+      "target_url": "https://vercel.com/atlas16/access-doc/5xFVGpK5FJZtXvX6E9xcz3Q1ggcS"
+    },
+    {
+      "context": "accessdoc/local-release-verifier",
+      "state": "success",
+      "target_url": null
+    },
+    {
+      "context": "accessdoc/human-release-approvals",
+      "state": "pending",
+      "target_url": null
+    }
+  ],
+  "checks": [
+    {
+      "name": "Vercel Preview Comments",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "portability (windows-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "lint",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "dependency-security",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "portability (macos-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "test",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "accessdoc-evidence",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "GitGuardian Security Checks",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "portability (macos-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "dependency-security",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "portability (windows-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "test",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "lint",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "deployments": [
+    {
+      "id": 6747438217,
+      "sha": "42758c9c0c0706dc263283e3adf74f93bd705594",
+      "environment": "Preview",
+      "statuses": [
+        {
+          "state": "success",
+          "environment_url": "https://access-7skcw76j9-atlas16.vercel.app",
+          "target_url": "https://access-7skcw76j9-atlas16.vercel.app"
+        }
+      ]
+    }
+  ]
+}

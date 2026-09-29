@@ -1,0 +1,27 @@
+F...                                                           [100%]
+=================================== FAILURES ===================================
+__________ DisconnectChaosCliGuard.test_runs_without_output_argument ___________
+
+self = <tests.test_disconnect_chaos_cli_guard.DisconnectChaosCliGuard testMethod=test_runs_without_output_argument>
+
+    def test_runs_without_output_argument(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            proc = subprocess.run([sys.executable, str(SCRIPT)], cwd=tmp,
+                                  capture_output=True, text=True, timeout=300)
+            self.assertNotIn("IndexError", proc.stderr)
+>           self.assertEqual(proc.returncode, 0,
+                             "stderr:\n" + proc.stderr[-2000:] + "\nstdout tail (gate verdict):\n" + proc.stdout[-1500:])
+E           AssertionError: 1 != 0 : stderr:
+E
+E           stdout tail (gate verdict):
+E           e274e898","ip":"127.0.0.1","method":"POST","route":"/api/bundle","status":422,"duration_ms":1.31}
+E           {"ts":1790723011.058176,"level":"info","event":"http_request","trace_id":"f0b97a2ba9e3a0483b8f49bf9c9ba8d9","span_id":"3453b46f1119c7da","request_id":"259448446ff5e92bd6819875049fcd64","ip":"127.0.0.1","method":"POST","route":"/api/bundle","status":422,"duration_ms":0.83}
+E           {"ts":1790723011.0585024,"level":"info","event":"http_request","trace_id":"b9d3b3b70da2187268f58dfdb837ea88","span_id":"e83cce49943a10ec","request_id":"8b17681849e2891db887cf873e4f6bf8","ip":"127.0.0.1","method":"POST","route":"/api/bundle","status":422,"duration_ms":0.79}
+E           {"ts":1790723011.0639505,"level":"info","event":"http_request","trace_id":"f3cd4ea0a648c22309e109959510ce89","span_id":"242b15c4b0ce0a04","request_id":"47130a0d0c49b17d097d760172d8a86c","ip":"127.0.0.1","method":"GET","route":"/healthz","status":200,"duration_ms":2.46}
+E           {"ts":1790723011.0652556,"level":"info","event":"http_request","trace_id":"6f935f2ac29b610e8f97cb0e01849778","span_id":"453c752af4d2ab8c","request_id":"b2edab0166e97fb2e4729db698710224","ip":"127.0.0.1","method":"GET","route":"/readyz","status":200,"duration_ms":0.57}
+E           {"scope": "100 synthetic socket workflows; 40 disconnects; no humans; loopback only", "recovery": {"/healthz": {"status": 200, "ms": 3.27}, "/readyz": {"status": 200, "ms": 0.93}}, "unhandled_thread_exceptions": [], "new_threads_after_shutdown": [], "server_errors": [], "server_runner_alive": false, "pass": false}
+
+tests/test_disconnect_chaos_cli_guard.py:20: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_disconnect_chaos_cli_guard.py::DisconnectChaosCliGuard::test_runs_without_output_argument
+1 failed, 3 passed, 10 subtests passed in 1.09s

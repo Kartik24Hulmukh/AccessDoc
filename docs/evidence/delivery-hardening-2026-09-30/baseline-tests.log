@@ -1,0 +1,36 @@
+...................{"event": "request", "request_id": "135413485d11", "method": "POST", "status": 400, "duration_ms": 0.42}
+{"event": "request", "request_id": "f311b2a22a08", "method": "POST", "status": 413, "duration_ms": 0.33}
+..........{"event": "request", "request_id": "97c0441f07da", "method": "POST", "status": 415, "duration_ms": 0.33}
+................................. [  7%]
+.............................................................. [ 14%]
+...............................................{"event": "request", "request_id": "c9847e74c067", "method": "POST", "status": 400, "duration_ms": 0.35}
+..............s.......... [ 22%]
+.................................................................. [ 29%]
+................................................{"event": "request", "request_id": "78984ea28868", "method": "POST", "status": 400, "duration_ms": 0.58}
+................. [ 36%]
+.............................................................. [ 43%]
+................................................................ [ 51%]
+.................................................................... [ 58%]
+.............................................................. [ 65%]
+...................................................................... [ 73%]
+........................................................................ [ 81%]
+.............................................................{"event": "request", "request_id": "8d83c1a7d5e6", "method": "POST", "status": 422, "duration_ms": 0.51}
+........... [ 90%]
+.................................................{"ts":1790720291.8159156,"level":"info","event":"http_request","trace_id":"40840ff65193537942504d24ba4f4cfb","span_id":"f0bb8ed12f62bd62","request_id":"7fc4ced1fdbbb6f4b9e609ae3ed4cd9a","ip":"127.0.0.1","method":"POST","route":"/api/bundle","status":200,"duration_ms":6.44}
+... [ 95%]
+....................................                                     [100%]
+=============================== warnings summary ===============================
+tests/test_stress_matrix.py::SecurityStressTests::test_duplicate_zip_paths_rejected
+  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'report.html'
+    return self._open_to_write(zinfo, force_zip64=force_zip64)
+
+tests/test_zip_hardening.py::ZipHardeningTests::test_duplicate_manifest_json
+  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'manifest.json'
+    return self._open_to_write(zinfo, force_zip64=force_zip64)
+
+tests/test_zip_hardening.py::ZipHardeningTests::test_duplicate_report_pdf
+  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'report.pdf'
+    return self._open_to_write(zinfo, force_zip64=force_zip64)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+884 passed, 1 skipped, 3 warnings, 159 subtests passed in 72.15s (0:01:12)

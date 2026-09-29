@@ -1,0 +1,85 @@
+{
+  "head": "42758c9c0c0706dc263283e3adf74f93bd705594",
+  "checks": [
+    {
+      "name": "Vercel Preview Comments",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 109660056011
+    },
+    {
+      "name": "portability (windows-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 109659985978
+    },
+    {
+      "name": "lint",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 109659985971
+    },
+    {
+      "name": "dependency-security",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 109659985948
+    },
+    {
+      "name": "portability (macos-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 109659985898
+    },
+    {
+      "name": "test",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 109659985707
+    },
+    {
+      "name": "accessdoc-evidence",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 109659985512
+    },
+    {
+      "name": "GitGuardian Security Checks",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 109659974806
+    },
+    {
+      "name": "portability (macos-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 109659974687
+    },
+    {
+      "name": "dependency-security",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 109659974221
+    },
+    {
+      "name": "portability (windows-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 109659974141
+    },
+    {
+      "name": "test",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 109659973899
+    },
+    {
+      "name": "lint",
+      "status": "completed",
+      "conclusion": "success",
+      "id": 109659973427
+    }
+  ],
+  "all_completed": true,
+  "all_success": true
+}

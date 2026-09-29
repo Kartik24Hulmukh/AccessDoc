@@ -1,0 +1,46 @@
+{
+  "compile": {
+    "status": "PASS",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "tests": {
+    "status": "FAIL",
+    "exitCode": 1,
+    "stdout": "turncode, 0,\n                             \"stderr:\\n\" + proc.stderr[-2000:] + \"\\nstdout tail (gate verdict):\\n\" + proc.stdout[-1500:])\nE           AssertionError: 1 != 0 : stderr:\nE           \nE           stdout tail (gate verdict):\nE           d5d389c\",\"ip\":\"127.0.0.1\",\"method\":\"POST\",\"route\":\"/api/bundle\",\"status\":422,\"duration_ms\":1.46}\nE           {\"ts\":1790722895.0071666,\"level\":\"info\",\"event\":\"http_request\",\"trace_id\":\"9a757dc4357874c48ecb450d2acaa90a\",\"span_id\":\"567621b1be60db97\",\"request_id\":\"730d6bc6ee05b952461873a730c1ca6b\",\"ip\":\"127.0.0.1\",\"method\":\"POST\",\"route\":\"/api/bundle\",\"status\":422,\"duration_ms\":1.32}\nE           {\"ts\":1790722895.0076342,\"level\":\"info\",\"event\":\"http_request\",\"trace_id\":\"007940b92f6887fb0de375e1e306b370\",\"span_id\":\"b9f7238bf33d083d\",\"request_id\":\"1233e131191dad125fa0862ec6b9e019\",\"ip\":\"127.0.0.1\",\"method\":\"POST\",\"route\":\"/api/bundle\",\"status\":422,\"duration_ms\":0.98}\nE           {\"ts\":1790722895.0105128,\"level\":\"info\",\"event\":\"http_request\",\"trace_id\":\"64b6c8e4a8464a4eec7f68f387330c22\",\"span_id\":\"6a9ec88a39fa56bf\",\"request_id\":\"f8e9eee1f18952e4c0c297b4d2051978\",\"ip\":\"127.0.0.1\",\"method\":\"GET\",\"route\":\"/healthz\",\"status\":200,\"duration_ms\":0.68}\nE           {\"ts\":1790722895.0115433,\"level\":\"info\",\"event\":\"http_request\",\"trace_id\":\"27175489514dc077f68caf0b8531c2e1\",\"span_id\":\"bb86790348349230\",\"request_id\":\"9b870c941c0961ea15bc86c4c8e2a351\",\"ip\":\"127.0.0.1\",\"method\":\"GET\",\"route\":\"/readyz\",\"status\":200,\"duration_ms\":0.48}\nE           {\"scope\": \"100 synthetic socket workflows; 40 disconnects; no humans; loopback only\", \"recovery\": {\"/healthz\": {\"status\": 200, \"ms\": 1.35}, \"/readyz\": {\"status\": 200, \"ms\": 0.74}}, \"unhandled_thread_exceptions\": [], \"new_threads_after_shutdown\": [], \"server_errors\": [], \"server_runner_alive\": false, \"pass\": false}\n\ntests/test_disconnect_chaos_cli_guard.py:20: AssertionError\n=============================== warnings summary ===============================\ntests/test_stress_matrix.py::SecurityStressTests::test_duplicate_zip_paths_rejected\n  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'report.html'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_zip_hardening.py::ZipHardeningTests::test_duplicate_manifest_json\n  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'manifest.json'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_zip_hardening.py::ZipHardeningTests::test_duplicate_report_pdf\n  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'report.pdf'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ============================\nFAILED tests/test_disconnect_chaos_cli_guard.py::DisconnectChaosCliGuard::test_runs_without_output_argument\n1 failed, 905 passed, 1 skipped, 3 warnings, 201 subtests passed in 80.01s (0:01:20)\n",
+    "stderr": ""
+  },
+  "secret_patterns": {
+    "status": "PASS",
+    "detail": []
+  },
+  "claims": {
+    "status": "PASS",
+    "detail": []
+  },
+  "placeholders": {
+    "status": "PASS",
+    "detail": []
+  },
+  "stale_files": {
+    "status": "PASS",
+    "detail": []
+  },
+  "immutable_action_refs": {
+    "status": "PASS",
+    "detail": []
+  },
+  "non_publishing_workflows": {
+    "status": "PASS",
+    "detail": []
+  },
+  "required_files": {
+    "status": "PASS",
+    "detail": []
+  },
+  "version_consistency": {
+    "status": "PASS",
+    "detail": []
+  }
+}

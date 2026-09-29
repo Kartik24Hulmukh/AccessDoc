@@ -1,0 +1,319 @@
+.....F                                            [100%]
+=================================== FAILURES ===================================
+_ ManualNodesBoundaryTests.test_both_adapters_never_echo_raw_validation_exception (adapter='api.handler') _
+
+self = <tests.test_manual_nodes_boundary.ManualNodesBoundaryTests testMethod=test_both_adapters_never_echo_raw_validation_exception>
+
+    def test_both_adapters_never_echo_raw_validation_exception(self):
+        from api.handler import handler
+        from app.main import Handler, Server
+        for server_type, handler_type in ((HTTPServer, handler), (Server, Handler)):
+            with self.subTest(adapter=handler_type.__module__):
+                server = server_type(("127.0.0.1", 0), handler_type)
+                runner = threading.Thread(
+                    target=lambda: server.serve_forever(poll_interval=0.01))
+                runner.start()
+                env = {"ACCESSDOC_REQUIRE_AUTH": "false", "ACCESSDOC_API_KEY": "",
+                       "ACCESSDOC_API_KEYS": "", "RATE_LIMIT_PER_MINUTE": "100000",
+                       "ALLOWED_HOSTS": "127.0.0.1:%d" % server.server_port}
+                try:
+                    with patch.dict(os.environ, env), patch(
+                            "app.service.generate_pdf_report") as renderer:
+                        for manual, expected in (
+                                ("id,nodes\nx,²", 422),
+                                ("|id|nodes|\n|---|---|\n|x|²|", 422),
+                                ([{"id": "x", "nodes": "9" * 5000}], 413)):
+                            request = Request(
+                                "http://127.0.0.1:%d/api/bundle" % server.server_port,
+                                data=json.dumps({"scanner_input": {"violations": []},
+                                                 "manual_findings": manual}).encode(),
+                                headers={"Content-Type": "application/json"})
+                            with self.assertRaises(HTTPError) as error:
+                                urlopen(request, timeout=5)
+                            with error.exception:
+>                               self.assertEqual(error.exception.code, expected)
+E                               AssertionError: 422 != 413
+
+tests/test_manual_nodes_boundary.py:64: AssertionError
+_ ManualNodesBoundaryTests.test_both_adapters_never_echo_raw_validation_exception (adapter='app.main') _
+
+self = <tests.test_manual_nodes_boundary.ManualNodesBoundaryTests testMethod=test_both_adapters_never_echo_raw_validation_exception>
+
+    def test_both_adapters_never_echo_raw_validation_exception(self):
+        from api.handler import handler
+        from app.main import Handler, Server
+        for server_type, handler_type in ((HTTPServer, handler), (Server, Handler)):
+            with self.subTest(adapter=handler_type.__module__):
+                server = server_type(("127.0.0.1", 0), handler_type)
+                runner = threading.Thread(
+                    target=lambda: server.serve_forever(poll_interval=0.01))
+                runner.start()
+                env = {"ACCESSDOC_REQUIRE_AUTH": "false", "ACCESSDOC_API_KEY": "",
+                       "ACCESSDOC_API_KEYS": "", "RATE_LIMIT_PER_MINUTE": "100000",
+                       "ALLOWED_HOSTS": "127.0.0.1:%d" % server.server_port}
+                try:
+                    with patch.dict(os.environ, env), patch(
+                            "app.service.generate_pdf_report") as renderer:
+                        for manual, expected in (
+                                ("id,nodes\nx,²", 422),
+                                ("|id|nodes|\n|---|---|\n|x|²|", 422),
+                                ([{"id": "x", "nodes": "9" * 5000}], 413)):
+                            request = Request(
+                                "http://127.0.0.1:%d/api/bundle" % server.server_port,
+                                data=json.dumps({"scanner_input": {"violations": []},
+                                                 "manual_findings": manual}).encode(),
+                                headers={"Content-Type": "application/json"})
+                            with self.assertRaises(HTTPError) as error:
+                                urlopen(request, timeout=5)
+                            with error.exception:
+                                self.assertEqual(error.exception.code, expected)
+                                body = error.exception.read()
+                                json.loads(body)
+                                for marker in (b"invalid literal", b"Traceback",
+                                               b"ValueError", "²".encode(),
+                                               b"999999999"):
+>                                   self.assertNotIn(marker, body)
+E                                   AssertionError: b'invalid literal' unexpectedly found in b'{"error": {"code": "INVALID_INPUT", "message": "invalid literal for int() with base 10: \'\xc2\xb2\'", "requestId": "5ac8891c17e34cc0c4788f430b541bdd"}}'
+
+tests/test_manual_nodes_boundary.py:70: AssertionError
+_ ManualNodesBoundaryTests.test_large_decimal_rejects_before_integer_conversion (shape='int') _
+
+self = <tests.test_manual_nodes_boundary.ManualNodesBoundaryTests testMethod=test_large_decimal_rejects_before_integer_conversion>
+
+    def test_large_decimal_rejects_before_integer_conversion(self):
+        for value in (MAX_NODES_PER_VIOLATION + 1, "9" * 5000):
+>           with self.subTest(shape=type(value).__name__), self.assertRaises(
+                    LimitExceeded):
+E                   AssertionError: LimitExceeded not raised
+
+tests/test_manual_nodes_boundary.py:33: AssertionError
+_ ManualNodesBoundaryTests.test_large_decimal_rejects_before_integer_conversion (shape='str') _
+
+self = <tests.test_manual_nodes_boundary.ManualNodesBoundaryTests testMethod=test_large_decimal_rejects_before_integer_conversion>
+
+    def test_large_decimal_rejects_before_integer_conversion(self):
+        for value in (MAX_NODES_PER_VIOLATION + 1, "9" * 5000):
+            with self.subTest(shape=type(value).__name__), self.assertRaises(
+                    LimitExceeded):
+>               parse_manual_findings([{"id": "x", "nodes": value}])
+
+tests/test_manual_nodes_boundary.py:35:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+app/manual.py:122: in parse_manual_findings
+    return [_row_to_violation(r) for r in data]
+            ^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _row_to_violation(row):
+        target = str(row.get("target") or row.get("selector") or "").strip()
+        if not target:
+            target = _MANUAL_NO_TARGET
+        return AuditViolation(
+            id=str(row.get("id") or row.get("rule") or "manual-finding").strip(),
+            impact=_norm_impact(row.get("impact")),
+            description=str(row.get("description") or row.get("desc") or "").strip(),
+            help_url=str(row.get("help_url") or row.get("helpUrl") or "").strip(),
+            wcag_scs=_split_scs(row.get("wcag_scs") or row.get("wcag") or row.get("sc")),
+>           nodes=int(row.get("nodes") or 0) if str(row.get("nodes") or "").strip().isdigit() else 0,
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+            source=SOURCE_MANUAL,
+            target=target,
+        )
+E       ValueError: Exceeds the limit (4300 digits) for integer string conversion: value has 5000 digits; use sys.set_int_max_str_digits() to increase the limit
+
+app/manual.py:52: ValueError
+_ ManualNodesBoundaryTests.test_non_ascii_negative_and_non_integer_counts_reject_generically (value='²') _
+ValueError: invalid literal for int() with base 10: '²'
+
+During handling of the above exception, another exception occurred:
+
+self = <tests.test_manual_nodes_boundary.ManualNodesBoundaryTests testMethod=test_non_ascii_negative_and_non_integer_counts_reject_generically>
+
+    def test_non_ascii_negative_and_non_integer_counts_reject_generically(self):
+        for value in ("²", "١", "-1", -1, True, 1.5, {}, [], "private-cell"):
+>           with self.subTest(value=value), self.assertRaisesRegex(
+                    ValueError, "^Invalid manual finding node count$"):
+E                   AssertionError: "^Invalid manual finding node count$" does not match "invalid literal for int() with base 10: '²'"
+
+tests/test_manual_nodes_boundary.py:27: AssertionError
+_ ManualNodesBoundaryTests.test_non_ascii_negative_and_non_integer_counts_reject_generically (value='١') _
+
+self = <tests.test_manual_nodes_boundary.ManualNodesBoundaryTests testMethod=test_non_ascii_negative_and_non_integer_counts_reject_generically>
+
+    def test_non_ascii_negative_and_non_integer_counts_reject_generically(self):
+        for value in ("²", "١", "-1", -1, True, 1.5, {}, [], "private-cell"):
+>           with self.subTest(value=value), self.assertRaisesRegex(
+                    ValueError, "^Invalid manual finding node count$"):
+E                   AssertionError: ValueError not raised
+
+tests/test_manual_nodes_boundary.py:27: AssertionError
+_ ManualNodesBoundaryTests.test_non_ascii_negative_and_non_integer_counts_reject_generically (value='-1') _
+
+self = <tests.test_manual_nodes_boundary.ManualNodesBoundaryTests testMethod=test_non_ascii_negative_and_non_integer_counts_reject_generically>
+
+    def test_non_ascii_negative_and_non_integer_counts_reject_generically(self):
+        for value in ("²", "١", "-1", -1, True, 1.5, {}, [], "private-cell"):
+>           with self.subTest(value=value), self.assertRaisesRegex(
+                    ValueError, "^Invalid manual finding node count$"):
+E                   AssertionError: ValueError not raised
+
+tests/test_manual_nodes_boundary.py:27: AssertionError
+_ ManualNodesBoundaryTests.test_non_ascii_negative_and_non_integer_counts_reject_generically (value=-1) _
+
+self = <tests.test_manual_nodes_boundary.ManualNodesBoundaryTests testMethod=test_non_ascii_negative_and_non_integer_counts_reject_generically>
+
+    def test_non_ascii_negative_and_non_integer_counts_reject_generically(self):
+        for value in ("²", "١", "-1", -1, True, 1.5, {}, [], "private-cell"):
+>           with self.subTest(value=value), self.assertRaisesRegex(
+                    ValueError, "^Invalid manual finding node count$"):
+E                   AssertionError: ValueError not raised
+
+tests/test_manual_nodes_boundary.py:27: AssertionError
+_ ManualNodesBoundaryTests.test_non_ascii_negative_and_non_integer_counts_reject_generically (value=True) _
+
+self = <tests.test_manual_nodes_boundary.ManualNodesBoundaryTests testMethod=test_non_ascii_negative_and_non_integer_counts_reject_generically>
+
+    def test_non_ascii_negative_and_non_integer_counts_reject_generically(self):
+        for value in ("²", "١", "-1", -1, True, 1.5, {}, [], "private-cell"):
+>           with self.subTest(value=value), self.assertRaisesRegex(
+                    ValueError, "^Invalid manual finding node count$"):
+E                   AssertionError: ValueError not raised
+
+tests/test_manual_nodes_boundary.py:27: AssertionError
+_ ManualNodesBoundaryTests.test_non_ascii_negative_and_non_integer_counts_reject_generically (value=1.5) _
+
+self = <tests.test_manual_nodes_boundary.ManualNodesBoundaryTests testMethod=test_non_ascii_negative_and_non_integer_counts_reject_generically>
+
+    def test_non_ascii_negative_and_non_integer_counts_reject_generically(self):
+        for value in ("²", "١", "-1", -1, True, 1.5, {}, [], "private-cell"):
+>           with self.subTest(value=value), self.assertRaisesRegex(
+                    ValueError, "^Invalid manual finding node count$"):
+E                   AssertionError: ValueError not raised
+
+tests/test_manual_nodes_boundary.py:27: AssertionError
+_ ManualNodesBoundaryTests.test_non_ascii_negative_and_non_integer_counts_reject_generically (value={}) _
+
+self = <tests.test_manual_nodes_boundary.ManualNodesBoundaryTests testMethod=test_non_ascii_negative_and_non_integer_counts_reject_generically>
+
+    def test_non_ascii_negative_and_non_integer_counts_reject_generically(self):
+        for value in ("²", "١", "-1", -1, True, 1.5, {}, [], "private-cell"):
+>           with self.subTest(value=value), self.assertRaisesRegex(
+                    ValueError, "^Invalid manual finding node count$"):
+E                   AssertionError: ValueError not raised
+
+tests/test_manual_nodes_boundary.py:27: AssertionError
+_ ManualNodesBoundaryTests.test_non_ascii_negative_and_non_integer_counts_reject_generically (value=[]) _
+
+self = <tests.test_manual_nodes_boundary.ManualNodesBoundaryTests testMethod=test_non_ascii_negative_and_non_integer_counts_reject_generically>
+
+    def test_non_ascii_negative_and_non_integer_counts_reject_generically(self):
+        for value in ("²", "١", "-1", -1, True, 1.5, {}, [], "private-cell"):
+>           with self.subTest(value=value), self.assertRaisesRegex(
+                    ValueError, "^Invalid manual finding node count$"):
+E                   AssertionError: ValueError not raised
+
+tests/test_manual_nodes_boundary.py:27: AssertionError
+_ ManualNodesBoundaryTests.test_non_ascii_negative_and_non_integer_counts_reject_generically (value='private-cell') _
+
+self = <tests.test_manual_nodes_boundary.ManualNodesBoundaryTests testMethod=test_non_ascii_negative_and_non_integer_counts_reject_generically>
+
+    def test_non_ascii_negative_and_non_integer_counts_reject_generically(self):
+        for value in ("²", "١", "-1", -1, True, 1.5, {}, [], "private-cell"):
+>           with self.subTest(value=value), self.assertRaisesRegex(
+                    ValueError, "^Invalid manual finding node count$"):
+E                   AssertionError: ValueError not raised
+
+tests/test_manual_nodes_boundary.py:27: AssertionError
+_ ReleaseValidationIntegrityTests.test_negative_contract_rejects_exception_leakage_in_keys (payload={'error': 'Invalid input', 'Traceback': 'redacted'}) _
+
+self = <tests.test_release_validation_integrity.ReleaseValidationIntegrityTests testMethod=test_negative_contract_rejects_exception_leakage_in_keys>
+
+    def test_negative_contract_rejects_exception_leakage_in_keys(self):
+        for payload in (
+                {"error": "Invalid input", "Traceback": "redacted"},
+                {"error": "Invalid input", "diagnostics": {
+                    'File "private.py"': "redacted"}},
+                {"error": ["Invalid input", {"Exception": "redacted"}]}):
+            with self.subTest(payload=payload):
+>               self.assertFalse(error_response_matches(
+                    422, json.dumps(payload).encode(), 422))
+E               AssertionError: True is not false
+
+tests/test_release_validation_integrity.py:65: AssertionError
+_ ReleaseValidationIntegrityTests.test_negative_contract_rejects_exception_leakage_in_keys (payload={'error': 'Invalid input', 'diagnostics': {'File "private.py"': 'redacted'}}) _
+
+self = <tests.test_release_validation_integrity.ReleaseValidationIntegrityTests testMethod=test_negative_contract_rejects_exception_leakage_in_keys>
+
+    def test_negative_contract_rejects_exception_leakage_in_keys(self):
+        for payload in (
+                {"error": "Invalid input", "Traceback": "redacted"},
+                {"error": "Invalid input", "diagnostics": {
+                    'File "private.py"': "redacted"}},
+                {"error": ["Invalid input", {"Exception": "redacted"}]}):
+            with self.subTest(payload=payload):
+>               self.assertFalse(error_response_matches(
+                    422, json.dumps(payload).encode(), 422))
+E               AssertionError: True is not false
+
+tests/test_release_validation_integrity.py:65: AssertionError
+_ ReleaseValidationIntegrityTests.test_negative_contract_rejects_exception_leakage_in_keys (payload={'error': ['Invalid input', {'Exception': 'redacted'}]}) _
+
+self = <tests.test_release_validation_integrity.ReleaseValidationIntegrityTests testMethod=test_negative_contract_rejects_exception_leakage_in_keys>
+
+    def test_negative_contract_rejects_exception_leakage_in_keys(self):
+        for payload in (
+                {"error": "Invalid input", "Traceback": "redacted"},
+                {"error": "Invalid input", "diagnostics": {
+                    'File "private.py"': "redacted"}},
+                {"error": ["Invalid input", {"Exception": "redacted"}]}):
+            with self.subTest(payload=payload):
+>               self.assertFalse(error_response_matches(
+                    422, json.dumps(payload).encode(), 422))
+E               AssertionError: True is not false
+
+tests/test_release_validation_integrity.py:65: AssertionError
+_ ReleaseValidationIntegrityTests.test_gsa_validator_nonzero_exit_cannot_pass_with_valid_output _
+
+self = <tests.test_release_validation_integrity.ReleaseValidationIntegrityTests testMethod=test_gsa_validator_nonzero_exit_cannot_pass_with_valid_output>
+
+    @unittest.skipIf(sys.platform == "win32", "GitHub Linux bash gate")
+    def test_gsa_validator_nonzero_exit_cannot_pass_with_valid_output(self):
+        workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        step = next(s for s in workflow["jobs"]["test"]["steps"]
+                    if "GSA CLI validator" in s.get("name", ""))
+        # Reproduce only the gate pipeline and checks, without cloning or npm.
+        run = step["run"]
+        run = run[run.index("npx --prefix"):].replace(
+            "npx --prefix /tmp/openacr-upstream ts-node "
+            "/tmp/openacr-upstream/src/openacr.ts validate -f /tmp/test_acr.yaml",
+            '{ printf "Valid!\\n"; exit 42; }')
+        flags = ["-e", "-o", "pipefail"] if step.get("shell") == "bash" else ["-e"]
+        with tempfile.TemporaryDirectory() as directory:
+            run = run.replace("/tmp/gsa.out", str(Path(directory) / "gsa.out"))
+            result = subprocess.run(["bash", "--noprofile", "--norc",
+                                     *flags, "-c", run], capture_output=True,
+                                    text=True, timeout=5)
+>       self.assertEqual(result.returncode, 42, result.stdout + result.stderr)
+E       AssertionError: 0 != 42 : Valid!
+E       grep: warning: stray \ before !
+
+tests/test_release_validation_integrity.py:85: AssertionError
+=========================== short test summary info ============================
+SUBFAILED(adapter='api.handler') tests/test_manual_nodes_boundary.py::ManualNodesBoundaryTests::test_both_adapters_never_echo_raw_validation_exception
+SUBFAILED(adapter='app.main') tests/test_manual_nodes_boundary.py::ManualNodesBoundaryTests::test_both_adapters_never_echo_raw_validation_exception
+SUBFAILED(shape='int') tests/test_manual_nodes_boundary.py::ManualNodesBoundaryTests::test_large_decimal_rejects_before_integer_conversion
+SUBFAILED(shape='str') tests/test_manual_nodes_boundary.py::ManualNodesBoundaryTests::test_large_decimal_rejects_before_integer_conversion
+SUBFAILED(value='²') tests/test_manual_nodes_boundary.py::ManualNodesBoundaryTests::test_non_ascii_negative_and_non_integer_counts_reject_generically
+SUBFAILED(value='١') tests/test_manual_nodes_boundary.py::ManualNodesBoundaryTests::test_non_ascii_negative_and_non_integer_counts_reject_generically
+SUBFAILED(value='-1') tests/test_manual_nodes_boundary.py::ManualNodesBoundaryTests::test_non_ascii_negative_and_non_integer_counts_reject_generically
+SUBFAILED(value=-1) tests/test_manual_nodes_boundary.py::ManualNodesBoundaryTests::test_non_ascii_negative_and_non_integer_counts_reject_generically
+SUBFAILED(value=True) tests/test_manual_nodes_boundary.py::ManualNodesBoundaryTests::test_non_ascii_negative_and_non_integer_counts_reject_generically
+SUBFAILED(value=1.5) tests/test_manual_nodes_boundary.py::ManualNodesBoundaryTests::test_non_ascii_negative_and_non_integer_counts_reject_generically
+SUBFAILED(value={}) tests/test_manual_nodes_boundary.py::ManualNodesBoundaryTests::test_non_ascii_negative_and_non_integer_counts_reject_generically
+SUBFAILED(value=[]) tests/test_manual_nodes_boundary.py::ManualNodesBoundaryTests::test_non_ascii_negative_and_non_integer_counts_reject_generically
+SUBFAILED(value='private-cell') tests/test_manual_nodes_boundary.py::ManualNodesBoundaryTests::test_non_ascii_negative_and_non_integer_counts_reject_generically
+SUBFAILED(payload={'error': 'Invalid input', 'Traceback': 'redacted'}) tests/test_release_validation_integrity.py::ReleaseValidationIntegrityTests::test_negative_contract_rejects_exception_leakage_in_keys
+SUBFAILED(payload={'error': 'Invalid input', 'diagnostics': {'File "private.py"': 'redacted'}}) tests/test_release_validation_integrity.py::ReleaseValidationIntegrityTests::test_negative_contract_rejects_exception_leakage_in_keys
+SUBFAILED(payload={'error': ['Invalid input', {'Exception': 'redacted'}]}) tests/test_release_validation_integrity.py::ReleaseValidationIntegrityTests::test_negative_contract_rejects_exception_leakage_in_keys
+FAILED tests/test_release_validation_integrity.py::ReleaseValidationIntegrityTests::test_gsa_validator_nonzero_exit_cannot_pass_with_valid_output
+17 failed, 5 passed, 7 subtests passed in 0.34s
