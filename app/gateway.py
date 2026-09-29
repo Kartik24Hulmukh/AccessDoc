@@ -52,6 +52,7 @@ MELIOUS_BASE_URL = os.getenv("MELIOUS_BASE_URL", "https://api.melious.ai/v1")
 CHAT_PATH = "/chat/completions"
 API_KEY_ENV = "MELIOUS_API_KEY"
 
+BILLING_MARKER = "x-accessdoc-billing-exhausted"
 CANONICAL_CHAIN = ("glm-5.3", "glm-5.3-flash", "qwen3.8-27b", "kimi-k3")
 _ALIASES = {
     "glm5.3": "glm-5.3",
@@ -321,6 +322,37 @@ class ModelGateway:
         self._session.mount("https://", adapter)
         self._session.mount("http://", adapter)
         weakref.finalize(self, self._session.close)
+        # Account-wide credit exhaustion (provider 402, or 429 with
+        # code=insufficient_quota / type=billing_error) is NOT a per-model rate
+        # limit: every model shares the same key, so probing the rest of the
+        # chain only adds dead latency. Hold the whole chain for a cooldown.
+        self.billing_cooldown = float(os.getenv("GATEWAY_BILLING_COOLDOWN_SECONDS", "300"))
+        self._billing_until = 0.0
+        self._billing_lock = threading.Lock()
+
+    def billing_exhausted(self):
+        with self._billing_lock:
+            return time.monotonic() < self._billing_until
+
+    def _hold_billing(self, model):
+        with self._billing_lock:
+            cool = self.billing_cooldown if self.billing_cooldown > 0 else 0.0
+            self._billing_until = time.monotonic() + cool
+        self._log(event="gateway_billing_exhausted", model=model,
+                  cooldown_s=self.billing_cooldown)
+
+    @staticmethod
+    def is_billing_error(status, body):
+        """Pure classifier for account-wide quota/credit exhaustion."""
+        if status == 402:
+            return True
+        if status != 429 or not isinstance(body, dict):
+            return False
+        err = body.get("error")
+        if not isinstance(err, dict):
+            return False
+        return (str(err.get("code") or "").lower() in {"insufficient_quota", "billing_hard_limit_reached"}
+                or str(err.get("type") or "").lower() in {"billing_error", "insufficient_quota"})
 
     def _key(self):
         return self._api_key or os.getenv(API_KEY_ENV, "")
@@ -371,7 +403,17 @@ class ModelGateway:
             # Error bodies are neither needed for routing nor safe to buffer.
             # Preserve Retry-After while closing the stream in the finally block.
             if resp.status_code != 200:
-                return resp.status_code, dict(resp.headers), {}
+                hdrs = dict(resp.headers)
+                if resp.status_code in (402, 429):
+                    # Bounded 4 KiB peek only to tell billing exhaustion from
+                    # a rate limit; never buffered beyond that.
+                    try:
+                        peek = json.loads(resp.raw.read(4096, decode_content=True) or b"{}")
+                    except Exception:
+                        peek = {}
+                    if self.is_billing_error(resp.status_code, peek):
+                        hdrs[BILLING_MARKER] = "1"
+                return resp.status_code, hdrs, {}
             body = self._read_bounded(resp, model, response_deadline)
             try:
                 payload = json.loads(body)
@@ -502,6 +544,14 @@ class ModelGateway:
         return self._chat_hedged(prompt, model, static_fallback, budget_seconds, hedge)
 
     def _chat_hedged(self, prompt, model, static_fallback, budget_seconds, hedge):
+        if self.billing_exhausted():
+            # Credits are account-wide: no lane can succeed, dispatch nothing.
+            self._log(event="gateway_skip", model=None, reason="billing_exhausted")
+            if static_fallback:
+                self._log(event="gateway_static_fallback", reason="billing_exhausted")
+                return GatewayResult("static-kb", static_answer(prompt), 0, 0.0,
+                                     0, True, "static-kb")
+            raise GatewayError("provider credits exhausted", status=402)
         budget = float(budget_seconds if budget_seconds is not None else self.budget_seconds)
         t_start = time.monotonic()
         deadline = t_start + budget
@@ -625,6 +675,10 @@ class ModelGateway:
                           tokens_spent=tokens_spent, token_budget=tb)
                 last_err = GatewayError("gateway token budget exhausted", status=429, model=m)
                 break
+            if self.billing_exhausted():
+                self._log(event="gateway_skip", model=m, reason="billing_exhausted")
+                last_err = GatewayError("provider credits exhausted", status=402, model=m)
+                break
             breaker = self.breakers[m]
             if not breaker.allow():
                 self._log(event="gateway_skip", model=m, reason="circuit_open",
@@ -689,6 +743,12 @@ class ModelGateway:
                               circuit=breaker.state, attempt=attempt + 1)
                     return GatewayResult(m, text, tokens, latency,
                                          attempt + 1, False, m)
+                if status == 402 or (headers or {}).get(BILLING_MARKER) == "1":
+                    self._hold_billing(m)
+                    self._log(event="gateway_call", model=m, status=status,
+                              latency_ms=latency, reason="billing_exhausted")
+                    last_err = GatewayError("provider credits exhausted", status=402, model=m)
+                    break
                 transient = status == 429 or status == 408 or status >= 500
                 if status == 429:
                     # Explicit rate limits atomically stop new admissions without
@@ -752,4 +812,5 @@ class ModelGateway:
                 "token_budget": self.token_budget,
                 "budget_seconds": self.budget_seconds,
                 "tracing": "opentelemetry" if telemetry.otel_enabled() else "w3c-traceparent",
+                "billing_exhausted": self.billing_exhausted(),
                 "models": {m: b.snapshot() for m, b in self.breakers.items()}}
