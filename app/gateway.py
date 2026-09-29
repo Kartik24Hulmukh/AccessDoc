@@ -138,6 +138,9 @@ class CircuitBreaker:
         self.consecutive_failures = 0
         self._opened_at = 0.0
         self._trials = 0
+        # Admissions carry an epoch: an older in-flight success must not erase
+        # a newer 429 trip, nor impersonate a current half-open recovery probe.
+        self._epoch = 0
         self.successes = 0
         self.failures = 0
 
@@ -155,68 +158,89 @@ class CircuitBreaker:
         return min(math.ldexp(base, cycles), cap)
 
     def allow(self):
+        """Compatibility predicate; production attempts use epoch tickets."""
+        return self.admit() is not None
+
+    def admit(self):
+        """Return an admission epoch, or None while the circuit rejects work."""
         with self._lock:
             if self.state == self.CLOSED:
-                return True
+                return self._epoch
             if self.state == self.OPEN:
                 if self._clock() - self._opened_at >= self.recovery_delay():
                     self.state = self.HALF_OPEN
                     self._trials = 0
                 else:
-                    return False
+                    return None
             if self.state == self.HALF_OPEN:
                 if self._trials < self.half_open_max_trials:
                     self._trials += 1
-                    return True
-                return False
-            return True
+                    return self._epoch
+                return None
+            return self._epoch
 
-    def record_success(self):
+    def abandon(self, ticket):
+        """Release a current recovery trial that never produced an outcome."""
         with self._lock:
+            if ticket == self._epoch and self.state == self.HALF_OPEN:
+                self._trials = max(0, self._trials - 1)
+
+    def record_success(self, ticket=None):
+        with self._lock:
+            self.successes += 1
+            if ticket is not None and ticket != self._epoch:
+                return
+            if self.state == self.HALF_OPEN:
+                # Other probes from this recovery wave are now stale too.
+                self._epoch += 1
             self.state = self.CLOSED
             self.consecutive_failures = 0
             self._trials = 0
             self.open_cycles = 0
-            self.successes += 1
 
-    def record_failure(self):
+    def _failure_locked(self, weight):
+        self.consecutive_failures += weight
+        if (self.state == self.HALF_OPEN or
+                (self.state == self.CLOSED and
+                 self.consecutive_failures >= self.failure_threshold)):
+            self.state = self.OPEN
+            self._opened_at = self._clock()
+            self.open_cycles += 1
+            self._epoch += 1
+
+    def record_failure(self, ticket=None):
         with self._lock:
             self.failures += 1
-            self.consecutive_failures += 1
-            if self.state == self.HALF_OPEN:
-                self.state = self.OPEN
-                self._opened_at = self._clock()
-                self.open_cycles += 1
-            elif self.state == self.CLOSED and                     self.consecutive_failures >= self.failure_threshold:
-                self.state = self.OPEN
-                self._opened_at = self._clock()
-                self.open_cycles += 1
+            if ticket is not None and ticket != self._epoch:
+                return
+            self._failure_locked(1)
 
-    def record_timeout(self):
+    def record_timeout(self, ticket=None):
         """A timeout is one real failure counted with extra weight toward opening."""
         with self._lock:
             self.timeouts += 1
-        for _ in range(self.timeout_weight):
-            self.record_failure()
-        # Only ONE observed failure happened; the weight only accelerates the
-        # threshold. Correct the raw counter so telemetry never fabricates N.
-        with self._lock:
-            self.failures -= self.timeout_weight - 1
+            self.failures += 1
+            if ticket is not None and ticket != self._epoch:
+                return
+            self._failure_locked(self.timeout_weight)
 
     def unhealthy(self):
         """True while the model has unresolved consecutive failures or is not CLOSED."""
         with self._lock:
             return self.state != self.CLOSED or self.consecutive_failures > 0
 
-    def trip(self):
+    def trip(self, ticket=None):
         """Record one failure and open atomically; never synthesize failures."""
         with self._lock:
             self.failures += 1
+            if ticket is not None and ticket != self._epoch:
+                return
             self.consecutive_failures += 1
             self.state = self.OPEN
             self._opened_at = self._clock()
             self._trials = 0
             self.open_cycles += 1
+            self._epoch += 1
 
     def snapshot(self):
         with self._lock:
@@ -700,11 +724,6 @@ class ModelGateway:
                 last_err = GatewayError("provider credits exhausted", status=402, model=m)
                 break
             breaker = self.breakers[m]
-            if not breaker.allow():
-                self._log(event="gateway_skip", model=m, reason="circuit_open",
-                          state=breaker.state)
-                last_err = GatewayError("circuit open", model=m)
-                continue
             attempt = 0
             while True:
                 # Retries share the same budget as fallback models. Recheck
@@ -720,6 +739,14 @@ class ModelGateway:
                 if cancel is not None and cancel.is_set():
                     # A hedged sibling already won: never make another billable call.
                     last_err = GatewayError("hedge cancelled", status=499, model=m)
+                    break
+                # Every retry is a new admission too: another request may have
+                # tripped the circuit while this attempt was backing off.
+                ticket = breaker.admit()
+                if ticket is None:
+                    self._log(event="gateway_skip", model=m, reason="circuit_open",
+                              state=breaker.state)
+                    last_err = GatewayError("circuit open", model=m)
                     break
                 if ready is not None:
                     # Hedge clock starts when this lane's request is in flight,
@@ -739,8 +766,12 @@ class ModelGateway:
                     status, payload = 502, {"error": str(exc)}
                 except GatewayError as exc:
                     if exc.status is None:
+                        breaker.abandon(ticket)
                         raise
                     status, payload = exc.status or 502, {'error': str(exc)}
+                except Exception:
+                    breaker.abandon(ticket)
+                    raise
                 latency = round((time.monotonic() - t0) * 1000, 2)
                 # Provider JSON is untrusted, including usage on success.
                 try:
@@ -756,7 +787,7 @@ class ModelGateway:
                     status = 502
                     payload = {"error": "empty completion"}
                 if status == 200:
-                    breaker.record_success()
+                    breaker.record_success(ticket)
                     self._log(event="gateway_call", model=m, status=200,
                               latency_ms=latency, tokens=tokens,
                               tokens_spent=tokens_spent,
@@ -764,6 +795,7 @@ class ModelGateway:
                     return GatewayResult(m, text, tokens, latency,
                                          attempt + 1, False, m)
                 if status == 402 or (headers or {}).get(BILLING_MARKER) == "1":
+                    breaker.abandon(ticket)
                     self._hold_billing(m)
                     self._log(event="gateway_call", model=m, status=status,
                               latency_ms=latency, reason="billing_exhausted")
@@ -773,19 +805,19 @@ class ModelGateway:
                 if status == 429:
                     # Explicit rate limits atomically stop new admissions without
                     # fabricating failures or racing an unbounded retry loop.
-                    breaker.trip()
+                    breaker.trip(ticket)
                 elif status == 404:
                     # The provider does not serve this model id at all (catalog
                     # rotation / typo). Re-trying it on the next two requests
                     # only buys ~0.3 s of dead latency each; eject at once and
                     # let the exponential half-open probe re-admit it if the
                     # catalog lists it again.
-                    breaker.trip()
+                    breaker.trip(ticket)
                 elif status == 504:
                     # Read timeouts are weighted: they cost a full window each.
-                    breaker.record_timeout()
+                    breaker.record_timeout(ticket)
                 else:
-                    breaker.record_failure()
+                    breaker.record_failure(ticket)
                 self._log(event="gateway_call", model=m, status=status,
                           latency_ms=latency, circuit=breaker.state,
                           attempt=attempt + 1)
