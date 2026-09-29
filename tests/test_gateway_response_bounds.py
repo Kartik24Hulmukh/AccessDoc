@@ -34,10 +34,14 @@ class ResponseBoundsTests(unittest.TestCase):
         with self.assertRaises(GatewayError):
             self.call(self.response([b"x" * 65], headers={"Content-Encoding": "gzip", "Content-Length": "20"}))
 
-    def test_429_body_not_consumed(self):
-        r = self.response([b"x" * 100000], status=429, headers={"Retry-After": "1"})
+    def test_429_body_consumed_only_to_bounded_prefix(self):
+        def chunks():
+            yield b"x" * 64
+            raise AssertionError("must not read past the bounded error prefix")
+        r = self.response([], status=429, headers={"Retry-After": "1"})
+        r.iter_content.return_value = chunks()
         self.assertEqual(self.call(r)[:2], (429, {"Retry-After": "1"}))
-        r.iter_content.assert_not_called()
+        r.iter_content.assert_called_once_with(chunk_size=64)
 
     def test_invalid_and_deep_json_fail_closed(self):
         for body in [b"not json", b"[" * 1100 + b"0" + b"]" * 1100]:

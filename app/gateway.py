@@ -404,12 +404,21 @@ class ModelGateway:
             # Preserve Retry-After while closing the stream in the finally block.
             if resp.status_code != 200:
                 hdrs = dict(resp.headers)
-                if resp.status_code in (402, 429):
+                if resp.status_code == 402:
+                    # Status alone identifies account-wide exhaustion. Reading
+                    # an optional error body only gives a slow provider a new
+                    # opportunity to hold the worker.
+                    hdrs[BILLING_MARKER] = "1"
+                elif resp.status_code == 429:
                     # Bounded 4 KiB peek only to tell billing exhaustion from
-                    # a rate limit; never buffered beyond that.
+                    # a rate limit. It shares the success reader's decoded-byte
+                    # cap and absolute deadline, including slow-drip bodies.
+                    peek_bytes = self._read_bounded(
+                        resp, model, response_deadline,
+                        byte_limit=min(4096, self.max_response_bytes), prefix=True)
                     try:
-                        peek = json.loads(resp.raw.read(4096, decode_content=True) or b"{}")
-                    except Exception:
+                        peek = json.loads(peek_bytes or b"{}")
+                    except (ValueError, RecursionError):
                         peek = {}
                     if self.is_billing_error(resp.status_code, peek):
                         hdrs[BILLING_MARKER] = "1"
@@ -436,7 +445,8 @@ class ModelGateway:
             sock = getattr(getattr(fp, "raw", None), "_sock", None)
         return sock
 
-    def _read_bounded(self, resp, model, response_deadline):
+    def _read_bounded(self, resp, model, response_deadline, byte_limit=None,
+                      prefix=False):
         """Strict wall-clock body reader (slow-drip / gzip-bomb safe).
 
         ``iter_content(chunk_size=N)`` blocks inside http.client until N bytes
@@ -447,21 +457,31 @@ class ModelGateway:
         arrive, checking the deadline between reads. Decoded bytes are capped
         at ``max_response_bytes`` so gzip expansion is bounded too.
         """
+        limit = self.max_response_bytes if byte_limit is None else byte_limit
         body = bytearray()
         raw = getattr(resp, "raw", None)
-        amt = min(16384, self.max_response_bytes + 1)
+        amt = min(16384, limit if prefix else limit + 1)
         if not isinstance(raw, urllib3.response.HTTPResponse):
             # Non-urllib3 transports (test doubles, adapters): keep the
             # chunked contract with the same deadline + decoded-size guards.
             for chunk in resp.iter_content(chunk_size=amt):
                 if response_deadline is not None and time.monotonic() >= response_deadline:
                     raise GatewayError("gateway response deadline exceeded", status=504, model=model)
-                if len(body) + len(chunk) > self.max_response_bytes:
+                if prefix:
+                    body.extend(chunk[:limit - len(body)])
+                    if len(body) >= limit:
+                        return body
+                    continue
+                if len(body) + len(chunk) > limit:
                     raise GatewayError("gateway response exceeds decoded byte limit", status=502, model=model)
                 body.extend(chunk)
             return body
         read1 = getattr(raw, "read1", None)
         while True:
+            if prefix:
+                if len(body) >= limit:
+                    return body
+                amt = min(amt, limit - len(body))
             if response_deadline is not None:
                 remaining = response_deadline - time.monotonic()
                 if remaining <= 0:
@@ -488,7 +508,7 @@ class ModelGateway:
                 raise requests.ConnectionError(str(exc))
             if not chunk:
                 return body
-            if len(body) + len(chunk) > self.max_response_bytes:
+            if len(body) + len(chunk) > limit:
                 raise GatewayError("gateway response exceeds decoded byte limit", status=502, model=model)
             body.extend(chunk)
 
