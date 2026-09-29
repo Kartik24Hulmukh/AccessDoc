@@ -1,0 +1,98 @@
+F.FF                                                                   [100%]
+=================================== FAILURES ===================================
+_ GatewayReadinessTests.test_billing_retry_window_expires_without_provider_probe _
+
+self = <tests.test_gateway_readiness.GatewayReadinessTests testMethod=test_billing_retry_window_expires_without_provider_probe>
+
+    def test_billing_retry_window_expires_without_provider_probe(self):
+        with patch("app.gateway.time.monotonic", return_value=100):
+            self.gw._hold_billing("primary")
+        with patch("app.gateway.time.monotonic", return_value=101.25):
+            snap = remediate.health()
+>       self.assertEqual(snap["status"], "degraded")
+                         ^^^^^^^^^^^^^^
+E       KeyError: 'status'
+
+tests/test_gateway_readiness.py:49: KeyError
+----------------------------- Captured stdout call -----------------------------
+{"ts":1790688560.444704,"level":"info","event":"gateway_billing_exhausted","trace_id":"7f90e5d0caf01e6aeeb50fcdcdc1cb54","span_id":"8fa18e16924c769f","model":"primary","cooldown_s":300.0}
+_ GatewayReadinessTests.test_both_http_adapters_keep_core_ready_during_billing_hold (adapter='app.main') _
+
+self = <tests.test_gateway_readiness.GatewayReadinessTests testMethod=test_both_http_adapters_keep_core_ready_during_billing_hold>
+
+    def test_both_http_adapters_keep_core_ready_during_billing_hold(self):
+        self.gw._hold_billing("primary")
+        for cls in (Handler, handler):
+            with self.subTest(adapter=cls.__module__):
+                server = HTTPServer(("127.0.0.1", 0), cls)
+                port = server.server_port
+                thread = threading.Thread(target=server.serve_forever)
+                thread.start()
+                try:
+                    with patch.dict(os.environ, {"ALLOWED_HOSTS": f"127.0.0.1:{port}"}):
+                        for route in ("/readyz", "/healthz"):
+                            with urlopen(f"http://127.0.0.1:{port}{route}", timeout=5) as response:
+                                self.assertEqual(response.status, 200)
+                                snap = json.load(response)["gateway"]
+                            self.assertTrue(snap["billing_exhausted"])
+>                           self.assertEqual(snap["status"], "degraded")
+                                             ^^^^^^^^^^^^^^
+E                           KeyError: 'status'
+
+tests/test_gateway_readiness.py:73: KeyError
+_ GatewayReadinessTests.test_both_http_adapters_keep_core_ready_during_billing_hold (adapter='api.handler') _
+
+self = <tests.test_gateway_readiness.GatewayReadinessTests testMethod=test_both_http_adapters_keep_core_ready_during_billing_hold>
+
+    def test_both_http_adapters_keep_core_ready_during_billing_hold(self):
+        self.gw._hold_billing("primary")
+        for cls in (Handler, handler):
+            with self.subTest(adapter=cls.__module__):
+                server = HTTPServer(("127.0.0.1", 0), cls)
+                port = server.server_port
+                thread = threading.Thread(target=server.serve_forever)
+                thread.start()
+                try:
+                    with patch.dict(os.environ, {"ALLOWED_HOSTS": f"127.0.0.1:{port}"}):
+                        for route in ("/readyz", "/healthz"):
+                            with urlopen(f"http://127.0.0.1:{port}{route}", timeout=5) as response:
+                                self.assertEqual(response.status, 200)
+                                snap = json.load(response)["gateway"]
+                            self.assertTrue(snap["billing_exhausted"])
+>                           self.assertEqual(snap["status"], "degraded")
+                                             ^^^^^^^^^^^^^^
+E                           KeyError: 'status'
+
+tests/test_gateway_readiness.py:73: KeyError
+____ GatewayReadinessTests.test_configured_unprobed_is_not_claimed_healthy _____
+
+self = <tests.test_gateway_readiness.GatewayReadinessTests testMethod=test_configured_unprobed_is_not_claimed_healthy>
+
+    def test_configured_unprobed_is_not_claimed_healthy(self):
+        remediate.reset_gateway(None)
+        snap = remediate.health()
+>       self.assertEqual(snap["status"], "unknown")
+                         ^^^^^^^^^^^^^^
+E       KeyError: 'status'
+
+tests/test_gateway_readiness.py:40: KeyError
+_ GatewayReadinessTests.test_unconfigured_is_explicit_and_does_not_construct_gateway _
+
+self = <tests.test_gateway_readiness.GatewayReadinessTests testMethod=test_unconfigured_is_explicit_and_does_not_construct_gateway>
+
+    def test_unconfigured_is_explicit_and_does_not_construct_gateway(self):
+        remediate.reset_gateway(None)
+        with patch.dict(os.environ, {"MELIOUS_API_KEY": ""}):
+            snap = remediate.health()
+>       self.assertEqual(snap["status"], "degraded")
+                         ^^^^^^^^^^^^^^
+E       KeyError: 'status'
+
+tests/test_gateway_readiness.py:33: KeyError
+=========================== short test summary info ============================
+FAILED tests/test_gateway_readiness.py::GatewayReadinessTests::test_billing_retry_window_expires_without_provider_probe
+SUBFAILED(adapter='app.main') tests/test_gateway_readiness.py::GatewayReadinessTests::test_both_http_adapters_keep_core_ready_during_billing_hold
+SUBFAILED(adapter='api.handler') tests/test_gateway_readiness.py::GatewayReadinessTests::test_both_http_adapters_keep_core_ready_during_billing_hold
+FAILED tests/test_gateway_readiness.py::GatewayReadinessTests::test_configured_unprobed_is_not_claimed_healthy
+FAILED tests/test_gateway_readiness.py::GatewayReadinessTests::test_unconfigured_is_explicit_and_does_not_construct_gateway
+5 failed, 1 passed in 0.18s
