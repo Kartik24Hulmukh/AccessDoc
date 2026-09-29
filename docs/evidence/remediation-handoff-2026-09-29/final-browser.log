@@ -1,0 +1,32 @@
+..........................{"event": "request", "request_id": "06c310704122", "method": "POST", "status": 422, "duration_ms": 1.03}
+.................................... [  7%]
+.............................................................. [ 14%]
+...............................................{"event": "request", "request_id": "dbc8a39ee9ce", "method": "POST", "status": 400, "duration_ms": 0.45}
+..............s.......... [ 22%]
+........................................................................................................{"event": "request", "request_id": "02beb7187366", "method": "POST", "status": 400, "duration_ms": 0.31}
+........................... [ 37%]
+.......................................................... [ 44%]
+............................................................................................................................................ [ 60%]
+.............................................................. [ 67%]
+...................................................................... [ 75%]
+........................................................................ [ 84%]
+........................................................................ [ 92%]
+.................................................... [ 98%]
+............                                                             [100%]
+=============================== warnings summary ===============================
+tests/test_stress_matrix.py::SecurityStressTests::test_duplicate_zip_paths_rejected
+  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'report.html'
+    return self._open_to_write(zinfo, force_zip64=force_zip64)
+
+tests/test_zip_hardening.py::ZipHardeningTests::test_duplicate_manifest_json
+  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'manifest.json'
+    return self._open_to_write(zinfo, force_zip64=force_zip64)
+
+tests/test_zip_hardening.py::ZipHardeningTests::test_duplicate_report_pdf
+  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'report.pdf'
+    return self._open_to_write(zinfo, force_zip64=force_zip64)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] ../../vercel/sandbox/data/AccessDoc/tests/test_e2e_journeys.py:323: Set ACCESSDOC_PRODUCTION_URL for live deployment validation
+864 passed, 1 skipped, 3 warnings, 155 subtests passed in 74.89s (0:01:14)
