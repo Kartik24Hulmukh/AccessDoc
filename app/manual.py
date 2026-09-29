@@ -82,11 +82,21 @@ def _parse_markdown_table(text):
 
 
 def _parse_csv(text):
-    reader = csv.reader(io.StringIO(text, newline=None))
-    indexes = _column_indexes(next(reader, []))
-    for cells in reader:
-        if cells:  # DictReader ignores blank lines.
-            yield _project_cells(cells, indexes)
+    try:
+        reader = csv.reader(io.StringIO(text, newline=None), strict=True)
+        indexes = _column_indexes(next(reader, []))
+        for cells in reader:
+            if cells:  # DictReader ignores blank lines.
+                yield _project_cells(cells, indexes)
+    except csv.Error as exc:
+        # The C parser's implicit field ceiling is a resource boundary too.
+        # Translate both header and lazy-iteration faults into the adapters'
+        # validation contracts; never echo a private cell or raw exception.
+        if "field larger than field limit" in str(exc):
+            raise LimitExceeded("Manual CSV field exceeds parsing limit",
+                                limit_name="CSV_FIELD_SIZE_LIMIT",
+                                limit=csv.field_size_limit()) from None
+        raise ValueError("Invalid manual findings CSV") from None
 
 
 def _bounded_findings(rows):
