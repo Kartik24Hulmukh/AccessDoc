@@ -268,7 +268,13 @@ class Handler(BaseHTTPRequestHandler):
    receipt_bytes=artifacts.receipt_json.encode('utf-8')
    receipt=json.loads(artifacts.receipt_json)
    if path=='/api/bundle':
-    bundle=build_bundle(artifacts);metric('reports_total');return self._send(200,bundle,'application/zip',{'Content-Disposition':'attachment; filename="accessdoc-report-bundle.zip"','CDN-Cache-Control':'no-store','Vercel-CDN-Cache-Control':'no-store'})
+    bundle=build_bundle(artifacts);metric('reports_total')
+    _s=receipt['summary'];c={k:int(_s.get(k,0)) for k in ('critical','serious','moderate','minor','unknown')}
+    return self._send(200,bundle,'application/zip',{'Content-Disposition':'attachment; filename="accessdoc-report-bundle.zip"',
+      'X-AccessDoc-Finding-Count':str(c['critical']+c['serious']+c['moderate']+c['minor']+c['unknown']),
+      'X-AccessDoc-Instance-Count':str(_s.get('total_violations',0)),
+      'X-AccessDoc-Unmapped-Count':str(c['unknown']),
+      'CDN-Cache-Control':'no-store','Vercel-CDN-Cache-Control':'no-store'})
    if not READY:return self._json(503,{'error':{'code':'DRAINING','message':'Server is shutting down; report was not stored'}})
    filename=slug(body.get('client_name','Client'))+'-accessibility-evidence-report.pdf'
    token=STORE.put(artifacts.pdf_bytes,artifacts.html_bytes,receipt_bytes,filename)

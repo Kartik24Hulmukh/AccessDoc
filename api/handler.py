@@ -657,6 +657,16 @@ class handler(BaseHTTPRequestHandler):
             "Content-Disposition",
             'attachment; filename="accessdoc-bundle.zip"',
         )
+        if artifacts.receipt_json:
+            try:
+                _receipt = json.loads(artifacts.receipt_json)
+                _sum = _receipt.get("summary", {}) if isinstance(_receipt, dict) else {}
+            except Exception:
+                _sum = {}
+            _sev = {k: int(_sum.get(k, 0) or 0) for k in ("critical", "serious", "moderate", "minor", "unknown")}
+            self.send_header("X-AccessDoc-Finding-Count", str(_sev["critical"] + _sev["serious"] + _sev["moderate"] + _sev["minor"] + _sev["unknown"]))
+            self.send_header("X-AccessDoc-Instance-Count", str(int(_sum.get("total_violations", 0) or 0)))
+            self.send_header("X-AccessDoc-Unmapped-Count", str(_sev["unknown"]))
         self.send_header("Content-Length", str(len(zip_bytes)))
         for k, v in _SECURITY_HEADERS.items():
             self.send_header(k, v)
