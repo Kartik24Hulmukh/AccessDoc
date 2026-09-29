@@ -11,6 +11,10 @@ name: production-smoke
 on:
   workflow_dispatch:
     inputs:
+      target_url:
+        description: Commit-specific AccessDoc preview URL or production origin
+        required: false
+        default: 'https://access-doc.vercel.app'
       expected_version:
         description: Expected adapter_version / accessdoc_version string
         required: false
@@ -33,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      PRODUCTION_URL: https://access-doc.vercel.app
+      PRODUCTION_URL: ${{ github.event.inputs.target_url || 'https://access-doc.vercel.app' }}
       EXPECTED_VERSION: ${{ github.event.inputs.expected_version || '0.7.0-beta.7' }}
       TARGET_COMMIT: ${{ github.sha }}
     steps:

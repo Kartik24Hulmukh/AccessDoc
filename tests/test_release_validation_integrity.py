@@ -17,12 +17,24 @@ import yaml
 
 from scripts.production_smoke import (
     SameOriginRedirectHandler, error_response_matches, exact_commit_matches,
+    validate_target_url,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class ReleaseValidationIntegrityTests(unittest.TestCase):
+    def test_target_origins_cannot_leak_bypass_to_arbitrary_projects(self):
+        validate_target_url("https://access-doc.vercel.app", bypass=True)
+        validate_target_url("https://access-abc123-atlas16.vercel.app", bypass=True)
+        validate_target_url("http://127.0.0.1:8000")
+        for url in ("https://other-project.vercel.app", "https://attacker.example",
+                    "https://access-doc.vercel.app?secret=private",
+                    "https://user:private@access-doc.vercel.app",
+                    "http://access-doc.vercel.app", "file:///private"):
+            with self.subTest(url=url), self.assertRaises(ValueError):
+                validate_target_url(url, bypass=True)
+
     def test_seven_character_collision_is_not_deployed_identity(self):
         sha = "a" * 40
         collision = "a" * 7 + "b" * 33
@@ -74,6 +86,9 @@ class ReleaseValidationIntegrityTests(unittest.TestCase):
         self.assertIn("pytest", flags)
         self.assertIn("error::ResourceWarning", flags)
         self.assertNotIn("unittest", flags)
+        config = (ROOT / "pyproject.toml").read_text()
+        self.assertIn('"error::pytest.PytestUnraisableExceptionWarning"', config)
+        self.assertIn('"error::pytest.PytestUnhandledThreadExceptionWarning"', config)
 
     def test_dependency_security_gate_is_present_and_fail_closed(self):
         workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())

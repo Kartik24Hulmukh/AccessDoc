@@ -6,6 +6,20 @@ import urllib.error
 from urllib.parse import urlsplit
 
 
+def validate_target_url(url, bypass=False):
+    target = urlsplit(url)
+    local = target.hostname in ("127.0.0.1", "::1", "localhost")
+    if (target.scheme not in ("https", "http") or not target.hostname or
+            (target.scheme == "http" and not local) or target.username or
+            target.password or target.query or target.fragment or
+            target.path not in ("", "/")):
+        raise ValueError("Smoke target must be a clean HTTPS origin or local HTTP origin")
+    if bypass and (target.scheme != "https" or
+            not (target.hostname == "access-doc.vercel.app" or re.fullmatch(
+                r"access-[a-z0-9]+-atlas16\.vercel\.app", target.hostname))):
+        raise ValueError("Automation bypass is restricted to the verified AccessDoc project")
+
+
 def exact_commit_matches(observed, expected):
     return (isinstance(observed, str) and isinstance(expected, str)
             and re.fullmatch(r"[0-9a-fA-F]{40}", observed) is not None
@@ -52,6 +66,7 @@ def main(argv=None):
     import os, sys, time, io, zipfile, tempfile, subprocess, argparse
 
     BASE = os.environ["PRODUCTION_URL"].rstrip("/")
+    validate_target_url(BASE, bool(os.getenv("VERCEL_AUTOMATION_BYPASS_SECRET")))
     EXPECTED = os.environ["EXPECTED_VERSION"]
     TARGET_COMMIT = os.environ.get("TARGET_COMMIT", "").strip()
     POLL_INTERVAL = float(os.getenv("SMOKE_POLL_INTERVAL_SECONDS", "15"))
