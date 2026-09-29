@@ -1,0 +1,17 @@
+{
+  "scope": "shared parser; one sample/format; tracemalloc, not process RSS or hosted capacity",
+  "rows": {
+    "csv": {
+      "input_bytes": 14890,
+      "peak_traced_bytes": 130394214,
+      "elapsed_ms": 349.532,
+      "outcome": "LimitExceeded"
+    },
+    "markdown": {
+      "input_bytes": 26900,
+      "peak_traced_bytes": 130638544,
+      "elapsed_ms": 301.965,
+      "outcome": "LimitExceeded"
+    }
+  }
+}
