@@ -25,6 +25,7 @@ from app.bundle import build_bundle
 from app.models import VERSION
 from app.http_policy import auth_error, auth_required, public_body, remediation_body
 from app import telemetry
+from app.http_body import BodyDeadlineExceeded, DRAIN_MAX_BYTES, body_deadline, read_body
 
 READ_CHUNK_BYTES = 64 * 1024
 from app.limits import (
@@ -307,6 +308,18 @@ class handler(BaseHTTPRequestHandler):
             return None, 400, "Negative Content-Length"
 
         if length > MAX_HTTP_BODY_BYTES:
+            # A bounded deadline-aware drain delivers 413 instead of resetting
+            # a client still sending a small over-limit request. Never buffer
+            # rejected bytes or spend an unbounded interval draining them.
+            try:
+                read_body(self.rfile, getattr(self, "connection", None),
+                          min(length, DRAIN_MAX_BYTES), READ_CHUNK_BYTES,
+                          body_deadline(), collect=False)
+            except BodyDeadlineExceeded:
+                # The declared size already establishes the 413 contract.
+                # Deadline expiry stops draining; it does not reclassify a
+                # known over-limit request or begin a second drain.
+                pass
             return None, 413, "Request body too large"
 
         # Read exactly the declared number of bytes.
@@ -314,15 +327,13 @@ class handler(BaseHTTPRequestHandler):
         # but we already required it above for POST.
         # Chunked streaming read (64 KiB slices): no single oversized allocation,
         # early abort on client disconnect.
-        buf = bytearray()
-        remaining = length
-        while remaining > 0:
-            chunk = self.rfile.read(min(remaining, READ_CHUNK_BYTES))
-            if not chunk:
-                break
-            buf += chunk
-            remaining -= len(chunk)
-        raw = bytes(buf)
+        try:
+            raw, remaining = read_body(
+                self.rfile, getattr(self, "connection", None), length,
+                READ_CHUNK_BYTES, body_deadline())
+        except BodyDeadlineExceeded:
+            self.close_connection = True
+            return None, 408, "Request body deadline exceeded"
         if len(raw) < length:
             # Client disconnected early; treat as malformed.
             return None, 400, "Request body shorter than Content-Length"

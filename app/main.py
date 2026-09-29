@@ -8,6 +8,7 @@ from .models import VERSION
 from .http_policy import auth_error, public_body, auth_required, remediation_body
 from .limits import LimitExceeded, MAX_HTTP_BODY_BYTES, limits_summary
 from . import telemetry
+from .http_body import BodyDeadlineExceeded, body_deadline, read_body
 READ_CHUNK_BYTES=64*1024
 # Bounded drain on the oversize path: read at most this much of an over-limit
 # body before answering 413, so the client receives the status instead of a
@@ -144,15 +145,13 @@ class Handler(BaseHTTPRequestHandler):
   if origin and origin.rstrip('/') not in allowed_origins():return False
   if fetch and fetch not in ('same-origin','same-site','none'):return False
   return True
- def _drain(self,n):
+ def _drain(self,n,deadline=None):
   '''Consume up to DRAIN_MAX_BYTES of an over-limit body so the 413 is delivered.
   Returns early on a short read (client already gone). Past the cap the socket is
   closed without reading further, which bounds memory at O(READ_CHUNK_BYTES).'''
-  remaining=min(n,DRAIN_MAX_BYTES)
-  while remaining>0:
-   chunk=self.rfile.read(min(remaining,READ_CHUNK_BYTES))
-   if not chunk:break
-   remaining-=len(chunk)
+  read_body(self.rfile,getattr(self,'connection',None),min(n,DRAIN_MAX_BYTES),
+            READ_CHUNK_BYTES,body_deadline() if deadline is None else deadline,
+            collect=False)
   if n>DRAIN_MAX_BYTES:self.close_connection=True
  def _read(self,limit):
   if self.headers.get('Transfer-Encoding'):raise ValueError('Transfer-Encoding is not supported')
@@ -161,16 +160,15 @@ class Handler(BaseHTTPRequestHandler):
   if len(vals)!=1:raise ValueError('A single Content-Length is required')
   try:n=int(vals[0])
   except:raise ValueError('Invalid Content-Length')
+  deadline=body_deadline()
   if n>limit:
-   self._drain(n)
+   try:self._drain(n,deadline)
+   except BodyDeadlineExceeded:pass
    raise LimitExceeded('Request body exceeds limit',limit_name='MAX_HTTP_BODY_BYTES',limit=limit,actual=n)
   if n<=0:raise ValueError('Invalid Content-Length')
   # Chunked streaming read: bounded 64 KiB slices, abort on short read, never a single oversized allocation.
-  raw=bytearray();remaining=n
-  while remaining>0:
-   chunk=self.rfile.read(min(remaining,READ_CHUNK_BYTES))
-   if not chunk:break
-   raw+=chunk;remaining-=len(chunk)
+  raw,remaining=read_body(self.rfile,getattr(self,'connection',None),n,
+                          READ_CHUNK_BYTES,deadline)
   if remaining:raise ValueError('Truncated request body')
   return bytes(raw)
  def _read_json(self):
@@ -285,6 +283,8 @@ class Handler(BaseHTTPRequestHandler):
   except (RecursionError,UnicodeDecodeError):self._json(422,{'error':{'code':'INVALID_INPUT','message':'Invalid JSON request'}})
   except ValueError as e:self._json(422,{'error':{'code':'INVALID_INPUT','message':str(e)}})
   except remediation.GatewayError as e:self._send(503,json.dumps({'error':{'code':'GATEWAY_UNAVAILABLE','message':'AI remediation is temporarily unavailable','requestId':self.request_id}}).encode(),'application/json; charset=utf-8',{'Retry-After':'5'})
+  except BodyDeadlineExceeded:
+   self.close_connection=True;self._json(408,{'error':{'code':'REQUEST_TIMEOUT','message':'Request body deadline exceeded'}})
   except (TimeoutError,ConnectionError,BrokenPipeError,OSError):
    self.close_connection=True;metric('client_disconnects_total')
   except Exception:
