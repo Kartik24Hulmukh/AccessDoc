@@ -30,6 +30,12 @@ These are descriptive single runs with overlapping validation processes, not a c
 
 The 100 synthetic socket workflows (40 disconnects) passed before and after. After: zero captured thread exceptions, zero handler errors, zero surviving new threads; `/healthz` recovered in 1.40 ms and `/readyz` in 0.68 ms. This is local post-load probe latency, not an end-to-end provider recovery guarantee or coroutine-leak measurement. There were no human participants. Stress matrix: 15/15 passed, including 5,000 findings, injection, malformed input, determinism and tampered bundles.
 
+## Final local regression
+
+After installing Playwright Chromium, axe-core 4.11.0 and websocket-client to execute optional browser gates: **859 passed, 1 skipped, 0 failed, 153 subtests, 70.92 s**. Only exact production deployment validation is skipped (`ACCESSDOC_PRODUCTION_URL` unset). The increase over baseline includes four added tests plus thirteen previously skipped browser checks; it is not seventeen new feature tests. Targeted readiness/billing/health tests: **15 passed**, with two adapter subtests, under `-W error::ResourceWarning`.
+
+An intermediate test incorrectly expected a gateway block in self-hosted `/healthz`; it was corrected to preserve liveness's existing contract. The final expanded suite above includes that correction. An initial release-verifier run overlapped tests and failed its stale-cache check; final clean verification is recorded separately, not silently counted as a pass.
+
 ## Fresh live provider gate — FAILED, do not auto-merge
 
 The new supplied credential produced **11/12 real completions**. Prior account-wide billing denial is no longer the observed blocker. K3 returned one 504 at the configured 40-second budget. Three samples per model are descriptive order statistics, not statistically meaningful tail SLOs. Samples include failures.

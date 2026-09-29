@@ -1,0 +1,37 @@
+...........................{"event": "request", "request_id": "c7443908e4a5", "method": "POST", "status": 404, "duration_ms": 0.44}
+................................... [  7%]
+.........................{"event": "request", "request_id": "9c809f48b7ff", "method": "POST", "status": 422, "duration_ms": 0.42}
+..{"event": "request", "request_id": "28c4d7742c05", "method": "POST", "status": 503, "duration_ms": 0.25}
+................................... [ 14%]
+...............................................{"event": "request", "request_id": "74caeb35a8b6", "method": "POST", "status": 400, "duration_ms": 0.24}
+.{"event": "request", "request_id": "66d46cd78f45", "method": "POST", "status": 413, "duration_ms": 0.21}
+.............s.......... [ 22%]
+................................................................................................................................... [ 38%]
+...........{"event": "request", "request_id": "96fd92e09033", "method": "POST", "status": 404, "duration_ms": 0.26}
+............................................... [ 44%]
+...........{"ts":1790688714.4883444,"level":"info","event":"http_request","trace_id":"7c4cad8062480578fa7adde486c8b5fe","span_id":"c568f32b14845c25","request_id":"329b9731b787692f74d549d9f42efa8a","ip":"127.0.0.1","method":"POST","route":"/generate","status":404,"duration_ms":0.56}
+................................................................................................................................. [ 61%]
+.............................................................. [ 68%]
+........................................................................ [ 76%]
+........................................................................ [ 85%]
+........................................................................ [ 93%]
+..................{"ts":1790688734.3007667,"level":"info","event":"http_request","trace_id":"e2e62f85d35c99ebb0e0b7b41bc07968","span_id":"0128af912881ef68","request_id":"796ec8f1e7630b116e541bd82c1392d5","ip":"127.0.0.1","method":"POST","route":"/api/bundle","status":200,"duration_ms":5.75}
+.................................. [ 99%]
+.....                                                                    [100%]
+=============================== warnings summary ===============================
+tests/test_stress_matrix.py::SecurityStressTests::test_duplicate_zip_paths_rejected
+  /usr/local/lib/python3.14/zipfile/__init__.py:1730: UserWarning: Duplicate name: 'report.html'
+    return self._open_to_write(zinfo, force_zip64=force_zip64)
+
+tests/test_zip_hardening.py::ZipHardeningTests::test_duplicate_manifest_json
+  /usr/local/lib/python3.14/zipfile/__init__.py:1730: UserWarning: Duplicate name: 'manifest.json'
+    return self._open_to_write(zinfo, force_zip64=force_zip64)
+
+tests/test_zip_hardening.py::ZipHardeningTests::test_duplicate_report_pdf
+  /usr/local/lib/python3.14/zipfile/__init__.py:1730: UserWarning: Duplicate name: 'report.pdf'
+    return self._open_to_write(zinfo, force_zip64=force_zip64)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_e2e_journeys.py:323: Set ACCESSDOC_PRODUCTION_URL for live deployment validation
+859 passed, 1 skipped, 3 warnings, 153 subtests passed in 70.92s (0:01:10)
