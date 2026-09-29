@@ -42,6 +42,25 @@ def free_port():
     s = socket.socket(); s.bind(('127.0.0.1', 0)); p = s.getsockname()[1]; s.close(); return p
 
 
+def wait_for_page_target(port, proc, timeout=15):
+    """Wait for a usable CDP page, not merely a responding /json endpoint."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if proc.poll() is not None:
+            raise RuntimeError(f"Chromium exited before CDP page was ready ({proc.returncode})")
+        try:
+            with urllib.request.urlopen(f'http://127.0.0.1:{port}/json', timeout=1) as response:
+                targets = json.load(response)
+            page = next((target for target in targets
+                         if target.get('type') == 'page' and target.get('webSocketDebuggerUrl')), None)
+            if page:
+                return page
+        except (OSError, ValueError):
+            pass
+        time.sleep(0.05)  # bounded startup poll; /json may respond before page creation
+    raise TimeoutError("Chromium CDP page target did not become ready")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument('url')
@@ -55,13 +74,7 @@ def main(argv=None):
     proc = subprocess.Popen([exe, '--headless=new', '--no-sandbox', '--disable-gpu', '--remote-allow-origins=*', f'--remote-debugging-port={port}',
                              f'--user-data-dir={prof}', 'about:blank'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
-        deadline = time.monotonic() + 15; targets = None
-        while time.monotonic() < deadline:
-            try:
-                targets = json.load(urllib.request.urlopen(f'http://127.0.0.1:{port}/json', timeout=1)); break
-            except OSError:
-                time.sleep(0.1)
-        page = next(t for t in targets if t.get('type') == 'page')
+        page = wait_for_page_target(port, proc)
         ws = websocket.create_connection(page['webSocketDebuggerUrl'], timeout=15, suppress_origin=True)
         mid = [0]
         def call(method, **params):
