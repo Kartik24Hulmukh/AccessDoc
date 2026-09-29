@@ -99,7 +99,18 @@ def health():
     gw = _GATEWAY
     snap = gw.health() if gw is not None else {"chain": list(CANONICAL_CHAIN), "models": {}}
     import os
-    snap["configured"] = bool(os.getenv("MELIOUS_API_KEY"))
+    snap["configured"] = bool(os.getenv("MELIOUS_API_KEY", "").strip())
+    snap.setdefault("billing_exhausted", False)
+    snap.setdefault("billing_retry_after_seconds", 0)
+    reasons = []
+    if not snap["configured"]:
+        reasons.append("not_configured")
+    if snap["billing_exhausted"]:
+        reasons.append("billing_exhausted")
+    # No active probe means absence of a known failure is not proof of health.
+    # AI is optional: adapters keep core readiness HTTP 200 during this hold.
+    snap["status"] = "degraded" if reasons else "unknown"
+    snap["degraded_reasons"] = reasons
     return snap
 
 

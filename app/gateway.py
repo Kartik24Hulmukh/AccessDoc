@@ -808,9 +808,14 @@ class ModelGateway:
         raise last_err or GatewayError("all models unavailable")
 
     def health(self):
+        # One lock/clock sample keeps the hold flag and retry hint consistent.
+        # This is passive telemetry: never probe a paid provider from readiness.
+        with self._billing_lock:
+            remaining = max(0.0, self._billing_until - time.monotonic())
         return {"chain": list(self.chain),
                 "token_budget": self.token_budget,
                 "budget_seconds": self.budget_seconds,
                 "tracing": "opentelemetry" if telemetry.otel_enabled() else "w3c-traceparent",
-                "billing_exhausted": self.billing_exhausted(),
+                "billing_exhausted": remaining > 0,
+                "billing_retry_after_seconds": math.ceil(remaining),
                 "models": {m: b.snapshot() for m, b in self.breakers.items()}}
