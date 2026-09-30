@@ -22,6 +22,14 @@ def auth_required():
                 os.getenv("ACCESSDOC_REQUIRE_AUTH", "false").lower() == "true")
 
 
+def readiness_reasons():
+    """Passive, non-secret core configuration checks; no paid provider probe."""
+    required = os.getenv("ACCESSDOC_REQUIRE_AUTH", "false").lower() == "true"
+    keys = bool(os.getenv("ACCESSDOC_API_KEY", "") or any(
+        k.strip() for k in os.getenv("ACCESSDOC_API_KEYS", "").split(",")))
+    return ["AUTH_NOT_CONFIGURED"] if required and not keys else []
+
+
 def auth_error(headers):
     key = os.getenv("ACCESSDOC_API_KEY", "")
     required = os.getenv("ACCESSDOC_REQUIRE_AUTH", "false").lower() == "true"

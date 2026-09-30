@@ -5,7 +5,7 @@ from http.server import ThreadingHTTPServer,BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse
 from .models import VERSION
-from .http_policy import auth_error, public_body, auth_required, remediation_body
+from .http_policy import auth_error, public_body, auth_required, remediation_body, readiness_reasons
 from .limits import LimitExceeded, MAX_HTTP_BODY_BYTES, limits_summary
 from . import telemetry
 from .http_body import BodyDeadlineExceeded, TruncatedBodyError, body_deadline, read_body
@@ -192,7 +192,12 @@ class Handler(BaseHTTPRequestHandler):
   p=urlparse(self.path);path=p.path
   if path in ('/health','/healthz','/livez','/health/live'):return self._json(200,{'status':'ok','service':'accessdoc','version':os.getenv('ACCESSDOC_VERSION',VERSION),'commit':_commit_sha(),'process':process_stats(),'runtime':{'python':platform.python_version(),'uptime_seconds':round(time.monotonic()-STARTED_MONO,1)}})
   if path=='/version':return self._json(200,{'service':'accessdoc','version':os.getenv('ACCESSDOC_VERSION',VERSION),'catalog':'wcag-2.2-accessdoc-2026-01','commit':_commit_sha()})
-  if path in ('/readyz','/health/ready'):return self._json(200 if READY else 503,{'status':'ready' if READY else 'not_ready','commit':_commit_sha(),'gateway':remediation.health(),'tracing':telemetry.export_status()})
+  if path in ('/readyz','/health/ready'):
+   reasons=readiness_reasons()
+   if getattr(STORE,'closed',False):reasons.append('STORE_CLOSED')
+   if not READY:reasons.append('DRAINING')
+   ready=not reasons
+   return self._json(200 if ready else 503,{'status':'ready' if ready else 'not_ready','readiness_reasons':reasons,'commit':_commit_sha(),'gateway':remediation.health(),'tracing':telemetry.export_status()})
   if path=='/metrics':
    lines=[]
    with METRICS_LOCK:
@@ -300,5 +305,5 @@ def run(host='127.0.0.1',port=8000):
   READY=False;deadline=time.monotonic()+float(os.getenv('SHUTDOWN_GRACE_SECONDS','15'))
   with ACTIVE_CONDITION:
    while ACTIVE_GENERATIONS and time.monotonic()<deadline:ACTIVE_CONDITION.wait(timeout=min(.2,max(0,deadline-time.monotonic())))
-  server.server_close();print(json.dumps({'event':'shutdown','status':'complete'}),flush=True)
+  server.server_close();STORE.close();remediation.shutdown_gateway();print(json.dumps({'event':'shutdown','status':'complete'}),flush=True)
 if __name__=='__main__':run(os.getenv('HOST','127.0.0.1'),int(os.getenv('PORT','8000')))

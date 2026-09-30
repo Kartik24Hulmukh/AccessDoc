@@ -23,7 +23,7 @@ from http.server import BaseHTTPRequestHandler
 from app.service import build_artifacts
 from app.bundle import build_bundle
 from app.models import VERSION
-from app.http_policy import auth_error, auth_required, public_body, remediation_body
+from app.http_policy import auth_error, auth_required, public_body, remediation_body, readiness_reasons
 from app import telemetry
 from app.http_body import BodyDeadlineExceeded, DRAIN_MAX_BYTES, body_deadline, read_body
 
@@ -483,10 +483,12 @@ class handler(BaseHTTPRequestHandler):
         if path in _STATIC_FILES and self._send_static(path):
             return
         if path in ("/", "/readyz", "/healthz", "/health"):
-            self._send_json(200, {
+            reasons = readiness_reasons() if path == "/readyz" else []
+            self._send_json(503 if reasons else 200, {
                 "service": "AccessDoc",
                 "adapter_version": ADAPTER_VERSION,
-                "status": "ok",
+                "status": "not_ready" if reasons else "ok",
+                "readiness_reasons": reasons,
                 "commit": commit_sha,
                 "api_note": "Bounded ReportLab demo API. See docs for limitations.",
                 "endpoints": ["/api/bundle", "/api/remediate", "/limits", "/docs", "/openapi.json"],
