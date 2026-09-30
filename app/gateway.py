@@ -653,6 +653,10 @@ class ModelGateway:
                           lanes_dispatched=state["launched"])
                 return r
             last_err = exc or last_err
+            if self.billing_exhausted():
+                # Account failure is now known: abort speculative siblings,
+                # not just future dispatches, including stalled headers.
+                break
             if state["inflight"] < max_inflight:
                 if launch("failover"):
                     next_hedge = time.monotonic() + hedge

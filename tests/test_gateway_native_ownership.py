@@ -220,6 +220,53 @@ class NativeGatewayOwnershipTests(unittest.TestCase):
             finally:
                 gw._session.close()
 
+    def test_known_billing_hold_cancels_stalled_speculative_sibling(self):
+        received, release, hedge_seen = [], threading.Event(), threading.Event()
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, *args): pass
+            def do_POST(self):
+                data = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                received.append(data["model"])
+                if data["model"] != CANONICAL_CHAIN[0]:
+                    hedge_seen.set()
+                    release.wait(3)
+                    return
+                hedge_seen.wait(1)  # controlled unknown-billing interval, no timing guess
+                body = json.dumps({"error": {"type": "billing_error", "code": "insufficient_quota"}}).encode()
+                self.send_response(429)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                try: self.wfile.write(body)
+                except OSError: pass
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        server.daemon_threads = True
+        runner = threading.Thread(target=lambda: server.serve_forever(poll_interval=0.01))
+        runner.start()
+        gw = ModelGateway(api_key="synthetic", chain=CANONICAL_CHAIN[:2], budget_seconds=3)
+        observed_hold = []
+        hold = gw._hold_billing
+        def record_hold(model):
+            hold(model)
+            observed_hold.append(time.monotonic())
+        try:
+            with patch.dict(os.environ, {"GATEWAY_HEDGE_DELAY_MS": "30"}), patch(
+                    "app.gateway.MELIOUS_BASE_URL", "http://127.0.0.1:%d" % server.server_port), patch.object(gw, "_log"), patch.object(gw, "_hold_billing", side_effect=record_hold):
+                result = gw.chat("fix contrast")
+                returned = time.monotonic()
+                self.assertTrue(result.fallback)
+                self.assertTrue(gw.billing_exhausted())
+                self.assertTrue(observed_hold)
+                self.assertLess(returned - observed_hold[0], 0.2)
+                self.assertEqual(received, list(CANONICAL_CHAIN[:2]))
+                initial = len(received)
+                for _ in range(5): self.assertTrue(gw.chat("again").fallback)
+                self.assertEqual(len(received), initial)
+                self.assertEqual(gw._session.snapshot()["active_calls"], 0)
+                self.assertFalse(any(t.name == "gateway-hedge" for t in threading.enumerate()))
+        finally:
+            release.set(); gw._session.close()
+            server.shutdown(); server.server_close(); runner.join(2)
+
     def test_missing_usage_cannot_reauthorize_the_same_budget(self):
         server, received = self.server(missing_usage=True)
         prompt = "fix contrast"
