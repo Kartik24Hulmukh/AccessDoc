@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from threading import RLock
 from time import monotonic
 import secrets
+from .limits import LimitExceeded
 
 @dataclass(frozen=True)
 class StoredReport:
@@ -30,8 +31,14 @@ class TTLReportStore:
             if not self._items:break
             self._remove(min(self._items,key=lambda k:self._items[k].created_at))
     def put(self,pdf:bytes,html:bytes,receipt:bytes,filename:str)->str:
-        if len(pdf)>10_000_000 or len(html)>5_000_000 or len(receipt)>100_000:raise ValueError('Generated output exceeds storage limit')
-        if len(pdf)+len(html)+len(receipt)>self.max_bytes:raise ValueError('Generated output exceeds store capacity')
+        size=len(pdf)+len(html)+len(receipt)
+        # One coherent operator quota bounds both each complete report and the
+        # retained process total. Hidden per-format ceilings rejected valid
+        # findings long before this budget, especially receipts above 100 KiB.
+        if size>self.max_bytes:
+            raise LimitExceeded('Generated output exceeds store capacity',
+                                limit_name='REPORT_MAX_BYTES',
+                                limit=self.max_bytes,actual=size)
         with self._lock:
             self._purge();token=secrets.token_urlsafe(24);item=StoredReport(bytes(pdf),bytes(html),bytes(receipt),str(filename),monotonic())
             self._items[token]=item;self._bytes+=self._size(item);self._purge();return token

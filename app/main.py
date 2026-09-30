@@ -18,17 +18,7 @@ DRAIN_MAX_BYTES=16*1024*1024
 from .service import build_artifacts
 from .bundle import build_bundle
 from . import remediate as remediation
-try:
-    from .store import TTLReportStore
-    _STORE_AVAILABLE = True
-except Exception:
-    _STORE_AVAILABLE = False
-    class TTLReportStore:
-        def __init__(self,*a,**kw):pass
-        def put(self,*a,**kw):return 'disabled'
-        def get(self,*a,**kw):return None
-        @property
-        def stats(self):return {'items':0,'bytes':0}
+from .store import TTLReportStore
 
 ROOT=Path(__file__).resolve().parent.parent
 STORE=TTLReportStore(ttl_seconds=int(os.getenv('REPORT_TTL_SECONDS','1800')),max_items=int(os.getenv('REPORT_MAX_ITEMS','100')),max_bytes=int(os.getenv('REPORT_MAX_BYTES','50000000')))
