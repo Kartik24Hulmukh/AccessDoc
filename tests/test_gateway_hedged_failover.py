@@ -12,6 +12,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest import mock
 
 from app import gateway
+from app.gateway_budget import prompt_token_bound
 
 PRIMARY, FALLBACK = gateway.CANONICAL_CHAIN[0], gateway.CANONICAL_CHAIN[1]
 
@@ -70,6 +71,7 @@ class HedgedFailoverTests(unittest.TestCase):
             for k in [k for k in os.environ if k.startswith("GATEWAY_READ_TIMEOUT")]:
                 os.environ.pop(k)
             gw = gateway.ModelGateway(api_key="sk-test", chain=(PRIMARY, FALLBACK), **gw_kwargs)
+            self.addCleanup(gw._session.close)
             t0 = time.monotonic()
             res = gw.chat("alt text", static_fallback=True)
             return res, time.monotonic() - t0, up, gw
@@ -130,7 +132,7 @@ class HedgedFailoverTests(unittest.TestCase):
     def test_token_ceiling_bounds_hedge_spend(self):
         # Ceiling fits exactly one completion reservation: no hedge lane may launch.
         res, elapsed, up, gw = self._run({PRIMARY: "slow_ok", FALLBACK: "ok"},
-                                         env={"GATEWAY_MAX_TOKENS": "100"}, token_budget=100)
+                                         env={"GATEWAY_MAX_TOKENS": "100"}, token_budget=100 + prompt_token_bound([{"role": "system", "content": "You are an accessibility remediation engineer."}, {"role": "user", "content": "alt text"}]))
         self.assertEqual(res.model, PRIMARY)
         self.assertEqual([m for m, _ in up.arrivals], [PRIMARY])
 
