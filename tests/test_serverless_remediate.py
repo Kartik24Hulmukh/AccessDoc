@@ -19,6 +19,7 @@ AXE = {"violations": [{"id": "image-alt", "impact": "critical",
 class FakeGateway:
     def __init__(self, fallback=False, boom=None):
         self.fallback, self.boom, self.calls = fallback, boom, []
+        self.token_budget = 6000
 
     def chat(self, prompt, model=None, static_fallback=True):
         self.calls.append((prompt, model))

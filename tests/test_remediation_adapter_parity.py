@@ -17,6 +17,7 @@ from app import remediate
 class SpyGateway:
     def __init__(self):
         self.calls = []
+        self.token_budget = 6000
 
     def chat(self, prompt, model=None, static_fallback=True):
         self.calls.append(prompt)

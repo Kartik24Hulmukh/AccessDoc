@@ -1,2 +1,278 @@
-const $=s=>document.querySelector(s);const form=$('#report-form'),errors=$('#errors'),progress=$('#progress'),button=$('#generate'),result=$('#result'),download=$('#download');let bundleUrl=null;$('#date').value=new Date().toISOString().slice(0,10);$('#color').addEventListener('input',e=>$('#color-value').textContent=e.target.value.toUpperCase());async function readFile(input,max){const f=input.files[0];if(!f)return'';if(f.size>max)throw new Error(`File exceeds ${Math.round(max/1000)} KB`);return await f.text()}function dataUrl(input,max){return new Promise((resolve,reject)=>{const f=input.files[0];if(!f)return resolve('');if(f.size>max)return reject(new Error(`Logo exceeds ${Math.round(max/1000)} KB`));if(f.type!=='image/png')return reject(new Error('Logo must be a PNG'));const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(new Error('Logo could not be read'));r.readAsDataURL(f)})}function showError(msg){errors.replaceChildren();const strong=document.createElement('strong');strong.textContent='Report not generated';const p=document.createElement('p');p.textContent=String(msg);errors.append(strong,p);errors.hidden=false;errors.focus()}function clearBundle(){if(bundleUrl)URL.revokeObjectURL(bundleUrl);bundleUrl=null;download.removeAttribute('href')}function startDownload(blob){clearBundle();bundleUrl=URL.createObjectURL(blob);download.href=bundleUrl;download.download='accessdoc-report-bundle.zip';const a=document.createElement('a');a.href=bundleUrl;a.download=download.download;document.body.appendChild(a);a.click();a.remove()}$('#evidence-file').addEventListener('change',e=>{$('#file-name').textContent=e.target.files[0]?.name||'No file selected';$('#scanner').required=!e.target.files.length});$('#logo').addEventListener('change',e=>{$('#logo-name').textContent=e.target.files[0]?.name||'No logo selected'});$('#sample').addEventListener('click',async()=>{errors.hidden=true;try{const r=await fetch('/sample/axe-sample.json');if(!r.ok)throw new Error('Sample could not be loaded');$('#scanner').value=await r.text();$('#format').value='axe';$('#client').value='Northstar Community Bank';$('#agency').value='Inclusive Studio';$('#scanner').focus()}catch(e){showError(e.message)}});form.addEventListener('submit',async e=>{e.preventDefault();errors.hidden=true;result.hidden=true;clearBundle();if(!form.reportValidity()){showError('Complete the required fields before generating the report.');return}button.disabled=true;button.textContent='Generating report bundle…';progress.hidden=false;try{let scanner=$('#scanner').value.trim();const fileText=await readFile($('#evidence-file'),2000000);if(fileText)scanner=fileText;if(!scanner)throw new Error('Paste or upload scanner evidence.');const logo=await dataUrl($('#logo'),500000);const payload={client_name:$('#client').value,audit_date:$('#date').value,agency_name:$('#agency').value,primary_color:$('#color').value,format_hint:$('#format').value,scanner_input:scanner,source_filename:$('#evidence-file').files[0]?.name||'pasted-evidence',manual_findings:$('#manual').value,logo_data_url:logo};let r=await fetch('/api/bundle',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/zip',...($('#api-key').value?{'Authorization':'Bearer '+$('#api-key').value}:{})},body:JSON.stringify(payload)});if(r.status===429){const waitRaw=parseInt(r.headers.get('Retry-After')||'5',10);const wait=Math.min(Number.isFinite(waitRaw)?waitRaw:5,15);progress.hidden=false;progress.textContent='Rate limit reached — retrying in '+wait+'s…';await new Promise(res=>setTimeout(res,wait*1000));r=await fetch('/api/bundle',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/zip',...($('#api-key').value?{'Authorization':'Bearer '+$('#api-key').value}:{})},body:JSON.stringify(payload)});}const type=(r.headers.get('Content-Type')||'').toLowerCase();if(!r.ok){let message='Generation failed';if(type.includes('json')){const data=await r.json();message=data.title||(typeof data.error==='string'?data.error:data.error?.message)||message}throw new Error(message)}if(!type.includes('application/zip'))throw new Error('The server returned an unexpected response.');const blob=await r.blob();if(!blob.size)throw new Error('The generated bundle was empty.');startDownload(blob);const findings=r.headers.get('X-AccessDoc-Finding-Count')||'0',instances=r.headers.get('X-AccessDoc-Instance-Count')||'0',unmapped=r.headers.get('X-AccessDoc-Unmapped-Count')||'0';$('#summary').innerHTML=`<div><strong>${findings}</strong> finding groups</div><div><strong>${instances}</strong> instances</div><div><strong>${unmapped}</strong> unmapped</div><div><strong>${Math.max(1,Math.round(blob.size/1024))} KB</strong> bundle</div>`;result.hidden=false;$('#result-title').focus()}catch(err){showError(err.message)}finally{button.disabled=false;button.textContent='Generate report bundle';progress.hidden=true}});window.addEventListener('beforeunload',clearBundle);
-(function(){const btn=$('#remediate');if(!btn)return;const st=$('#remediation-status'),out=$('#remediation-out'),meta=$('#remediation-meta'),txt=$('#remediation-text');btn.addEventListener('click',async()=>{errors.hidden=true;const raw=$('#scanner').value.trim();if(!raw){showError('Paste or upload scanner evidence before requesting a remediation plan.');return}let parsed;try{parsed=JSON.parse(raw)}catch(e){showError('Remediation needs valid axe-core JSON.');return}btn.disabled=true;out.hidden=true;st.hidden=false;st.textContent='Requesting remediation plan\u2026';try{const r=await fetch('/api/remediate',{method:'POST',headers:{'Content-Type':'application/json',...($('#api-key').value?{'Authorization':'Bearer '+$('#api-key').value}:{})},body:JSON.stringify({scanner_input:parsed,client_name:$('#client').value})});const data=await r.json().catch(()=>({}));if(!r.ok){throw new Error((data.error&&(data.error.message||data.error))||('Remediation unavailable ('+r.status+')'))}txt.textContent=data.guidance||'';meta.textContent=(data.fallback?'\u26a0 Offline fallback guidance from the static knowledge base \u2014 no model was reachable. ':'Model: '+(data.model||'unknown')+' \u00b7 ')+(data.latency_ms?Math.round(data.latency_ms)+' ms \u00b7 ':'')+(data.violations_considered||0)+' violations considered. Advisory only \u2014 verify with a qualified accessibility professional.';out.hidden=false}catch(e){showError(e.message)}finally{btn.disabled=false;st.hidden=true}})})();
+'use strict';
+const $ = selector => document.querySelector(selector);
+const form = $('#report-form'), errors = $('#errors'), progress = $('#progress');
+const button = $('#generate'), result = $('#result'), download = $('#download');
+const remediationButton = $('#remediate'), cancelButton = $('#cancel');
+let revision = 0, active = null, bundleUrl = null, successful = null;
+$('#date').value = new Date().toISOString().slice(0, 10);
+
+function abortError() { return new DOMException('Cancelled', 'AbortError'); }
+function guard(operation) {
+  if (active !== operation || operation.revision !== revision || operation.controller.signal.aborted) throw abortError();
+}
+// File.text() cannot itself be stopped. Stop waiting and guard its completion instead.
+function abortable(promise, signal) {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) return reject(abortError());
+    const abort = () => reject(abortError());
+    signal.addEventListener('abort', abort, {once: true});
+    promise.then(value => { signal.removeEventListener('abort', abort); signal.aborted ? reject(abortError()) : resolve(value); },
+      error => { signal.removeEventListener('abort', abort); reject(error); });
+  });
+}
+function delay(ms, signal) {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) return reject(abortError());
+    const abort = () => { clearTimeout(timer); reject(abortError()); };
+    const timer = setTimeout(() => { signal.removeEventListener('abort', abort); resolve(); }, ms);
+    signal.addEventListener('abort', abort, {once: true});
+  });
+}
+function invalidateGuidance() {
+  $('#remediation-out').hidden = true;
+  $('#remediation-text').textContent = '';
+  $('#remediation-meta').textContent = '';
+}
+function refreshControls() {
+  button.disabled = !!active;
+  button.textContent = active?.kind === 'bundle' ? 'Generating report bundle…' : 'Generate report bundle';
+  cancelButton.disabled = !active;
+  remediationButton.disabled = !!active || !successful || successful.revision !== revision;
+  if (successful) {
+    $('#result-context').textContent = `Last successful bundle: ${successful.client} · ${successful.source} · revision ${successful.revision}.` +
+      (successful.revision !== revision ? ' Inputs have changed; this download is for the previous report. Generate again for current inputs and guidance.' : ' Matches current inputs.');
+  }
+}
+function stopOperation(message = '') {
+  if (active) active.controller.abort();
+  active = null;
+  progress.hidden = true;
+  $('#remediation-status').hidden = true;
+  $('#operation-status').textContent = message;
+  refreshControls();
+}
+function revisionChanged() {
+  revision += 1;
+  invalidateGuidance();
+  const pending = !!active;
+  stopOperation(pending ? 'Inputs changed. Browser waiting and retries stopped; already accepted server work may still finish.' : '');
+}
+function beginOperation(kind) {
+  stopOperation();
+  errors.hidden = true;
+  const operation = {kind, revision, controller: new AbortController()};
+  active = operation;
+  refreshControls();
+  return operation;
+}
+function finishOperation(operation) {
+  if (active === operation) stopOperation();
+}
+function showError(message, heading = 'Report not generated') {
+  errors.replaceChildren();
+  const strong = document.createElement('strong');
+  strong.textContent = heading;
+  const p = document.createElement('p');
+  p.textContent = String(message);
+  errors.append(strong, p);
+  errors.hidden = false;
+  errors.focus();
+}
+function clearBundle() {
+  if (bundleUrl) URL.revokeObjectURL(bundleUrl);
+  bundleUrl = null;
+  download.removeAttribute('href');
+}
+function startDownload(blob) {
+  // Replacement succeeds before the last good URL is discarded.
+  const next = URL.createObjectURL(blob);
+  clearBundle();
+  bundleUrl = next;
+  download.href = bundleUrl;
+  download.download = 'accessdoc-report-bundle.zip';
+  const a = document.createElement('a');
+  a.href = bundleUrl;
+  a.download = download.download;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+function captureInputs() {
+  return Object.freeze({
+    revision, client: $('#client').value, date: $('#date').value, agency: $('#agency').value,
+    color: $('#color').value, format: $('#format').value, pasted: $('#scanner').value.trim(),
+    file: $('#evidence-file').files[0], logo: $('#logo').files[0], manual: $('#manual').value,
+    key: $('#api-key').value
+  });
+}
+async function effectiveEvidence(inputs, operation) {
+  guard(operation);
+  const file = inputs.file;
+  if (file && file.size > 2000000) throw new Error('File exceeds 2000 KB');
+  const scanner = file ? await abortable(file.text(), operation.controller.signal) : inputs.pasted;
+  guard(operation);
+  if (!scanner.trim()) throw new Error('Paste or upload scanner evidence.');
+  return Object.freeze({scanner, source: file ? file.name : 'pasted-evidence'});
+}
+function logoData(file, operation) {
+  if (!file) return Promise.resolve('');
+  if (file.size > 500000) return Promise.reject(new Error('Logo exceeds 500 KB'));
+  if (file.type !== 'image/png') return Promise.reject(new Error('Logo must be a PNG'));
+  return new Promise((resolve, reject) => {
+    const signal = operation.controller.signal, reader = new FileReader();
+    if (signal.aborted) return reject(abortError());
+    const abort = () => { reader.abort(); reject(abortError()); };
+    const cleanup = () => signal.removeEventListener('abort', abort);
+    signal.addEventListener('abort', abort, {once: true});
+    reader.onload = () => { cleanup(); signal.aborted ? reject(abortError()) : resolve(reader.result); };
+    reader.onerror = () => { cleanup(); reject(new Error('Logo could not be read')); };
+    reader.onabort = () => { cleanup(); reject(abortError()); };
+    reader.readAsDataURL(file);
+  });
+}
+function headers(key, accept) {
+  return {'Content-Type': 'application/json', ...(accept ? {'Accept': accept} : {}), ...(key ? {'Authorization': 'Bearer ' + key} : {})};
+}
+function syncFiles() {
+  $('#file-name').textContent = $('#evidence-file').files[0]?.name || 'No file selected';
+  $('#scanner').required = !$('#evidence-file').files.length;
+  $('#logo-name').textContent = $('#logo').files[0]?.name || 'No logo selected';
+}
+// Every action binds to a snapshot taken before any asynchronous read or request.
+form.addEventListener('input', revisionChanged);
+form.addEventListener('change', () => { syncFiles(); revisionChanged(); });
+$('#color').addEventListener('input', event => { $('#color-value').textContent = event.target.value.toUpperCase(); });
+cancelButton.addEventListener('click', () => stopOperation('Cancelled browser waiting and retries. Already accepted server work may still finish.'));
+$('#new-report').addEventListener('click', () => {
+  stopOperation();
+  revision += 1;
+  form.reset();
+  // Explicitly clear private fields, including values a browser might have autofilled.
+  for (const id of ['api-key', 'client', 'agency', 'scanner', 'manual', 'evidence-file', 'logo']) $('#' + id).value = '';
+  $('#date').value = new Date().toISOString().slice(0, 10);
+  $('#color-value').textContent = $('#color').value.toUpperCase();
+  syncFiles();
+  invalidateGuidance();
+  clearBundle();
+  successful = null;
+  result.hidden = true;
+  $('#summary').replaceChildren();
+  $('#result-context').textContent = '';
+  $('#remediation-status').textContent = '';
+  errors.replaceChildren();
+  errors.hidden = true;
+  $('#operation-status').textContent = 'New report. Private form fields and page outputs cleared; browser waiting and retries stopped. Already accepted server work may still finish.';
+  refreshControls();
+  $('#client').focus();
+});
+$('#sample').addEventListener('click', async () => {
+  const operation = beginOperation('sample');
+  try {
+    const response = await fetch('/sample/axe-sample.json', {signal: operation.controller.signal});
+    if (!response.ok) throw new Error('Sample could not be loaded');
+    const text = await response.text();
+    guard(operation);
+    finishOperation(operation);
+    $('#evidence-file').value = '';
+    $('#scanner').value = text;
+    $('#format').value = 'axe';
+    $('#client').value = 'Northstar Community Bank';
+    $('#agency').value = 'Inclusive Studio';
+    syncFiles();
+    revisionChanged();
+    $('#scanner').focus();
+  } catch (error) {
+    if (active === operation && error.name !== 'AbortError') showError(error.message, 'Sample not loaded');
+  } finally { finishOperation(operation); }
+});
+form.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (active) return;
+  errors.hidden = true;
+  if (!form.reportValidity()) { showError('Complete the required fields before generating the report.'); return; }
+  const inputs = captureInputs(), operation = beginOperation('bundle');
+  invalidateGuidance();
+  progress.hidden = false;
+  progress.textContent = 'Generating and validating the report bundle…';
+  try {
+    const evidence = await effectiveEvidence(inputs, operation);
+    const logo = await logoData(inputs.logo, operation);
+    guard(operation);
+    const payload = {client_name: inputs.client, audit_date: inputs.date, agency_name: inputs.agency,
+      primary_color: inputs.color, format_hint: inputs.format, scanner_input: evidence.scanner,
+      source_filename: evidence.source, manual_findings: inputs.manual, logo_data_url: logo};
+    const options = {method: 'POST', headers: headers(inputs.key, 'application/zip'), body: JSON.stringify(payload), signal: operation.controller.signal};
+    let response = await fetch('/api/bundle', options);
+    guard(operation);
+    if (response.status === 429) {
+      const raw = parseInt(response.headers.get('Retry-After') || '5', 10);
+      const wait = Math.max(0, Math.min(Number.isFinite(raw) ? raw : 5, 15));
+      progress.textContent = `Rate limit reached — retrying in ${wait}s…`;
+      await delay(wait * 1000, operation.controller.signal);
+      guard(operation);
+      response = await fetch('/api/bundle', options);
+      guard(operation);
+    }
+    const type = (response.headers.get('Content-Type') || '').toLowerCase();
+    if (!response.ok) {
+      let message = 'Generation failed';
+      if (type.includes('json')) {
+        const data = await response.json();
+        message = data.title || (typeof data.error === 'string' ? data.error : data.error?.message) || message;
+      }
+      throw new Error(message);
+    }
+    if (!type.includes('application/zip')) throw new Error('The server returned an unexpected response.');
+    const blob = await response.blob();
+    guard(operation);
+    if (!blob.size) throw new Error('The generated bundle was empty.');
+    // Retain evidence identity, not credentials or private branding fields, for matching guidance.
+    successful = Object.freeze({revision: inputs.revision, client: inputs.client, source: evidence.source, scanner: evidence.scanner});
+    startDownload(blob);
+    $('#summary').replaceChildren();
+    const stats = [
+      [response.headers.get('X-AccessDoc-Finding-Count') || '0', 'finding groups'],
+      [response.headers.get('X-AccessDoc-Instance-Count') || '0', 'instances'],
+      [response.headers.get('X-AccessDoc-Unmapped-Count') || '0', 'unmapped'],
+      [Math.max(1, Math.round(blob.size / 1024)) + ' KB', 'bundle']
+    ];
+    for (const [value, label] of stats) {
+      const cell = document.createElement('div'), strong = document.createElement('strong');
+      strong.textContent = value;
+      cell.append(strong, document.createTextNode(' ' + label));
+      $('#summary').append(cell);
+    }
+    result.hidden = false;
+    refreshControls();
+    $('#result-title').focus();
+  } catch (error) {
+    if (active === operation && error.name !== 'AbortError') showError(error.message);
+  } finally { finishOperation(operation); }
+});
+remediationButton.addEventListener('click', async () => {
+  if (active || !successful || successful.revision !== revision) return;
+  const evidence = successful, inputs = captureInputs(), operation = beginOperation('remediation');
+  invalidateGuidance();
+  const status = $('#remediation-status');
+  status.hidden = false;
+  status.textContent = 'Requesting remediation plan…';
+  try {
+    let parsed;
+    try { parsed = JSON.parse(evidence.scanner); } catch (_) { throw new Error('Remediation needs valid axe-core JSON.'); }
+    const response = await fetch('/api/remediate', {method: 'POST', headers: headers(inputs.key),
+      body: JSON.stringify({scanner_input: parsed, client_name: evidence.client}), signal: operation.controller.signal});
+    const data = await response.json().catch(() => ({}));
+    guard(operation);
+    if (!response.ok) throw new Error((data.error && (data.error.message || data.error)) || `Remediation unavailable (${response.status})`);
+    $('#remediation-text').textContent = data.guidance || '';
+    $('#remediation-meta').textContent = `${evidence.client} · ${evidence.source} · revision ${evidence.revision}. ` +
+      (data.fallback ? '⚠ Locally generated fallback guidance; upstream calls may have failed or been skipped. ' : 'Model: ' + (data.model || 'unknown') + ' · ') +
+      (data.latency_ms ? Math.round(data.latency_ms) + ' ms · ' : '') + (data.violations_considered || 0) +
+      ' violations considered' + (data.violations_received !== undefined ? ' of ' + data.violations_received + ' bounded findings received' : '') + '. Advisory only — verify with a qualified accessibility professional.';
+    $('#remediation-out').hidden = false;
+  } catch (error) {
+    if (active === operation && error.name !== 'AbortError') showError(error.message, 'Remediation plan not generated');
+  } finally { finishOperation(operation); }
+});
+window.addEventListener('beforeunload', () => { stopOperation(); clearBundle(); });
+refreshControls();
