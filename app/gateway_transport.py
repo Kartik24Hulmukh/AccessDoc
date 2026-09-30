@@ -305,7 +305,7 @@ class PooledSession:
         # Reserve a small part of the existing budget for native cancellation
         # drain; never add an unconditional reporting grace to caller latency.
         remaining = deadline - time.monotonic()
-        cleanup = min(0.01, max(0.0, remaining * 0.1))
+        cleanup = min(0.05, max(0.0, remaining / 3))
         network_deadline = deadline - cleanup
         if not engine.ready.wait(max(0.0, network_deadline - time.monotonic())):
             raise requests.Timeout("gateway I/O startup deadline exceeded")

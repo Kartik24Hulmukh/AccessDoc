@@ -267,6 +267,29 @@ class NativeGatewayOwnershipTests(unittest.TestCase):
             release.set(); gw._session.close()
             server.shutdown(); server.server_close(); runner.join(2)
 
+    def test_cancellation_drains_delayed_completion_callbacks_inside_budget(self):
+        from app.gateway_transport import _Engine
+        server, received = self.server(drip=True)
+        gw = ModelGateway(api_key="synthetic", chain=CANONICAL_CHAIN[:1], budget_seconds=0.15, max_retries=0)
+        finish = _Engine._finish
+        def delayed_finish(engine, call, task):
+            # Controlled 30 ms completion-dispatch lag models the reproduced
+            # Windows timer/callback boundary; it is not a production sleep.
+            engine.loop.call_later(0.03, finish, engine, call, task)
+        try:
+            with patch.dict(os.environ, {"GATEWAY_HEDGE_DELAY_MS": "-1"}), patch(
+                    "app.gateway.MELIOUS_BASE_URL", "http://127.0.0.1:%d" % server.server_port), patch.object(gw, "_log"), patch.object(_Engine, "_finish", delayed_finish):
+                started = time.monotonic()
+                result = gw.chat("fix contrast")
+                elapsed = time.monotonic() - started
+                self.assertTrue(result.fallback)
+                self.assertLess(elapsed, 0.2)
+                self.assertEqual(gw._session.snapshot()["active_calls"], 0)
+                self.assertEqual(gw._session.snapshot()["inflight"], 0)
+        finally:
+            gw._session.close()
+        self.assertEqual(len(received), 1)
+
     def test_missing_usage_cannot_reauthorize_the_same_budget(self):
         server, received = self.server(missing_usage=True)
         prompt = "fix contrast"
