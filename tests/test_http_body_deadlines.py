@@ -1,5 +1,6 @@
 """Real-socket slowloris regression; clients keep dripping until rejection."""
 import http.client
+import json
 import os
 import socket
 import threading
@@ -12,13 +13,36 @@ from app.limits import MAX_HTTP_BODY_BYTES
 
 
 class HTTPBodyDeadlineTests(unittest.TestCase):
-    def _exercise(self, module, handler, length=1000):
+    def _exercise(self, module, handler, length=1000, dripping=True, force_abort=False):
         errors = []
+        rejections = {}
+        observed = threading.Condition()
+        expected = 413 if length > MAX_HTTP_BODY_BYTES else 408
+        def record(owner, status, payload):
+            error = payload.get("error") if isinstance(payload, dict) else None
+            valid = (status == expected and (
+                (status == 408 and (error == "Request body deadline exceeded" or
+                    isinstance(error, dict) and error.get("code") == "REQUEST_TIMEOUT")) or
+                (status == 413 and (error == "Request body too large" or
+                    isinstance(error, dict) and error.get("code") == "INPUT_TOO_LARGE"))))
+            if valid:
+                with observed:
+                    rejections[owner.client_address] = status
+                    observed.notify_all()
+        class ObservedHandler(handler):
+            def _send(self, status, body=b"", *args, **kwargs):
+                try: payload = json.loads(body)
+                except (ValueError, TypeError): payload = None
+                record(self, status, payload)
+                return super()._send(status, body, *args, **kwargs)
+            def _send_json(self, status, payload, *args, **kwargs):
+                record(self, status, payload)
+                return super()._send_json(status, payload, *args, **kwargs)
         class ObservedServer(ThreadingHTTPServer):
             daemon_threads = True
             def handle_error(self, *args):
                 errors.append("unhandled handler error")
-        server = ObservedServer(("127.0.0.1", 0), handler)
+        server = ObservedServer(("127.0.0.1", 0), ObservedHandler)
         runner = threading.Thread(
             target=lambda: server.serve_forever(poll_interval=0.01))
         runner.start()
@@ -52,15 +76,39 @@ class HTTPBodyDeadlineTests(unittest.TestCase):
                                     break
                         except OSError:
                             pass
-                    writer = threading.Thread(target=drip)
-                    writers.append(writer)
-                    writer.start()
+                    if dripping:
+                        writer = threading.Thread(target=drip)
+                        writers.append(writer)
+                        writer.start()
                 for conn in sockets:
-                    with http.client.HTTPResponse(conn) as response:
-                        response.begin()
-                        self.assertEqual(response.status,
-                                         413 if length > MAX_HTTP_BODY_BYTES else 408)
-                        response.read()
+                    client = conn.getsockname()
+                    if force_abort == "uncorrelated":
+                        client = ("127.0.0.1", -1)  # impossible peer for negative control
+                    try:
+                        if force_abort == "uncorrelated":
+                            raise ConnectionAbortedError("synthetic uncorrelated client abort")
+                        if force_abort:
+                            # Exercise the portable client-reset branch, but
+                            # only after a real, correlated server deadline.
+                            with observed:
+                                self.assertTrue(observed.wait_for(lambda: client in rejections, 0.4))
+                            raise ConnectionAbortedError("synthetic post-rejection client abort")
+                        with http.client.HTTPResponse(conn) as response:
+                            response.begin()
+                            self.assertEqual(response.status, expected)
+                            response.read()
+                    except (ConnectionAbortedError, ConnectionResetError):
+                        if not dripping:
+                            raise  # Quiet clients must receive the HTTP result.
+                        # A client still sending into a timed-out unread body
+                        # can receive TCP abort/reset (WinError 10053 observed).
+                        # Never infer rejection from a reset alone: require the
+                        # exact server decision for THIS connection and retain
+                        # the independent deadline + admission + error gates.
+                        with observed:
+                            self.assertTrue(observed.wait_for(lambda: client in rejections, 0.1),
+                                            "reset without matching server rejection")
+                        self.assertEqual(rejections[client], expected)
                 self.assertFalse(stop.is_set(), "clients were not voluntarily stopped")
                 self.assertLess(time.monotonic() - started, 0.5,
                                 "body deadline exceeded 200 ms + scheduling allowance")
@@ -93,6 +141,25 @@ class HTTPBodyDeadlineTests(unittest.TestCase):
         for module, handler in ((hosted, hosted.handler), (local, local.Handler)):
             with self.subTest(adapter=module.__name__):
                 self._exercise(module, handler)
+
+    def test_quiet_timed_out_clients_receive_408_on_both_adapters(self):
+        import api.handler as hosted
+        import app.main as local
+        for module, handler in ((hosted, hosted.handler), (local, local.Handler)):
+            with self.subTest(adapter=module.__name__):
+                self._exercise(module, handler, dripping=False)
+
+    def test_correlated_client_abort_retains_real_deadline_and_recovery_gates(self):
+        import api.handler as hosted
+        import app.main as local
+        for module, handler in ((hosted, hosted.handler), (local, local.Handler)):
+            with self.subTest(adapter=module.__name__):
+                self._exercise(module, handler, force_abort=True)
+
+    def test_uncorrelated_reset_is_not_accepted_as_deadline_evidence(self):
+        import app.main as local
+        with self.assertRaisesRegex(AssertionError, "reset without matching server rejection"):
+            self._exercise(local, local.Handler, force_abort="uncorrelated")
 
     def test_oversized_body_drain_shares_deadline(self):
         import api.handler as hosted
