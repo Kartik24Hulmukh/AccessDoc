@@ -5,3 +5,5 @@ Read PROVENANCE.json before comparing sources. Original faults.py/repro.py requi
 Install requirements-dev.txt, local Playwright Chromium and pinned axe-core. Reproduce core regressions with python -m pytest tests -q; run scripts/verify_release.py for ten local gates. Final load/chaos scripts run against loopback only. Real protected-preview smoke requires authorized automation access and the exact final SHA.
 
 Failed original and intermediate runs, Windows/evidence CI failures, and a failed obsolete TTL harness assumption are retained intentionally. repro-final-corrected.log/results-final.json fix the harness's assumption that an expired payload still exists; that is not a new product failure. Duplicate-ZIP warnings originate from intentionally hostile fixtures. File hashes are in MANIFEST.sha256.json; the manifest does not hash itself.
+
+Historical branch names and exact GitHub job-log bytes (including original byte-order marks) are in immutable-historical-captures.zip. Validate its inner MEMBER.sha256.json after extraction. Active repository source lint rules were not weakened or disabled.
