@@ -1,0 +1,50 @@
+........F...                                                             [100%]
+=================================== FAILURES ===================================
+____ LiveHttpBillingTests.test_billing_429_holds_whole_chain_after_one_call ____
+
+self = <tests.test_gateway_billing_exhaustion.LiveHttpBillingTests testMethod=test_billing_429_holds_whole_chain_after_one_call>
+
+    def test_billing_429_holds_whole_chain_after_one_call(self):
+        g = self._gw()
+        r = g.chat("fix alt text")
+        self.assertTrue(r.fallback)
+        self.assertEqual(r.model, "static-kb")
+        self.assertEqual(len(_H.hits), 1, "only one probe may hit a credit-exhausted account: %r" % _H.hits)
+        self.assertTrue(g.health()["billing_exhausted"])
+        t0 = time.monotonic()
+        for _ in range(50):
+>           self.assertEqual(g.chat("again").model, "static-kb")
+                             ^^^^^^^^^^^^^^^
+
+tests/test_gateway_billing_exhaustion.py:78: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/gateway.py:539: in chat
+    return self._chat_hedged(prompt, model, static_fallback, budget_seconds, hedge)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <app.gateway.ModelGateway object at 0x7f282a22ac50>, prompt = 'again'
+model = None, static_fallback = True, budget_seconds = None, hedge = 0.1
+
+    def _chat_hedged(self, prompt, model, static_fallback, budget_seconds, hedge):
+        if self.billing_exhausted():
+            # Credits are account-wide: no lane can succeed, dispatch nothing.
+            self._log(event="gateway_skip", model=None, reason="billing_exhausted")
+            if static_fallback:
+                self._log(event="gateway_static_fallback", reason="billing_exhausted")
+                return GatewayResult("static-kb", static_answer(prompt), 0, 0.0,
+>                                    ledger.snapshot()["authorized_attempts"], True, "static-kb")
+                                     ^^^^^^
+E               UnboundLocalError: cannot access local variable 'ledger' where it is not associated with a value
+
+app/gateway.py:548: UnboundLocalError
+----------------------------- Captured stdout call -----------------------------
+{"ts":1790796075.758128,"level":"info","event":"gateway_dispatch","trace_id":"9218e0ad5805ae0191e1ba5c03e13bae","span_id":"6526b25bae4f0497","model":"glm-5.3","reason":"primary","lane":1,"since_start_ms":0.34}
+{"ts":1790796075.7699628,"level":"info","event":"gateway_billing_exhausted","trace_id":"9218e0ad5805ae0191e1ba5c03e13bae","span_id":"b31be230b3859507","model":"glm-5.3","cooldown_s":300.0}
+{"ts":1790796075.770028,"level":"info","event":"gateway_call","trace_id":"9218e0ad5805ae0191e1ba5c03e13bae","span_id":"b31be230b3859507","model":"glm-5.3","status":429,"latency_ms":12.02,"reason":"billing_exhausted"}
+{"ts":1790796075.7701473,"level":"info","event":"gateway_static_fallback","trace_id":"9218e0ad5805ae0191e1ba5c03e13bae","span_id":"6526b25bae4f0497","reason":"chain_exhausted"}
+{"ts":1790796075.7702518,"level":"info","event":"gateway_skip","trace_id":"9218e0ad5805ae0191e1ba5c03e13bae","span_id":"6526b25bae4f0497","model":null,"reason":"billing_exhausted"}
+{"ts":1790796075.770268,"level":"info","event":"gateway_static_fallback","trace_id":"9218e0ad5805ae0191e1ba5c03e13bae","span_id":"6526b25bae4f0497","reason":"billing_exhausted"}
+=========================== short test summary info ============================
+FAILED tests/test_gateway_billing_exhaustion.py::LiveHttpBillingTests::test_billing_429_holds_whole_chain_after_one_call
+1 failed, 11 passed in 3.02s

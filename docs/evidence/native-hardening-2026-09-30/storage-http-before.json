@@ -1,0 +1,57 @@
+{
+  "scope": "loopback only; 3 samples per input; status change is acceptance improvement, not speedup; identical fixture",
+  "rows": [
+    {
+      "findings": 500,
+      "http_input_bytes": 55855,
+      "samples": [
+        {
+          "status": 422,
+          "post_ms": 92.186,
+          "downloads": {}
+        },
+        {
+          "status": 422,
+          "post_ms": 140.001,
+          "downloads": {}
+        },
+        {
+          "status": 422,
+          "post_ms": 152.64,
+          "downloads": {}
+        }
+      ],
+      "p50_ms": 140.001,
+      "p95_ms": 152.64,
+      "p99_ms": 152.64
+    },
+    {
+      "findings": 1000,
+      "http_input_bytes": 111855,
+      "samples": [
+        {
+          "status": 422,
+          "post_ms": 185.068,
+          "downloads": {}
+        },
+        {
+          "status": 422,
+          "post_ms": 182.783,
+          "downloads": {}
+        },
+        {
+          "status": 422,
+          "post_ms": 190.552,
+          "downloads": {}
+        }
+      ],
+      "p50_ms": 185.068,
+      "p95_ms": 190.552,
+      "p99_ms": 190.552
+    }
+  ],
+  "retained_store": {
+    "items": 0,
+    "bytes": 0
+  }
+}

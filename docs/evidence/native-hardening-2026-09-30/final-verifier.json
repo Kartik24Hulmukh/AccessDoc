@@ -1,0 +1,46 @@
+{
+  "compile": {
+    "status": "PASS",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "tests": {
+    "status": "PASS",
+    "exitCode": 0,
+    "stdout": "..........................................{\"ts\":1790796327.9423969,\"level\":\"info\",\"event\":\"http_request\",\"trace_id\":\"e8e84a96d11822686a2710359e1ca44e\",\"span_id\":\"815c000b365fbcc5\",\"request_id\":\"477b670af55ddf2007fba2272b90a97a\",\"ip\":\"127.0.0.1\",\"method\":\"GET\",\"route\":\"/health\",\"status\":200,\"duration_ms\":1.45}\n.................... [  6%]\n.............................................................. [ 13%]\n...............................................{\"event\": \"request\", \"request_id\": \"a78b997a0603\", \"method\": \"POST\", \"status\": 400, \"duration_ms\": 0.68}\n..............s.......... [ 20%]\n.................................................................. [ 28%]\n................................................................. [ 35%]\n................................................................................................................... [ 47%]\n................................................................................................................ [ 59%]\n.............................................................. [ 65%]\n............................................................... [ 72%]\n...................................................................... [ 80%]\n........................................................................ [ 87%]\n........{\"event\": \"request\", \"request_id\": \"eeea94dfca6a\", \"method\": \"POST\", \"status\": 200, \"duration_ms\": 0.65}\n.........................................................................................................            [100%]\n=============================== warnings summary ===============================\ntests/test_stress_matrix.py::SecurityStressTests::test_duplicate_zip_paths_rejected\n  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'report.html'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_zip_hardening.py::ZipHardeningTests::test_duplicate_manifest_json\n  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'manifest.json'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_zip_hardening.py::ZipHardeningTests::test_duplicate_report_pdf\n  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'report.pdf'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n933 passed, 1 skipped, 3 warnings, 207 subtests passed in 114.83s (0:01:54)\n",
+    "stderr": ""
+  },
+  "secret_patterns": {
+    "status": "PASS",
+    "detail": []
+  },
+  "claims": {
+    "status": "PASS",
+    "detail": []
+  },
+  "placeholders": {
+    "status": "PASS",
+    "detail": []
+  },
+  "stale_files": {
+    "status": "PASS",
+    "detail": []
+  },
+  "immutable_action_refs": {
+    "status": "PASS",
+    "detail": []
+  },
+  "non_publishing_workflows": {
+    "status": "PASS",
+    "detail": []
+  },
+  "required_files": {
+    "status": "PASS",
+    "detail": []
+  },
+  "version_consistency": {
+    "status": "PASS",
+    "detail": []
+  }
+}

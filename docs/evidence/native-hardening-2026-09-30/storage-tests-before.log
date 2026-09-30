@@ -1,0 +1,200 @@
+FFFF                                                                     [100%]Traceback (most recent call last):
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/_pytest/unraisableexception.py", line 33, in gc_collect_harder
+    gc.collect()
+    ~~~~~~~~~~^^
+ResourceWarning: unclosed <socket.socket [closed] fd=12, family=2, type=1, proto=6>
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 203, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/pytest/__main__.py", line 9, in <module>
+    raise SystemExit(_console_main())
+                     ~~~~~~~~~~~~~^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/_pytest/config/__init__.py", line 253, in _console_main
+    code = _main(prog=_get_prog_name(sys.argv))
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/_pytest/config/__init__.py", line 229, in _main
+    ret: ExitCode | int = config.hook.pytest_cmdline_main(config=config)
+                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/pluggy/_hooks.py", line 512, in __call__
+    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/pluggy/_manager.py", line 120, in _hookexec
+    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/pluggy/_callers.py", line 167, in _multicall
+    raise exception
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/pluggy/_callers.py", line 121, in _multicall
+    res = hook_impl.function(*args)
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/_pytest/main.py", line 377, in pytest_cmdline_main
+    return wrap_session(config, _main)
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/_pytest/main.py", line 372, in wrap_session
+    config._ensure_unconfigure()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/_pytest/config/__init__.py", line 1212, in _ensure_unconfigure
+    self.hook.pytest_unconfigure(config=self)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/pluggy/_hooks.py", line 512, in __call__
+    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/pluggy/_manager.py", line 120, in _hookexec
+    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/pluggy/_callers.py", line 167, in _multicall
+    raise exception
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/pluggy/_callers.py", line 121, in _multicall
+    res = hook_impl.function(*args)
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/_pytest/unraisableexception.py", line 173, in pytest_unconfigure
+    collect_unraisable(config)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/_pytest/unraisableexception.py", line 79, in collect_unraisable
+    raise errors[0]
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/_pytest/unraisableexception.py", line 67, in collect_unraisable
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+pytest.PytestUnraisableExceptionWarning: Exception ignored in: <socket.socket [closed] fd=12, family=2, type=1, proto=6>
+Enable tracemalloc to get traceback where the object was allocated.
+See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+=================================== FAILURES ===================================
+_ StorageContractTests.test_generate_downloads_and_quota_recovery_over_real_http _
+
+self = <tests.test_storage_contract.StorageContractTests testMethod=test_generate_downloads_and_quota_recovery_over_real_http>
+
+    def test_generate_downloads_and_quota_recovery_over_real_http(self):
+        import app.main as main
+        server = main.Server(("127.0.0.1", 0), main.Handler)
+        runner = threading.Thread(
+            target=lambda: server.serve_forever(poll_interval=0.01))
+        runner.start()
+        base = "http://127.0.0.1:%d" % server.server_port
+        env = {"ACCESSDOC_REQUIRE_AUTH": "false", "ACCESSDOC_API_KEY": "",
+               "ACCESSDOC_API_KEYS": "", "RATE_LIMIT_PER_MINUTE": "100000",
+               "ALLOWED_HOSTS": "127.0.0.1:%d" % server.server_port}
+        body = json.dumps({
+            "scanner_input": {"violations": []},
+            "manual_findings": [{"id": "keyboard", "impact": "serious",
+                "description": "Keyboard navigation finding",
+                "wcag_scs": ["2.1.1"], "target": "#item-%d" % i}
+                for i in range(500)],
+        }).encode()
+        request = Request(base + "/api/generate", data=body,
+                          headers={"Content-Type": "application/json"})
+        try:
+            with patch.dict(os.environ, env), patch.object(main, "STORE",
+                                                           TTLReportStore()):
+>               with urlopen(request, timeout=10) as response:
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_storage_contract.py:80: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/usr/lib64/python3.13/urllib/request.py:189: in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib64/python3.13/urllib/request.py:495: in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+/usr/lib64/python3.13/urllib/request.py:604: in http_response
+    response = self.parent.error(
+/usr/lib64/python3.13/urllib/request.py:533: in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib64/python3.13/urllib/request.py:466: in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <urllib.request.HTTPDefaultErrorHandler object at 0x7f8f30b6dfd0>
+req = <urllib.request.Request object at 0x7f8f30b6d7f0>
+fp = <http.client.HTTPResponse object at 0x7f8f30b684f0>, code = 422
+msg = 'Unprocessable Content'
+hdrs = <http.client.HTTPMessage object at 0x7f8f30bb0fc0>
+
+    def http_error_default(self, req, fp, code, msg, hdrs):
+>       raise HTTPError(req.full_url, code, msg, hdrs, fp)
+E       urllib.error.HTTPError: HTTP Error 422: Unprocessable Content
+
+/usr/lib64/python3.13/urllib/request.py:613: HTTPError
+----------------------------- Captured stdout call -----------------------------
+{"ts":1790793496.6159039,"level":"info","event":"http_request","trace_id":"72cc69de5509990c47cacd4a0899fc4b","span_id":"be87f89d56b699b6","request_id":"c516ad5b4944d4cb766964ef696f2943","ip":"127.0.0.1","method":"POST","route":"/api/generate","status":422,"duration_ms":97.44}
+_ StorageContractTests.test_quota_rejection_is_typed_and_preserves_existing_report _
+
+self = <tests.test_storage_contract.StorageContractTests testMethod=test_quota_rejection_is_typed_and_preserves_existing_report>
+
+    def test_quota_rejection_is_typed_and_preserves_existing_report(self):
+        store = TTLReportStore(max_bytes=3)
+        token = store.put(b"p", b"h", b"r", "first.pdf")
+        with self.assertRaises(LimitExceeded) as error:
+>           store.put(b"pp", b"h", b"r", "second.pdf")
+
+tests/test_storage_contract.py:52: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def put(self,pdf:bytes,html:bytes,receipt:bytes,filename:str)->str:
+        if len(pdf)>10_000_000 or len(html)>5_000_000 or len(receipt)>100_000:raise ValueError('Generated output exceeds storage limit')
+>       if len(pdf)+len(html)+len(receipt)>self.max_bytes:raise ValueError('Generated output exceeds store capacity')
+                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Generated output exceeds store capacity
+
+app/store.py:34: ValueError
+_ StorageContractTests.test_receipt_size_is_bounded_by_aggregate_store_budget __
+
+self = <tests.test_storage_contract.StorageContractTests testMethod=test_receipt_size_is_bounded_by_aggregate_store_budget>
+
+    def test_receipt_size_is_bounded_by_aggregate_store_budget(self):
+        receipt = b"r" * 200_000
+        store = TTLReportStore(max_bytes=len(receipt) + 2)
+>       token = store.put(b"p", b"h", receipt, "report.pdf")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_storage_contract.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <app.store.TTLReportStore object at 0x7f8f30bb2190>, pdf = b'p'
+html = b'h'
+receipt = b'rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr...rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr'
+filename = 'report.pdf'
+
+    def put(self,pdf:bytes,html:bytes,receipt:bytes,filename:str)->str:
+>       if len(pdf)>10_000_000 or len(html)>5_000_000 or len(receipt)>100_000:raise ValueError('Generated output exceeds storage limit')
+                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       ValueError: Generated output exceeds storage limit
+
+app/store.py:33: ValueError
+_ StorageContractTests.test_required_storage_import_failure_is_startup_failure _
+
+self = <tests.test_storage_contract.StorageContractTests testMethod=test_required_storage_import_failure_is_startup_failure>
+
+        def test_required_storage_import_failure_is_startup_failure(self):
+            code = """
+    import builtins
+    original = builtins.__import__
+    def fail(name, globals=None, locals=None, fromlist=(), level=0):
+        if (name == 'store' and level == 1 and globals and
+                globals.get('__package__') == 'app'):
+            raise ModuleNotFoundError('Injected required storage import failure')
+        return original(name, globals, locals, fromlist, level)
+    builtins.__import__ = fail
+    try:
+        import app.main
+    except ModuleNotFoundError as exc:
+        assert str(exc) == 'Injected required storage import failure'
+    else:
+        raise AssertionError('Required storage failure was hidden by a fake store')
+    """
+            result = subprocess.run([sys.executable, "-c", code], cwd=ROOT,
+                                    capture_output=True, text=True, timeout=10)
+>           self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+E           AssertionError: 1 != 0 : Traceback (most recent call last):
+E             File "<string>", line 15, in <module>
+E               raise AssertionError('Required storage failure was hidden by a fake store')
+E           AssertionError: Required storage failure was hidden by a fake store
+
+tests/test_storage_contract.py:39: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_storage_contract.py::StorageContractTests::test_generate_downloads_and_quota_recovery_over_real_http
+FAILED tests/test_storage_contract.py::StorageContractTests::test_quota_rejection_is_typed_and_preserves_existing_report
+FAILED tests/test_storage_contract.py::StorageContractTests::test_receipt_size_is_bounded_by_aggregate_store_budget
+FAILED tests/test_storage_contract.py::StorageContractTests::test_required_storage_import_failure_is_startup_failure
+4 failed in 0.82s

@@ -1,0 +1,90 @@
+[
+  {
+    "filename": "accessdoc-delivery-evidence-2026-09-30.zip",
+    "bytes": 68502,
+    "sha256": "c2cf42fe8aa10c13faeaf5f024aac389e344022ab72959f791f21b61b4451b05",
+    "members": 47,
+    "uncompressed_bytes": 226492
+  },
+  {
+    "filename": "accessdoc-local-hardening.patch",
+    "bytes": 34705,
+    "sha256": "53e93c02996565646ee53972dfea1c8426cd8e84d7622e98d05ee4d48441277d"
+  },
+  {
+    "filename": "accessdoc-local-hardening.patch",
+    "bytes": 34705,
+    "sha256": "53e93c02996565646ee53972dfea1c8426cd8e84d7622e98d05ee4d48441277d"
+  },
+  {
+    "filename": "accessdoc-complete-local-hardening.patch",
+    "bytes": 175128,
+    "sha256": "2021300e2123940fe9b15098e5078c6959104ad4eb9cb01e3b039c5850d1d4dc"
+  },
+  {
+    "filename": "coarena-files-57e09c4.zip",
+    "bytes": 12926,
+    "sha256": "2837ebab02c715434ccb5e6f705c2a60825c81d8866225eae32329b720e2ba74",
+    "members": 3,
+    "uncompressed_bytes": 12566
+  },
+  {
+    "filename": "accessdoc-hardening-evidence.zip",
+    "bytes": 17329,
+    "sha256": "fb4c0300a23db662aa9d199df2af0f68ef2446f8216c7f5c1e7b9925fc8c4f07",
+    "members": 18,
+    "uncompressed_bytes": 50028
+  },
+  {
+    "filename": "coarena-files-57e09c4f.zip",
+    "bytes": 12847,
+    "sha256": "9a33cad96c5f8b189eec93965a022f2c381f5b414faf24b48b1a52587bdfb8ba",
+    "members": 3,
+    "uncompressed_bytes": 12435
+  },
+  {
+    "filename": "accessdoc-hardening-evidence.zip",
+    "bytes": 17329,
+    "sha256": "fb4c0300a23db662aa9d199df2af0f68ef2446f8216c7f5c1e7b9925fc8c4f07",
+    "members": 18,
+    "uncompressed_bytes": 50028
+  },
+  {
+    "filename": "JitTest-AccessDoc-Founder-Decision-2026-09-05.zip",
+    "bytes": 345828,
+    "sha256": "70de4fa72e5052249ddf9056737cb656c066cbe9911990372b7e2724600e0eab",
+    "members": 67,
+    "uncompressed_bytes": 1097234
+  },
+  {
+    "filename": "accessdoc-complete-local-hardening.patch",
+    "bytes": 175128,
+    "sha256": "2021300e2123940fe9b15098e5078c6959104ad4eb9cb01e3b039c5850d1d4dc"
+  },
+  {
+    "filename": "accessdoc-delivery-evidence-2026-09-30.zip",
+    "bytes": 68502,
+    "sha256": "c2cf42fe8aa10c13faeaf5f024aac389e344022ab72959f791f21b61b4451b05",
+    "members": 47,
+    "uncompressed_bytes": 226492
+  },
+  {
+    "filename": "repos.md",
+    "bytes": 12557,
+    "sha256": "0b5b3435b147468103ca8c547dac6333f1a6ed24ddf56952c2c1268c5ff5b62d"
+  },
+  {
+    "filename": "Research-Benefits.zip",
+    "bytes": 150127,
+    "sha256": "f7e48d899af5987d0bb0567c8eb5b3330eecb6fec5473d5ee6d4def46920b216",
+    "members": 6,
+    "uncompressed_bytes": 301117
+  },
+  {
+    "filename": "accessdoc_forge_scaling_package.zip",
+    "bytes": 22404,
+    "sha256": "d68b239b4c5fe64323ae4648e8517a5e0adefe9275dfb4874dd424b47c3ddca0",
+    "members": 6,
+    "uncompressed_bytes": 45647
+  }
+]

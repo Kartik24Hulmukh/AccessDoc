@@ -1,0 +1,600 @@
+.................{"event": "request", "request_id": "0aa1c8934a2f", "method": "POST", "status": 400, "duration_ms": 0.34}
+.......{"event": "request", "request_id": "57021e9789fc", "method": "POST", "status": 422, "duration_ms": 0.46}
+......{"event": "request", "request_id": "bcddce9cd476", "method": "POST", "status": 415, "duration_ms": 0.46}
+................................ [  6%]
+.............................................................. [ 13%]
+...............................................{"event": "request", "request_id": "cf28d90daa72", "method": "POST", "status": 400, "duration_ms": 0.38}
+..............s.......... [ 21%]
+.................................................................. [ 28%]
+..................................................{"event": "request", "request_id": "4865a0ffa428", "method": "POST", "status": 400, "duration_ms": 0.33}
+............... [ 36%]
+............................FF............................ [ 42%]
+....................................................................................................... [ 53%]
+........................................................................ [ 61%]
+.............................................................. [ 68%]
+............................................................. [ 75%]
+.......................F................................................ [ 83%]
+.................................FFF...FF...{"event": "request", "request_id": "96fbaead8324", "method": "POST", "status": 422, "duration_ms": 0.6}
+........{"event": "request", "request_id": "cc43ffa45752", "method": "POST", "status": 422, "duration_ms": 0.46}
+.................... [ 91%]
+.................................................... [ 96%]
+............................                                             [100%]
+=================================== FAILURES ===================================
+_____ HostedUITests.test_authenticated_sample_to_bundle_and_accessible_ui ______
+
+self = <tests.test_hosted_ui.HostedUITests testMethod=test_authenticated_sample_to_bundle_and_accessible_ui>
+
+    def test_authenticated_sample_to_bundle_and_accessible_ui(self):
+        server = Server(("127.0.0.1", 0), Handler)
+        base = f"http://127.0.0.1:{server.server_port}"
+        env = {"ALLOWED_HOSTS": f"127.0.0.1:{server.server_port}", "ALLOWED_ORIGINS": base,
+               "ACCESSDOC_REQUIRE_AUTH": "true", "ACCESSDOC_API_KEY": "local-browser-test-only",
+               "RATE_LIMIT_PER_MINUTE": "100000"}
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            with patch.dict(os.environ, env), tempfile.TemporaryDirectory() as temp, sync_playwright() as p:
+>               browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_hosted_ui.py:32: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/sync_api/_generated.py:16814: in launch
+    self._sync(
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_browser_type.py:101: in launch
+    await self._channel.send(
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f9330476900>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f932fa4a520>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /home/vercel-sandbox/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_connection.py:632: Error
+_______ HostedUITests.test_file_only_upload_and_clear_restore_validation _______
+
+self = <tests.test_hosted_ui.HostedUITests testMethod=test_file_only_upload_and_clear_restore_validation>
+
+    def test_file_only_upload_and_clear_restore_validation(self):
+        server = Server(("127.0.0.1", 0), Handler)
+        base = f"http://127.0.0.1:{server.server_port}"
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        env = {"ALLOWED_HOSTS": f"127.0.0.1:{server.server_port}",
+               "ALLOWED_ORIGINS": base, "RATE_LIMIT_PER_MINUTE": "100000",
+               "ACCESSDOC_REQUIRE_AUTH": "false"}
+        try:
+            with patch.dict(os.environ, env), tempfile.TemporaryDirectory() as temp, sync_playwright() as p:
+>               browser = p.chromium.launch(headless=True, args=["--no-sandbox"])
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_hosted_ui.py:85: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/sync_api/_generated.py:16814: in launch
+    self._sync(
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_browser_type.py:101: in launch
+    await self._channel.send(
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f93311f6ad0>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f932fc21c60>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /home/vercel-sandbox/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_connection.py:632: Error
+______ ScanHandoffTests.test_local_authorized_state_to_verifiable_bundle _______
+
+url = 'http://127.0.0.1:40179/', timeout_ms = 30000
+allow_private_network = True
+
+    def run_scan(url, timeout_ms=30000, allow_private_network=False):
+        """Run axe-core against `url` using Playwright; return the axe result dict.
+    
+        Raises :class:`UnsafeTargetError` if the URL (or any redirect target)
+        violates the network boundary policy.
+        Raises :class:`ScanUnavailable` if Playwright (and a browser) are not
+        installed or the scan otherwise fails.
+        """
+        # Pre-navigation gate.
+        validate_url(url, allow_private_network=allow_private_network)
+    
+        try:
+            from playwright.sync_api import sync_playwright
+        except Exception as exc:  # ImportError or environment error
+            raise ScanUnavailable(
+                "Playwright is not installed. Install the scan extra:\n"
+                "  pip install playwright && playwright install chromium"
+            ) from exc
+    
+        axe_source = _load_axe_source()
+        try:
+            with sync_playwright() as p:
+>               browser = p.chromium.launch(headless=True)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+app/scan.py:367: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/sync_api/_generated.py:16814: in launch
+    self._sync(
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_browser_type.py:101: in launch
+    await self._channel.send(
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f93312679d0>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f9326cf6700>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /home/vercel-sandbox/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_connection.py:632: Error
+
+The above exception was the direct cause of the following exception:
+
+self = <tests.test_scan_handoff.ScanHandoffTests testMethod=test_local_authorized_state_to_verifiable_bundle>
+
+    def test_local_authorized_state_to_verifiable_bundle(self):
+        server = HTTPServer(("127.0.0.1", 0), FixtureHandler)
+        thread = threading.Thread(target=server.serve_forever)
+        thread.start()
+        url = f"http://127.0.0.1:{server.server_port}/"
+        try:
+            # Explicit opt-in only for this trusted loopback fixture. The
+            # hosted service never accepts arbitrary URLs for browser scans.
+            with patch.dict(os.environ, {"ACCESSDOC_AXE_PATH": str(AXE)}):
+>               scan = run_scan(url, allow_private_network=True)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_scan_handoff.py:45: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+url = 'http://127.0.0.1:40179/', timeout_ms = 30000
+allow_private_network = True
+
+    def run_scan(url, timeout_ms=30000, allow_private_network=False):
+        """Run axe-core against `url` using Playwright; return the axe result dict.
+    
+        Raises :class:`UnsafeTargetError` if the URL (or any redirect target)
+        violates the network boundary policy.
+        Raises :class:`ScanUnavailable` if Playwright (and a browser) are not
+        installed or the scan otherwise fails.
+        """
+        # Pre-navigation gate.
+        validate_url(url, allow_private_network=allow_private_network)
+    
+        try:
+            from playwright.sync_api import sync_playwright
+        except Exception as exc:  # ImportError or environment error
+            raise ScanUnavailable(
+                "Playwright is not installed. Install the scan extra:\n"
+                "  pip install playwright && playwright install chromium"
+            ) from exc
+    
+        axe_source = _load_axe_source()
+        try:
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True)
+                page = browser.new_page()
+    
+                # Intercept every outgoing request (navigations + sub-resources)
+                # and abort any that target a denied host after re-resolution.
+                def _route_handler(route):
+                    request = route.request
+                    req_url = request.url
+                    if not _check_request_host(req_url, allow_private_network):
+                        try:
+                            route.abort()
+                        except Exception:
+                            pass
+                        return
+                    try:
+                        route.continue_()
+                    except Exception:
+                        pass
+    
+                page.route("**/*", _route_handler)
+    
+                page.goto(url, wait_until="load", timeout=timeout_ms)
+    
+                # Re-validate the final URL after any redirects the browser
+                # followed at the navigation layer.
+                final_url = page.url
+                if final_url and final_url != url:
+                    validate_url(final_url, allow_private_network=allow_private_network)
+    
+                if axe_source:
+                    page.add_script_tag(content=axe_source)
+                else:
+                    page.add_script_tag(url=AXE_CDN)
+                axe_version = _require_axe_runtime(page)
+                result = page.evaluate(
+                    "async () => { return await axe.run(document, "
+                    "{resultTypes:['violations','passes','incomplete']}); }"
+                )
+                browser.close()
+        except UnsafeTargetError:
+            raise
+        except ScanUnavailable:
+            raise
+        except Exception as exc:
+>           raise ScanUnavailable(f"Scan failed for {url}: {exc}") from exc
+E           app.scan.ScanUnavailable: Scan failed for http://127.0.0.1:40179/: BrowserType.launch: Executable doesn't exist at /home/vercel-sandbox/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+app/scan.py:411: ScanUnavailable
+________ TestSelfAccessibility.test_report_html_no_blocking_violations _________
+
+self = <tests.test_self_audit.TestSelfAccessibility testMethod=test_report_html_no_blocking_violations>
+
+    def test_report_html_no_blocking_violations(self):
+        """report.html must have zero critical/serious/moderate violations."""
+>       violations = self._run_axe(self.report_html)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_self_audit.py:164: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_self_audit.py:121: in _run_axe
+    browser = p.chromium.launch(headless=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/sync_api/_generated.py:16814: in launch
+    self._sync(
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_browser_type.py:101: in launch
+    await self._channel.send(
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f93305243e0>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f93277c7a60>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /home/vercel-sandbox/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_connection.py:632: Error
+________ TestSelfAccessibility.test_report_html_no_horizontal_overflow _________
+
+self = <tests.test_self_audit.TestSelfAccessibility testMethod=test_report_html_no_horizontal_overflow>
+
+    def test_report_html_no_horizontal_overflow(self):
+        """Axe alone cannot prove reflow; measure actual layout at 320px."""
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+>           browser = p.chromium.launch(headless=True)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_self_audit.py:228: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/sync_api/_generated.py:16814: in launch
+    self._sync(
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_browser_type.py:101: in launch
+    await self._channel.send(
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f93305275c0>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f93277c7560>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /home/vercel-sandbox/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_connection.py:632: Error
+_____________ TestSelfAccessibility.test_report_html_reflow_320px ______________
+
+self = <tests.test_self_audit.TestSelfAccessibility testMethod=test_report_html_reflow_320px>
+
+    def test_report_html_reflow_320px(self):
+        """report.html must have zero blocking violations at 320px width
+        (WCAG 1.4.10 Reflow)."""
+>       violations = self._run_axe(self.report_html, viewport_width=320)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_self_audit.py:189: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_self_audit.py:121: in _run_axe
+    browser = p.chromium.launch(headless=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/sync_api/_generated.py:16814: in launch
+    self._sync(
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_browser_type.py:101: in launch
+    await self._channel.send(
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f93305ac830>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f93277c4720>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /home/vercel-sandbox/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_connection.py:632: Error
+_________ TestSelfAccessibility.test_vpat_html_no_blocking_violations __________
+
+self = <tests.test_self_audit.TestSelfAccessibility testMethod=test_vpat_html_no_blocking_violations>
+
+    def test_vpat_html_no_blocking_violations(self):
+        """vpat-draft.html must have zero critical/serious/moderate violations."""
+>       violations = self._run_axe(self.vpat_html)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_self_audit.py:176: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_self_audit.py:121: in _run_axe
+    browser = p.chromium.launch(headless=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/sync_api/_generated.py:16814: in launch
+    self._sync(
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_browser_type.py:101: in launch
+    await self._channel.send(
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f932f719150>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f93277c5f80>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /home/vercel-sandbox/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_connection.py:632: Error
+______________ TestSelfAccessibility.test_vpat_html_reflow_320px _______________
+
+self = <tests.test_self_audit.TestSelfAccessibility testMethod=test_vpat_html_reflow_320px>
+
+    def test_vpat_html_reflow_320px(self):
+        """vpat-draft.html must have zero blocking violations at 320px width
+        (WCAG 1.4.10 Reflow)."""
+>       violations = self._run_axe(self.vpat_html, viewport_width=320)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_self_audit.py:202: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_self_audit.py:121: in _run_axe
+    browser = p.chromium.launch(headless=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/sync_api/_generated.py:16814: in launch
+    self._sync(
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_browser_type.py:101: in launch
+    await self._channel.send(
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_connection.py:76: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <playwright._impl._connection.Connection object at 0x7f932f7187c0>
+cb = <function Channel.send.<locals>.<lambda> at 0x7f932f6efb00>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        parsed_st = _attach_api_call_information(
+            getattr(task, "__pw_stack__", None) or _capture_stack_trace(),
+            is_internal,
+            title,
+        )
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /home/vercel-sandbox/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell
+E           ╔════════════════════════════════════════════════════════════╗
+E           ║ Looks like Playwright was just installed or updated.       ║
+E           ║ Please run the following command to download new browsers: ║
+E           ║                                                            ║
+E           ║     playwright install                                     ║
+E           ║                                                            ║
+E           ║ <3 Playwright Team                                         ║
+E           ╚════════════════════════════════════════════════════════════╝
+
+../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_connection.py:632: Error
+=============================== warnings summary ===============================
+tests/test_stress_matrix.py::SecurityStressTests::test_duplicate_zip_paths_rejected
+  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'report.html'
+    return self._open_to_write(zinfo, force_zip64=force_zip64)
+
+tests/test_zip_hardening.py::ZipHardeningTests::test_duplicate_manifest_json
+  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'manifest.json'
+    return self._open_to_write(zinfo, force_zip64=force_zip64)
+
+tests/test_zip_hardening.py::ZipHardeningTests::test_duplicate_report_pdf
+  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'report.pdf'
+    return self._open_to_write(zinfo, force_zip64=force_zip64)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_hosted_ui.py::HostedUITests::test_authenticated_sample_to_bundle_and_accessible_ui
+FAILED tests/test_hosted_ui.py::HostedUITests::test_file_only_upload_and_clear_restore_validation
+FAILED tests/test_scan_handoff.py::ScanHandoffTests::test_local_authorized_state_to_verifiable_bundle
+FAILED tests/test_self_audit.py::TestSelfAccessibility::test_report_html_no_blocking_violations
+FAILED tests/test_self_audit.py::TestSelfAccessibility::test_report_html_no_horizontal_overflow
+FAILED tests/test_self_audit.py::TestSelfAccessibility::test_report_html_reflow_320px
+FAILED tests/test_self_audit.py::TestSelfAccessibility::test_vpat_html_no_blocking_violations
+FAILED tests/test_self_audit.py::TestSelfAccessibility::test_vpat_html_reflow_320px
+8 failed, 898 passed, 1 skipped, 3 warnings, 201 subtests passed in 66.75s (0:01:06)
