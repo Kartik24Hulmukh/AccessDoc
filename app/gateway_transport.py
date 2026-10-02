@@ -247,7 +247,7 @@ class _Engine:
                     "peak_inflight": self.peak, "active_calls": len(self.calls),
                     "loop_alive": self.thread.is_alive()}
 
-    def stop(self):
+    def stop(self, deadline=None):
         with self.condition:
             self.closed = True
             self.condition.notify_all()
@@ -257,7 +257,7 @@ class _Engine:
         if self.ready.is_set() and hasattr(self, "loop") and not self.loop.is_closed():
             self.loop.call_soon_threadsafe(self.loop.stop)
         if threading.current_thread() is not self.thread:
-            self.thread.join(timeout=2)
+            self.thread.join(timeout=2 if deadline is None else max(0.0, deadline - time.monotonic()))
 
 
 _ENGINE = None
@@ -285,6 +285,7 @@ class PooledSession:
             if not valid:
                 raise ValueError("GATEWAY_PROXY_URL must be a clean HTTP(S) origin")
         self._engine, self._lock = None, threading.RLock()
+        self._close_future = None
 
     def _attach(self):
         global _ENGINE
@@ -332,29 +333,62 @@ class PooledSession:
             "capacity": int(os.getenv("GATEWAY_MAX_UPSTREAM_REQUESTS", "8")),
             "inflight": 0, "peak_inflight": 0, "active_calls": 0, "loop_alive": False}
 
-    def close(self):
+    def close(self, timeout=None, *, deadline=None):
+        """Close this owner; optional absolute budget includes cancellation/cleanup.
+
+        With no arguments preserve the gateway's historical two-second drain
+        plus engine-stop behavior. Explicit budgets return a cleanup-completed
+        bool; expired budgets still schedule native cancellation and cleanup,
+        but never wait an extra grace interval. Other owners are not stopped.
+        """
         global _ENGINE
+        bounded = timeout is not None or deadline is not None
+        if deadline is None and timeout is not None:
+            deadline = time.monotonic() + max(0.0, timeout)
         with self._lock:
             if self.closed:
-                return
+                if not bounded:
+                    return None
+                engine = self._engine
+                if not engine:
+                    return True
+                with engine.condition:
+                    active = any(c.owner is self for c in engine.calls)
+                if engine.closed:
+                    return not active and not engine.thread.is_alive()
+                future = self._close_future
+                return (not active and future is not None and future.done()
+                        and not future.cancelled() and future.exception() is None)
             self.closed = True
             engine = self._engine
         if not engine:
-            return
+            return True if bounded else None
         calls = engine.cancel_owner(self)
-        deadline = time.monotonic() + 2
+        end = deadline if bounded else time.monotonic() + 2
+        complete = True
         for call in calls:
-            call.done.wait(max(0.0, deadline - time.monotonic()))
+            complete = call.done.wait(max(0.0, end - time.monotonic())) and complete
         if engine.thread.is_alive() and engine.ready.is_set() and hasattr(engine, "loop"):
             future = asyncio.run_coroutine_threadsafe(engine._close_client(self), engine.loop)
+            self._close_future = future
             if threading.current_thread() is not engine.thread:
-                future.result(timeout=max(0.001, deadline - time.monotonic()))
+                if bounded:
+                    try:
+                        future.result(timeout=max(0.0, end - time.monotonic()))
+                    except Exception:
+                        complete = False  # cleanup remains owned by the selector
+                else:
+                    future.result(timeout=max(0.001, end - time.monotonic()))
         with _ENGINE_LOCK:
             engine.owners.discard(self)
-            if not engine.owners:
-                if _ENGINE is engine:
-                    _ENGINE = None
-                engine.stop()
+            last_owner = not engine.owners
+            if last_owner and _ENGINE is engine:
+                _ENGINE = None
+        if last_owner:
+            # Never hold global attach admission while joining a retiring engine.
+            engine.stop(deadline=end if bounded else None)
+            complete = not engine.thread.is_alive() and complete
+        return complete if bounded else None
 
 
 def shutdown_transport():
