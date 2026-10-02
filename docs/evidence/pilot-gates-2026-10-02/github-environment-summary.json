@@ -1,0 +1,13 @@
+{
+  "name": "accessdoc-pilot-verification",
+  "url": "https://github.com/Kartik24Hulmukh/AccessDoc/deployments/activity_log?environments_filter=accessdoc-pilot-verification",
+  "can_admins_bypass": false,
+  "reviewer": "Kartik24Hulmukh",
+  "prevent_self_review": false,
+  "allowed_branches": [
+    "main",
+    "harden/accessdoc-v1-launch"
+  ],
+  "secret_values_provisioned": false,
+  "independent_human_approval": false
+}

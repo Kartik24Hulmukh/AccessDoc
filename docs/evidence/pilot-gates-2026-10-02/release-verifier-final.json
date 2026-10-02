@@ -1,0 +1,46 @@
+{
+  "compile": {
+    "status": "PASS",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "tests": {
+    "status": "PASS",
+    "exitCode": 0,
+    "stdout": ".............................{\"event\": \"request\", \"request_id\": \"3be0f7df5606\", \"method\": \"POST\", \"status\": 415, \"duration_ms\": 0.55}\n................................. [  6%]\n.............................................................. [ 13%]\n...............................................{\"event\": \"request\", \"request_id\": \"18a4c7d674d7\", \"method\": \"POST\", \"status\": 400, \"duration_ms\": 0.41}\n..............s.......... [ 20%]\n.................................................................. [ 27%]\n................................................................. [ 34%]\n.........................................................................................................{\"ts\":1790929617.7199214,\"level\":\"info\",\"event\":\"http_request\",\"trace_id\":\"2d728ad98d6c60a1b6689e1b407a46f2\",\"span_id\":\"9b4a4a9d133bd241\",\"request_id\":\"bdc92e3cdb976eb07be240bd4ff03ea9\",\"ip\":\"127.0.0.1\",\"method\":\"GET\",\"route\":\"/readyz\",\"status\":200,\"duration_ms\":1.19}\n............. [ 47%]\n........................................... [ 51%]\n.............................................................. [ 58%]\n.............................................................. [ 64%]\n.................................................................. [ 71%]\n................................................................ [ 78%]\n........................................................................ [ 86%]\n.................{\"event\": \"request\", \"request_id\": \"6e0febd703b0\", \"method\": \"POST\", \"status\": 422, \"duration_ms\": 0.6}\n.....{\"event\": \"request\", \"request_id\": \"d29d4727b0be\", \"method\": \"POST\", \"status\": 422, \"duration_ms\": 0.5}\n.{\"event\": \"request\", \"request_id\": \"ae84a93457f2\", \"method\": \"POST\", \"status\": 200, \"duration_ms\": 0.47}\n................................................. [ 93%]\n.................................................... [ 99%]\n........                                                                 [100%]\n=============================== warnings summary ===============================\ntests/test_stress_matrix.py::SecurityStressTests::test_duplicate_zip_paths_rejected\n  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'report.html'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_zip_hardening.py::ZipHardeningTests::test_duplicate_manifest_json\n  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'manifest.json'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_zip_hardening.py::ZipHardeningTests::test_duplicate_report_pdf\n  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'report.pdf'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n945 passed, 1 skipped, 3 warnings, 214 subtests passed in 106.23s (0:01:46)\n",
+    "stderr": ""
+  },
+  "secret_patterns": {
+    "status": "PASS",
+    "detail": []
+  },
+  "claims": {
+    "status": "PASS",
+    "detail": []
+  },
+  "placeholders": {
+    "status": "PASS",
+    "detail": []
+  },
+  "stale_files": {
+    "status": "PASS",
+    "detail": []
+  },
+  "immutable_action_refs": {
+    "status": "PASS",
+    "detail": []
+  },
+  "non_publishing_workflows": {
+    "status": "PASS",
+    "detail": []
+  },
+  "required_files": {
+    "status": "PASS",
+    "detail": []
+  },
+  "version_consistency": {
+    "status": "PASS",
+    "detail": []
+  }
+}

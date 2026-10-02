@@ -1,0 +1,249 @@
+{
+  "pass": true,
+  "phase": "functional",
+  "expected_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "observed_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "target_origin": "http://127.0.0.1:45445",
+  "elapsed_seconds": 0.902,
+  "authenticated_pilot": true,
+  "checks": [
+    "GET / status 200",
+    "GET / adapter_version matches expected",
+    "GET / status field is 'ok'",
+    "GET / matches exact target commit",
+    "GET /readyz reports ready",
+    "Pilot rejects missing credential",
+    "Pilot rejects wrong credential",
+    "POST / status 200",
+    "POST / Content-Type is application/zip",
+    "POST / body is a ZIP (PK magic)",
+    "POST / body non-empty",
+    "cli.py verify exits 0",
+    "cli.py verify reports valid=true",
+    "receipt schema_version is '1.2'",
+    "receipt schema_version is NOT '1.1'",
+    "receipt accessdoc_version matches expected",
+    "receipt has rule_ids (list)",
+    "receipt has violations (list)",
+    "receipt finding_fingerprint_version is '1'",
+    "all finding_fingerprints are 64-char hex",
+    "Malformed JSON -> 400",
+    "Malformed JSON response has no exception text",
+    "Missing scanner_input -> 400",
+    "Wrong Content-Type -> 415",
+    "Oversized request -> 413",
+    "PUT method -> 405",
+    "Unknown path -> 404",
+    "Invalid scanner_input -> 400",
+    "All seven negative responses captured",
+    "Error contract: Malformed JSON",
+    "Error contract: Missing scanner_input",
+    "Error contract: Wrong Content-Type",
+    "Error contract: Oversized request",
+    "Error contract: PUT method",
+    "Error contract: Unknown path",
+    "Error contract: invalid scanner_input",
+    "GET / with browser Accept serves HTML report builder",
+    "Hosted UI CSP forbids inline script",
+    "GET /static/app.js is 200 text/javascript",
+    "GET /static/app.css is 200 text/css",
+    "GET /sample/axe-sample.json is 200 application/json",
+    "GET /docs is 200 text/html",
+    "GET /openapi.json is 200 application/json",
+    "OpenAPI info.version matches expected adapter version",
+    "Static traversal attempt is 404 JSON",
+    "Permissions-Policy header present on JSON and HTML responses",
+    "Exact target remains deployed after smoke"
+  ],
+  "check_results": [
+    {
+      "name": "GET / status 200",
+      "pass": true
+    },
+    {
+      "name": "GET / adapter_version matches expected",
+      "pass": true
+    },
+    {
+      "name": "GET / status field is 'ok'",
+      "pass": true
+    },
+    {
+      "name": "GET / matches exact target commit",
+      "pass": true
+    },
+    {
+      "name": "GET /readyz reports ready",
+      "pass": true
+    },
+    {
+      "name": "Pilot rejects missing credential",
+      "pass": true
+    },
+    {
+      "name": "Pilot rejects wrong credential",
+      "pass": true
+    },
+    {
+      "name": "POST / status 200",
+      "pass": true
+    },
+    {
+      "name": "POST / Content-Type is application/zip",
+      "pass": true
+    },
+    {
+      "name": "POST / body is a ZIP (PK magic)",
+      "pass": true
+    },
+    {
+      "name": "POST / body non-empty",
+      "pass": true
+    },
+    {
+      "name": "cli.py verify exits 0",
+      "pass": true
+    },
+    {
+      "name": "cli.py verify reports valid=true",
+      "pass": true
+    },
+    {
+      "name": "receipt schema_version is '1.2'",
+      "pass": true
+    },
+    {
+      "name": "receipt schema_version is NOT '1.1'",
+      "pass": true
+    },
+    {
+      "name": "receipt accessdoc_version matches expected",
+      "pass": true
+    },
+    {
+      "name": "receipt has rule_ids (list)",
+      "pass": true
+    },
+    {
+      "name": "receipt has violations (list)",
+      "pass": true
+    },
+    {
+      "name": "receipt finding_fingerprint_version is '1'",
+      "pass": true
+    },
+    {
+      "name": "all finding_fingerprints are 64-char hex",
+      "pass": true
+    },
+    {
+      "name": "Malformed JSON -> 400",
+      "pass": true
+    },
+    {
+      "name": "Malformed JSON response has no exception text",
+      "pass": true
+    },
+    {
+      "name": "Missing scanner_input -> 400",
+      "pass": true
+    },
+    {
+      "name": "Wrong Content-Type -> 415",
+      "pass": true
+    },
+    {
+      "name": "Oversized request -> 413",
+      "pass": true
+    },
+    {
+      "name": "PUT method -> 405",
+      "pass": true
+    },
+    {
+      "name": "Unknown path -> 404",
+      "pass": true
+    },
+    {
+      "name": "Invalid scanner_input -> 400",
+      "pass": true
+    },
+    {
+      "name": "All seven negative responses captured",
+      "pass": true
+    },
+    {
+      "name": "Error contract: Malformed JSON",
+      "pass": true
+    },
+    {
+      "name": "Error contract: Missing scanner_input",
+      "pass": true
+    },
+    {
+      "name": "Error contract: Wrong Content-Type",
+      "pass": true
+    },
+    {
+      "name": "Error contract: Oversized request",
+      "pass": true
+    },
+    {
+      "name": "Error contract: PUT method",
+      "pass": true
+    },
+    {
+      "name": "Error contract: Unknown path",
+      "pass": true
+    },
+    {
+      "name": "Error contract: invalid scanner_input",
+      "pass": true
+    },
+    {
+      "name": "GET / with browser Accept serves HTML report builder",
+      "pass": true
+    },
+    {
+      "name": "Hosted UI CSP forbids inline script",
+      "pass": true
+    },
+    {
+      "name": "GET /static/app.js is 200 text/javascript",
+      "pass": true
+    },
+    {
+      "name": "GET /static/app.css is 200 text/css",
+      "pass": true
+    },
+    {
+      "name": "GET /sample/axe-sample.json is 200 application/json",
+      "pass": true
+    },
+    {
+      "name": "GET /docs is 200 text/html",
+      "pass": true
+    },
+    {
+      "name": "GET /openapi.json is 200 application/json",
+      "pass": true
+    },
+    {
+      "name": "OpenAPI info.version matches expected adapter version",
+      "pass": true
+    },
+    {
+      "name": "Static traversal attempt is 404 JSON",
+      "pass": true
+    },
+    {
+      "name": "Permissions-Policy header present on JSON and HTML responses",
+      "pass": true
+    },
+    {
+      "name": "Exact target remains deployed after smoke",
+      "pass": true
+    }
+  ],
+  "failures": []
+}

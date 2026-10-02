@@ -1,0 +1,46 @@
+{
+  "compile": {
+    "status": "PASS",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "tests": {
+    "status": "FAIL",
+    "exitCode": 1,
+    "stdout": "all                                     \u2551\nE           \u2551                                                            \u2551\nE           \u2551 <3 Playwright Team                                         \u2551\nE           \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d\n\n../accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_connection.py:632: Error\n=============================== warnings summary ===============================\ntests/test_stress_matrix.py::SecurityStressTests::test_duplicate_zip_paths_rejected\n  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'report.html'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_zip_hardening.py::ZipHardeningTests::test_duplicate_manifest_json\n  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'manifest.json'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_zip_hardening.py::ZipHardeningTests::test_duplicate_report_pdf\n  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'report.pdf'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ============================\nFAILED tests/test_hosted_ui.py::HostedUITests::test_authenticated_sample_to_bundle_and_accessible_ui\nFAILED tests/test_hosted_ui.py::HostedUITests::test_file_only_upload_and_clear_restore_validation\nFAILED tests/test_hosted_ui_revision.py::HostedUIRevisionTests::test_cancel_and_input_change_discard_synthetic_late_bundle\nFAILED tests/test_hosted_ui_revision.py::HostedUIRevisionTests::test_cancel_retry_timer_prevents_synthetic_second_request\nFAILED tests/test_hosted_ui_revision.py::HostedUIRevisionTests::test_cancel_synthetic_file_read_and_reset_private_fields\nFAILED tests/test_hosted_ui_revision.py::HostedUIRevisionTests::test_failed_replacement_retains_labelled_real_download\nFAILED tests/test_hosted_ui_revision.py::HostedUIRevisionTests::test_file_only_real_bundle_and_synthetic_guidance_share_revision\nFAILED tests/test_hosted_ui_revision.py::HostedUIRevisionTests::test_reset_and_evidence_change_discard_synthetic_late_guidance\nFAILED tests/test_hosted_ui_revision.py::HostedUIRevisionTests::test_sample_clears_upload_and_invalidates_guidance\nFAILED tests/test_scan_handoff.py::ScanHandoffTests::test_local_authorized_state_to_verifiable_bundle\nFAILED tests/test_self_audit.py::TestSelfAccessibility::test_report_html_no_blocking_violations\nFAILED tests/test_self_audit.py::TestSelfAccessibility::test_report_html_no_horizontal_overflow\nFAILED tests/test_self_audit.py::TestSelfAccessibility::test_report_html_reflow_320px\nFAILED tests/test_self_audit.py::TestSelfAccessibility::test_vpat_html_no_blocking_violations\nFAILED tests/test_self_audit.py::TestSelfAccessibility::test_vpat_html_reflow_320px\n15 failed, 930 passed, 1 skipped, 3 warnings, 214 subtests passed in 98.33s (0:01:38)\n",
+    "stderr": ""
+  },
+  "secret_patterns": {
+    "status": "PASS",
+    "detail": []
+  },
+  "claims": {
+    "status": "PASS",
+    "detail": []
+  },
+  "placeholders": {
+    "status": "PASS",
+    "detail": []
+  },
+  "stale_files": {
+    "status": "PASS",
+    "detail": []
+  },
+  "immutable_action_refs": {
+    "status": "PASS",
+    "detail": []
+  },
+  "non_publishing_workflows": {
+    "status": "PASS",
+    "detail": []
+  },
+  "required_files": {
+    "status": "PASS",
+    "detail": []
+  },
+  "version_consistency": {
+    "status": "PASS",
+    "detail": []
+  }
+}

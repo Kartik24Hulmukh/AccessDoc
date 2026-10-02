@@ -1,0 +1,6 @@
+{
+  "token_exchange_status": 400,
+  "access_token_issued": false,
+  "grant_type": "client_credentials",
+  "error_code": "invalid_client"
+}
