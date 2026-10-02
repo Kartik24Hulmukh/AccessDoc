@@ -144,6 +144,7 @@ class OTLPExporter:
         self._record_losses = itertools.count()
         self._record_loss_seen = 0
         self._session = PooledSession(_MAX_RESPONSE_BYTES) if self.enabled else None
+        self._retirement = self._session.call_group() if self._session is not None else None
         if self._session is not None:
             self._session.proxy = None  # collector has no gateway proxy/credential routing
         self.exported = self.dropped = self.failed_batches = 0
@@ -252,7 +253,8 @@ class OTLPExporter:
             else:
                 response = self._session.post(
                     self.endpoint, headers=_headers(), json=payload,
-                    timeout=(self.timeout, self.timeout), deadline=deadline)
+                    timeout=(self.timeout, self.timeout), deadline=deadline,
+                    call_group=self._retirement)
                 if response.status_code != 200:  # OTLP success is 200, never redirects/202/204
                     error = "HTTP_STATUS"
                 elif next((v.split(";", 1)[0].strip().lower() for k, v in response.headers.items()
@@ -292,25 +294,44 @@ class OTLPExporter:
                 return False
         return error is None
 
+    @staticmethod
+    def _work_cutoff(deadline):
+        # Reserve once, across all batches, inside the original caller budget.
+        remaining = max(0.0, deadline - time.monotonic())
+        return deadline - min(0.05, remaining / 3)
+
     def _flush_until(self, deadline, baseline):
         if not self._sender.acquire(timeout=max(0.0, deadline - time.monotonic())):
-            return False
+            return False  # do not cancel the background sender whose lock we lack
+        work_deadline = self._work_cutoff(deadline)
         ok = True
         try:
-            while time.monotonic() < deadline:
-                batch = self._drain(deadline)
+            # A previous bounded failure may still own native cleanup. Empty
+            # queues must not return false success or dequeue over that owner.
+            if self._retirement is not None:
+                ok = self._retirement.drain(work_deadline)
+            while ok and time.monotonic() < work_deadline:
+                batch = self._drain(work_deadline)
                 if batch is None:
-                    return False
+                    ok = False
+                    break
                 if not batch:
                     break
-                if not self._send(batch, deadline):
+                if not self._send(batch, work_deadline):
                     ok = False
-                    break  # never spin through pending batches after a failed attempt
+                    break  # single attempt; do not send pending batches on failure
+            # Native handles outlive failed span accounting until actual call
+            # retirement. No optimistic decrement or extra post-budget grace.
+            cleaned = (self._retirement.drain(deadline)
+                       if self._retirement is not None else True)
+            if self._session is not None and self._session.cleanup_pending:
+                cleaned = False
             if not _take(self._lock, deadline):
                 return False
             try:
                 self._apply_pending()
-                return ok and not self._q and not self._inflight and (self.failed_batches, self.dropped) == baseline
+                return (ok and cleaned and not self._q and not self._inflight
+                        and (self.failed_batches, self.dropped) == baseline)
             finally:
                 self._lock.release()
         finally:
@@ -321,7 +342,9 @@ class OTLPExporter:
 
         Sender/admission wait, all exports and cancellation share one absolute
         budget. False on partial rejection, any observed failed batch/drop, pending
-        work or sender timeout. No retries. True is not recovery/acknowledgement
+        work, unfinished native cleanup or sender timeout. One work cutoff and
+        native retirement reserve cover all batches; cleanup_pending remains
+        visible after a bounded incomplete drain. No retries. True is not recovery/acknowledgement
         of losses before this call: consult cumulative failure/drop counters.
         """
         deadline = time.monotonic() + _budget(self.timeout if timeout is None else timeout)
@@ -347,9 +370,14 @@ class OTLPExporter:
                 try:
                     if self._stop.is_set():
                         break
-                    batch = self._drain(deadline)
+                    work_deadline = self._work_cutoff(deadline)
+                    ready = (self._retirement.drain(work_deadline)
+                             if self._retirement is not None else True)
+                    batch = self._drain(work_deadline) if ready else None
                     if batch:
-                        self._send(batch, deadline)
+                        self._send(batch, work_deadline)
+                    if self._retirement is not None:
+                        self._retirement.drain(deadline)
                 finally:
                     self._sender.release()
         finally:
@@ -406,6 +434,8 @@ class OTLPExporter:
                     "failed_batches": self.failed_batches, "queued": len(self._q),
                     "rejected_spans": self.rejected_spans, "failed_spans": self.failed_spans,
                     "shutdown_dropped": self.shutdown_dropped, "inflight": self._inflight,
+                    "cleanup_pending": max(self._retirement.pending if self._retirement is not None else 0,
+                                           int(bool(self._session and self._session.cleanup_pending))),
                     "closing": self._closing, "last_error": self.last_error,
                     "bootstrap_dropped": _bootstrap_loss_snapshot()}
 

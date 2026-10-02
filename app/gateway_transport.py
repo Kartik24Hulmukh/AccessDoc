@@ -45,6 +45,68 @@ class _Call:
         self.result, self.done, self.task = Future(), threading.Event(), None
         self.cancel_requested = False
         self.registered = self.retired = False
+        self.deadline_handle = None
+        self.deadline_expired = False
+
+
+class _NativeRequestTask(asyncio.Task):
+    """Cancellation admission for this one real native IO task, not the loop.
+
+    aiohttp/asyncio phase timers may call cancel directly and later uncancel.
+    Admit one cancellation for the request lifetime; uncancel can update the
+    standard Task counter but cannot re-arm cancellation during finalization.
+    No shielded worker/task is detached, and phase timeout caps stay intact.
+    """
+    def __init__(self, coro, *, call, loop):
+        self._native_call = call
+        self._cancel_admitted = False
+        self.cancel_origin = None
+        super().__init__(coro, loop=loop)
+
+    def cancel(self, msg=None):
+        if self._cancel_admitted or self.done():
+            return False
+        call = self._native_call
+        if call.cancel_requested or call.owner.closed or (call.cancel and call.cancel.is_set()):
+            self.cancel_origin = "owner"
+        elif call.deadline_expired:
+            self.cancel_origin = "deadline"
+        else:
+            self.cancel_origin = "phase"
+        self._cancel_admitted = True
+        return super().cancel(msg)
+
+
+class _CallGroup:
+    """Sender-owned handles; immutable snapshots allow truthful status reads.
+
+    Only the serialized sender registers/drains this group. Completed handles
+    are pruned before each admission; an unfinished call prevents the exporter
+    from submitting another batch. There is no per-failure orphan worker/list.
+    """
+    def __init__(self, owner):
+        self.owner = owner
+        self._calls = ()
+
+    def add(self, engine, call):
+        self._calls = tuple(pair for pair in self._calls if not pair[1].done.is_set()) + ((engine, call),)
+
+    @property
+    def pending(self):
+        return sum(not call.done.is_set() for _, call in self._calls)
+
+    def drain(self, deadline):
+        calls = self._calls
+        for engine, call in calls:
+            # Re-cancelling a task can interrupt its cancellation finalizer.
+            # Publish cancellation once; never retire an active slot here.
+            if not call.done.is_set() and not call.cancel_requested:
+                engine.cancel_call(call)
+        complete = True
+        for _, call in calls:
+            complete = call.done.wait(max(0.0, deadline - time.monotonic())) and complete
+        self._calls = tuple(pair for pair in calls if not pair[1].done.is_set())
+        return complete and not self._calls
 
 
 class _Engine:
@@ -133,8 +195,8 @@ class _Engine:
             call.cancel_requested = True
             if call.task is None:
                 self._retire(call, error=CancelledAttempt("gateway transport closed"))
-            elif not call.task.done():
-                call.task.cancel()
+            else:
+                self._cancel_task_once(call)
         tasks = [c.task for c in calls if c.task is not None]
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
@@ -280,7 +342,7 @@ class _Engine:
             if time.monotonic() >= call.deadline:
                 self._retire(call, error=requests.Timeout("gateway absolute HTTP deadline exceeded"))
                 return
-            call.task = self.loop.create_task(self._request(call))
+            call.task = _NativeRequestTask(self._request(call), call=call, loop=self.loop)
             call.task.add_done_callback(lambda task: self._finish(call, task))
         if not self._schedule(start):
             call.cancel_requested = True
@@ -317,6 +379,15 @@ class _Engine:
             return self._retire(call, value=value)
         self._retire(call, error=error)
 
+    def _cancel_task_once(self, call):
+        # Selector-only: manual cancellation disarms the absolute deadline,
+        # and expiry itself cannot interrupt an already-running finalizer.
+        handle, call.deadline_handle = call.deadline_handle, None
+        if handle is not None:
+            handle.cancel()
+        if call.task is not None and not call.task.done() and not call.task.cancelling():
+            call.task.cancel()
+
     def cancel_call(self, call):
         call.cancel_requested = True
         def cancel():
@@ -324,8 +395,8 @@ class _Engine:
                 return
             if call.task is None:
                 self._retire(call, error=CancelledAttempt("gateway attempt cancelled"))
-            elif not call.task.done():
-                call.task.cancel()
+            else:
+                self._cancel_task_once(call)
         self._schedule(cancel)
 
     def cancel_owner(self, owner, event=None):
@@ -346,11 +417,40 @@ class _Engine:
         if (self.closed or call.owner.closed or call.cancel_requested or call.retired
                 or (call.cancel and call.cancel.is_set())):
             raise asyncio.CancelledError()
-        return await asyncio.wait_for(self._perform(call), timeout=remaining)
+        def expire():
+            if not call.cancel_requested:
+                call.deadline_expired = True
+            self._cancel_task_once(call)
+        call.deadline_handle = self.loop.call_at(call.deadline, expire)
+        try:
+            value = await self._perform(call)
+            origin = call.task.cancel_origin
+            if origin is not None or time.monotonic() >= call.deadline:
+                if isinstance(value, _Response):
+                    value.close()
+                if origin == "owner":
+                    raise asyncio.CancelledError()
+                raise asyncio.TimeoutError()
+            return value
+        except asyncio.CancelledError:
+            if call.task.cancel_origin == "deadline":
+                raise asyncio.TimeoutError() from None
+            raise
+        except asyncio.TimeoutError:
+            # A rejected later aiohttp timeout still marks its context expired
+            # and may translate the first manual CancelledError on __aexit__.
+            # Preserve the cancellation that actually initiated finalization.
+            if call.task.cancel_origin == "owner":
+                raise asyncio.CancelledError() from None
+            raise
+        finally:
+            handle, call.deadline_handle = call.deadline_handle, None
+            if handle is not None:
+                handle.cancel()
 
     async def _perform(self, call):
-        # wait_for schedules another task; closure/cancellation may have arrived
-        # since _request's check. Refuse before pool/resolver/socket creation.
+        # Refuse before pool/resolver/socket creation if cancellation/closure
+        # arrived after the selector's start guard.
         if (self.closed or call.owner.closed or call.cancel_requested or call.retired
                 or (call.cancel and call.cancel.is_set())):
             raise asyncio.CancelledError()
@@ -359,7 +459,9 @@ class _Engine:
         options = call.options
         connect, read = options["timeout"]
         timeout = aiohttp.ClientTimeout(
-            total=max(0.001, call.deadline - time.monotonic()),
+            # The owned once-only _request timer enforces the absolute total.
+            # A second aiohttp total timer could recancel retained finalization.
+            total=None,
             connect=connect, sock_connect=connect, sock_read=read,
             ceil_threshold=float("inf"))
         async with self._client(call.owner).post(
@@ -513,14 +615,29 @@ class PooledSession:
         finally:
             self._lock.release()
 
+    @property
+    def cleanup_pending(self):
+        if not self.closed:
+            return False
+        engine = self._engine
+        return (not self._close_future.done() or
+                (engine is not None and engine.closed and engine.thread.is_alive()))
+
+    def call_group(self):
+        return _CallGroup(self)
+
     def post(self, url, *, headers, json, timeout, stream=True,
-             deadline=None, cancel=None):
+             deadline=None, cancel=None, call_group=None):
+        if call_group is not None and call_group.owner is not self:
+            raise ValueError("native call group belongs to another owner")
         deadline = deadline if deadline is not None else time.monotonic() + sum(timeout)
         engine = self._attach(deadline)
         # Reserve a small part of the existing budget for native cancellation
         # drain; never add an unconditional reporting grace to caller latency.
         remaining = deadline - time.monotonic()
-        cleanup = min(0.05, max(0.0, remaining / 3))
+        # A tracked sender reserves cleanup once for its whole flush. Ordinary
+        # gateway callers retain their historical per-post internal reserve.
+        cleanup = 0.0 if call_group is not None else min(0.05, max(0.0, remaining / 3))
         network_deadline = deadline - cleanup
         if not engine.ready.wait(max(0.0, network_deadline - time.monotonic())):
             raise requests.Timeout("gateway I/O startup deadline exceeded")
@@ -529,13 +646,17 @@ class PooledSession:
         call = _Call(self, network_deadline, cancel,
                      {"url": url, "headers": headers, "json": json, "timeout": timeout})
         engine.acquire(call)
+        if call_group is not None:
+            call_group.add(engine, call)
         engine.submit(call)
         try:
             return call.result.result(timeout=max(0.0, network_deadline - time.monotonic()))
         except FutureTimeout:
             engine.cancel_call(call)
-            call.done.wait(max(0.0, deadline - time.monotonic()))
-            raise requests.Timeout("gateway absolute HTTP deadline exceeded") from None
+            drained = call.done.wait(max(0.0, deadline - time.monotonic()))
+            error = requests.Timeout("gateway absolute HTTP deadline exceeded")
+            error.cleanup_pending = not drained
+            raise error from None
 
     def cancel(self, event):
         if self._engine:
