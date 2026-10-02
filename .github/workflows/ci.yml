@@ -117,18 +117,18 @@ jobs:
             native-primitives.json
             native-cases.json
       - name: One legacy native wait phase experiment
-        if: ${{ !cancelled() && github.event_name == 'push' && matrix.os == 'macos-latest' && github.run_attempt == 1 && contains(github.event.head_commit.message, '[native-phase-once-oct02]') }}
+        if: ${{ !cancelled() && github.event_name == 'push' && matrix.os == 'macos-latest' && github.run_attempt == 1 && contains(github.event.head_commit.message, '[native-phase-buildfix-oct02]') }}
         timeout-minutes: 2
         shell: bash
         run: |
           mkdir -p "$RUNNER_TEMP/native-phase-artifact"
           cp diagnostics/native-phase-probe/probe.c diagnostics/native-phase-probe/runner.py "$RUNNER_TEMP/native-phase-artifact/"
           cd "$RUNNER_TEMP/native-phase-artifact"
-          printf '%s\n' 'c1863601ff077e930f63a1bc99dfc04ef451c6386fb43d68caa3ddb556d0f7b4  probe.c' '0ef3b8c7372fd1c946b8158732cece648c302348717da64bbe8812ec9eb94789  runner.py' > SHA256SUMS.inputs
+          printf '%s\n' '7d220fc5e0c953275888f750ada02b173f555ea117862643c47fba1e09909952  probe.c' '0ef3b8c7372fd1c946b8158732cece648c302348717da64bbe8812ec9eb94789  runner.py' > SHA256SUMS.inputs
           shasum -a 256 -c SHA256SUMS.inputs
           python runner.py --output results.json
       - name: Archive one native phase experiment
-        if: ${{ always() && github.event_name == 'push' && matrix.os == 'macos-latest' && github.run_attempt == 1 && contains(github.event.head_commit.message, '[native-phase-once-oct02]') }}
+        if: ${{ always() && github.event_name == 'push' && matrix.os == 'macos-latest' && github.run_attempt == 1 && contains(github.event.head_commit.message, '[native-phase-buildfix-oct02]') }}
         timeout-minutes: 2
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:

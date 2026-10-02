@@ -63,9 +63,11 @@ static PyObject *trial(PyObject *self, PyObject *args) {
     Wait waits[MAX_WAITS]; int count=0, cap_hit=0, unexpected=0, interrupted=0;
     int policy=0; struct sched_param sched={0};
     int sched_rc=pthread_getschedparam(pthread_self(),&policy,&sched);
-    int qos=-1, relative_priority=0;
+    int qos=-1, relative_priority=0, qos_rc=-1;
 #ifdef __APPLE__
-    qos=(int)pthread_get_qos_class_np(pthread_self(),&relative_priority);
+    qos_class_t qos_class=QOS_CLASS_UNSPECIFIED;
+    qos_rc=pthread_get_qos_class_np(pthread_self(),&qos_class,&relative_priority);
+    if (qos_rc==0) qos=(int)qos_class;
 #endif
     unsigned long tid=PyThread_get_thread_ident();
     unsigned long native_id=0;
@@ -134,6 +136,11 @@ static PyObject *trial(PyObject *self, PyObject *args) {
             Py_XDECREF(priority); Py_DECREF(result); return NULL;
         }
         Py_DECREF(priority);
+        PyObject *qos_status=PyLong_FromLong(qos_rc);
+        if (!qos_status || PyDict_SetItemString(result,"qos_query_rc",qos_status)) {
+            Py_XDECREF(qos_status); Py_DECREF(result); return NULL;
+        }
+        Py_DECREF(qos_status);
     }
     return result;
 }
