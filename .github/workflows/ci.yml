@@ -98,7 +98,10 @@ jobs:
       - name: Application imports cleanly on this platform
         run: python -c "import app.main, api.handler, app.procstats; print(app.procstats.process_stats())"
       - name: Full test suite
-        run: python -m pytest tests -q
+        run: python -m pytest tests -q --junitxml=portability-results.xml
+      - name: Publish bounded failed-test diagnostics
+        if: failure()
+        run: python scripts/report_test_failures.py portability-results.xml
       - name: Bounded local concurrency and malformed-input contract gate
         run: python scripts/hardening_load.py --output hardening-load-${{ matrix.os }}.json
       - name: Archive portability load metrics
