@@ -36,6 +36,7 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    environment: accessdoc-pilot-verification
     env:
       PRODUCTION_URL: ${{ github.event.inputs.target_url || 'https://access-doc.vercel.app' }}
       EXPECTED_VERSION: ${{ github.event.inputs.expected_version || '0.7.0-beta.7' }}
@@ -58,6 +59,8 @@ jobs:
       - name: Wait for exact Vercel deployment and run smoke tests
         env:
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          SMOKE_API_KEY: ${{ secrets.ACCESSDOC_PILOT_API_KEY }}
+          SMOKE_REQUIRE_AUTH: 'true'
         run: python scripts/production_smoke.py --output production-smoke.json
       - name: Archive exact-target smoke report
         if: always()

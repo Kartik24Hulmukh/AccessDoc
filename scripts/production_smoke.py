@@ -6,7 +6,7 @@ import urllib.error
 from urllib.parse import urlsplit
 
 
-def validate_target_url(url, bypass=False):
+def validate_target_url(url, bypass=False, api_key=False):
     target = urlsplit(url)
     local = target.hostname in ("127.0.0.1", "::1", "localhost")
     if (target.scheme not in ("https", "http") or not target.hostname or
@@ -18,6 +18,30 @@ def validate_target_url(url, bypass=False):
             not (target.hostname == "access-doc.vercel.app" or re.fullmatch(
                 r"access-[a-z0-9]+-atlas16\.vercel\.app", target.hostname))):
         raise ValueError("Automation bypass is restricted to the verified AccessDoc project")
+    if api_key and not local:
+        validate_target_url(url, bypass=True)
+
+
+def smoke_headers(base, method, headers=None, *, bypass="", api_key="",
+                  authenticate=True):
+    """Two independent credentials, scoped to a verified origin; never logged."""
+    validate_target_url(base, bypass=bool(bypass), api_key=bool(api_key))
+    if any("\r" in value or "\n" in value for value in (bypass, api_key)):
+        raise ValueError("Smoke credentials cannot contain line breaks")
+    result = dict(headers or {})
+    if bypass:
+        result["x-vercel-protection-bypass"] = bypass
+    if api_key and authenticate and method.upper() == "POST":
+        result["Authorization"] = "Bearer " + api_key
+    return result
+
+
+def redact_smoke_text(value, *credentials):
+    text = str(value)
+    for credential in credentials:
+        if credential:
+            text = text.replace(credential, "[credential]")
+    return text
 
 
 def exact_commit_matches(observed, expected):
@@ -67,7 +91,14 @@ def main(argv=None):
     import os, sys, time, io, zipfile, tempfile, subprocess, argparse
 
     BASE = os.environ["PRODUCTION_URL"].rstrip("/")
-    validate_target_url(BASE, bool(os.getenv("VERCEL_AUTOMATION_BYPASS_SECRET")))
+    BYPASS = os.getenv("VERCEL_AUTOMATION_BYPASS_SECRET", "")
+    API_KEY = os.getenv("SMOKE_API_KEY", "")
+    REQUIRE_AUTH = os.getenv("SMOKE_REQUIRE_AUTH", "false").lower() == "true"
+    # An upstream error can reflect headers. Never emit either credential.
+    import builtins
+    def print(*values, **kwargs):
+        builtins.print(*(redact_smoke_text(v, BYPASS, API_KEY) for v in values),
+                       **kwargs)
     EXPECTED = os.environ["EXPECTED_VERSION"]
     TARGET_COMMIT = os.environ.get("TARGET_COMMIT", "").strip()
     POLL_INTERVAL = float(os.getenv("SMOKE_POLL_INTERVAL_SECONDS", "15"))
@@ -78,25 +109,40 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Exact-SHA hosted smoke gate")
     parser.add_argument("--output", default=None)
     args = parser.parse_args(argv)
-    if not re.fullmatch(r"[0-9a-fA-F]{40}", TARGET_COMMIT):
-        raise SystemExit("TARGET_COMMIT must be a complete 40-character Git commit")
     checks_run = []
+    check_results = []
     failures = []
     error_responses = []
+    last_observed_commit = None
+    started = time.monotonic()
     def report(passed, phase="functional"):
         if args.output:
             from pathlib import Path
             Path(args.output).write_text(json.dumps({"pass": passed, "phase": phase,
-                "expected_commit": TARGET_COMMIT, "observed_commit": last_observed_commit,
-                "checks": checks_run, "failures": failures}, indent=2) + "\n")
+                "expected_commit": TARGET_COMMIT if re.fullmatch(
+                    r"[0-9a-fA-F]{40}", TARGET_COMMIT) else None,
+                "observed_commit": last_observed_commit,
+                "target_origin": BASE, "elapsed_seconds": round(time.monotonic() - started, 3),
+                "authenticated_pilot": bool(API_KEY),
+                "checks": checks_run, "check_results": check_results,
+                "failures": failures}, indent=2) + "\n")
 
-    def req(method, path, body=None, headers=None, expect_status=None):
+    validate_target_url(BASE, bool(BYPASS), bool(API_KEY))
+    if not re.fullmatch(r"[0-9a-fA-F]{40}", TARGET_COMMIT):
+        failures.append("TARGET_COMMIT must be a complete Git commit")
+        report(False, "configuration")
+        raise SystemExit(2)
+    if REQUIRE_AUTH and not API_KEY:
+        failures.append("Authenticated pilot smoke requires SMOKE_API_KEY")
+        report(False, "configuration")
+        raise SystemExit(2)
+
+    def req(method, path, body=None, headers=None, expect_status=None,
+            authenticate=True):
         """Make an HTTP request with a timeout. Returns (status, headers, body_bytes)."""
         url = BASE + path
-        h = dict(headers or {})
-        bypass = os.getenv("VERCEL_AUTOMATION_BYPASS_SECRET", "")
-        if bypass:
-            h["x-vercel-protection-bypass"] = bypass
+        h = smoke_headers(BASE, method, headers, bypass=BYPASS,
+                          api_key=API_KEY, authenticate=authenticate)
         data = None
         if body is not None:
             if isinstance(body, (dict, list)):
@@ -147,7 +193,7 @@ def main(argv=None):
                 print(f"  Attempt {attempts}: 200 but JSON parse failed: {e}")
         else:
             print(f"  Attempt {attempts}: status={status}")
-            if status in (401, 403):
+            if status in (301, 302, 303, 307, 308, 401, 403):
                 failures.append("Deployment authorization required")
                 report(False, "authorization")
                 sys.exit(2)
@@ -166,6 +212,7 @@ def main(argv=None):
 
     def check(name, condition, detail=""):
         checks_run.append(name)
+        check_results.append({"name": name, "pass": bool(condition)})
         tag = "PASS" if condition else "FAIL"
         print(f"  [{tag}] {name}" + (f" — {detail}" if detail else ""))
         if not condition:
@@ -182,6 +229,26 @@ def main(argv=None):
     check("GET / status field is 'ok'", health.get("status") == "ok",
           f"got {health.get('status')!r}")
     check("GET / matches exact target commit", exact_commit_matches(health.get("commit"), TARGET_COMMIT))
+
+    status_ready, _, body_ready = req("GET", "/readyz")
+    try:
+        readiness = json.loads(body_ready)
+    except (ValueError, TypeError):
+        readiness = {}
+    check("GET /readyz reports ready", status_ready == 200 and
+          readiness.get("status") == "ok" and
+          exact_commit_matches(readiness.get("commit"), TARGET_COMMIT),
+          f"got {status_ready}")
+    if API_KEY:
+        # Bypass remains present: these prove app auth, not Vercel SSO.
+        for label, supplied in (("missing", {}), ("wrong", {
+                "Authorization": "Bearer synthetic-invalid-smoke-key"})):
+            auth_status, _, auth_body = req("POST", "/",
+                body={"scanner_input": "{}"}, headers=supplied,
+                authenticate=False)
+            check("Pilot rejects " + label + " credential",
+                  error_response_matches(auth_status, auth_body, 401),
+                  f"got {auth_status}")
 
     # --- Check 2: Valid POST / returns a ZIP ---
     print("\n=== Check 2: Valid POST / returns ZIP ===")
@@ -405,4 +472,20 @@ def main(argv=None):
         sys.exit(0)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as exc:
+        # Failed setup, parsing or verifier timeouts must not leave a stale
+        # successful artifact. Do not print exception text or reflected secrets.
+        import sys
+        from pathlib import Path
+        if "--output" in sys.argv:
+            index = sys.argv.index("--output")
+            if index + 1 < len(sys.argv):
+                Path(sys.argv[index + 1]).write_text(json.dumps({
+                    "pass": False, "phase": "configuration_or_runtime",
+                    "checks": [], "check_results": [],
+                    "failures": ["Smoke aborted: " + type(exc).__name__]
+                }, indent=2) + "\n")
+        print("FAIL: smoke aborted (" + type(exc).__name__ + ")")
+        raise SystemExit(2)

@@ -8,7 +8,7 @@ import tempfile
 import threading
 import unittest
 from pathlib import Path
-from http.server import ThreadingHTTPServer
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.error import HTTPError
 from urllib.request import Request
 from unittest.mock import patch
@@ -17,7 +17,7 @@ import yaml
 
 from scripts.production_smoke import (
     SameOriginRedirectHandler, error_response_matches, exact_commit_matches,
-    validate_target_url,
+    validate_target_url, smoke_headers, redact_smoke_text,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -94,6 +94,26 @@ class ReleaseValidationIntegrityTests(unittest.TestCase):
             request, None, 302, "Found", {}, "https://candidate.vercel.app/readyz")
         self.assertIsNotNone(redirected)
 
+    def test_pilot_headers_separate_platform_and_application_authorization(self):
+        base = "https://access-abc123-atlas16.vercel.app"
+        headers = smoke_headers(base, "POST", bypass="platform-test",
+                                api_key="pilot-test")
+        self.assertEqual(headers["Authorization"], "Bearer pilot-test")
+        self.assertEqual(headers["x-vercel-protection-bypass"], "platform-test")
+        no_auth = smoke_headers(base, "POST", bypass="platform-test",
+                                api_key="pilot-test", authenticate=False)
+        self.assertNotIn("Authorization", no_auth)
+        self.assertEqual(no_auth["x-vercel-protection-bypass"], "platform-test")
+        self.assertNotIn("Authorization", smoke_headers(base, "GET", api_key="pilot-test"))
+        for unsafe in ("https://attacker.invalid", "https://other.vercel.app",
+                       "https://access-doc.vercel.app?leak=1"):
+            with self.subTest(unsafe=unsafe), self.assertRaises(ValueError):
+                smoke_headers(unsafe, "POST", api_key="pilot-test")
+        for credential in ("line\nbreak", "line\rbreak"):
+            with self.assertRaises(ValueError):
+                smoke_headers(base, "POST", api_key=credential)
+        validate_target_url("http://127.0.0.1:8000", api_key=True)
+
     def test_workflow_runs_shipped_smoke_and_archives_report(self):
         workflow = yaml.safe_load((ROOT / ".github/workflows/production-smoke.yml").read_text())
         job = workflow["jobs"]["smoke"]
@@ -101,6 +121,10 @@ class ReleaseValidationIntegrityTests(unittest.TestCase):
         run = next(s for s in job["steps"] if "scripts/production_smoke.py" in s.get("run", ""))
         self.assertIn("--output production-smoke.json", run["run"])
         self.assertIn("VERCEL_AUTOMATION_BYPASS_SECRET", run["env"])
+        self.assertEqual(job["environment"], "accessdoc-pilot-verification")
+        self.assertEqual(run["env"]["SMOKE_REQUIRE_AUTH"], "true")
+        self.assertEqual(run["env"]["SMOKE_API_KEY"],
+                         "${{ secrets.ACCESSDOC_PILOT_API_KEY }}")
         self.assertTrue(any(s.get("with", {}).get("path") == "production-smoke.json"
                             and s.get("if") == "always()" for s in job["steps"]))
 
@@ -130,7 +154,7 @@ class ReleaseValidationIntegrityTests(unittest.TestCase):
                             "dependency-audit.cdx.json" in s.get("with", {}).get("path", "")
                             for s in steps))
 
-    def test_shipped_smoke_executes_full_contract_over_real_loopback(self):
+    def run_real_smoke(self, authenticated=False):
         from api.handler import handler
         server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
         server.daemon_threads = True
@@ -143,7 +167,10 @@ class ReleaseValidationIntegrityTests(unittest.TestCase):
                "EXPECTED_VERSION": (ROOT / "VERSION").read_text().strip(),
                "SMOKE_MAX_WAIT_SECONDS": "1", "SMOKE_POLL_INTERVAL_SECONDS": "0.01",
                "VERCEL_AUTOMATION_BYPASS_SECRET": "",
-               "ACCESSDOC_REQUIRE_AUTH": "false", "ACCESSDOC_API_KEY": "",
+               "SMOKE_API_KEY": "synthetic-pilot-only" if authenticated else "",
+               "SMOKE_REQUIRE_AUTH": "true" if authenticated else "false",
+               "ACCESSDOC_REQUIRE_AUTH": "true" if authenticated else "false",
+               "ACCESSDOC_API_KEY": "synthetic-pilot-only" if authenticated else "",
                "ACCESSDOC_API_KEYS": ""}
         try:
             with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, env):
@@ -158,6 +185,93 @@ class ReleaseValidationIntegrityTests(unittest.TestCase):
                 self.assertEqual(sum(n.startswith("Error contract: ")
                                      for n in report["checks"]), 7)
                 self.assertIn("Exact target remains deployed after smoke", report["checks"])
+                self.assertIn("GET /readyz reports ready", report["checks"])
+                self.assertEqual(report["authenticated_pilot"], authenticated)
+                self.assertTrue(all(c["pass"] for c in report["check_results"]))
+                if authenticated:
+                    self.assertIn("Pilot rejects missing credential", report["checks"])
+                    self.assertIn("Pilot rejects wrong credential", report["checks"])
+                    self.assertNotIn("synthetic-pilot-only", output.read_text())
+        finally:
+            server.shutdown()
+            server.server_close()
+            runner.join(2)
+            self.assertFalse(runner.is_alive())
+
+    def test_shipped_smoke_executes_full_contract_over_real_loopback(self):
+        self.run_real_smoke()
+
+    def test_authenticated_smoke_executes_real_loopback_with_negative_auth(self):
+        self.run_real_smoke(authenticated=True)
+
+    def test_required_pilot_missing_credential_fails_before_network(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "report.json"
+            env = {**os.environ, "PRODUCTION_URL": "http://127.0.0.1:1",
+                   "TARGET_COMMIT": "a" * 40, "EXPECTED_VERSION": "test",
+                   "SMOKE_REQUIRE_AUTH": "true", "SMOKE_API_KEY": "",
+                   "VERCEL_AUTOMATION_BYPASS_SECRET": ""}
+            result = subprocess.run([sys.executable, "scripts/production_smoke.py",
+                "--output", str(output)], env=env, cwd=ROOT,
+                capture_output=True, text=True, timeout=5)
+            self.assertEqual(result.returncode, 2)
+            report = json.loads(output.read_text())
+            self.assertEqual(report["phase"], "configuration")
+            self.assertEqual(report["checks"], [])
+
+    def test_reflected_credentials_are_redacted(self):
+        self.assertEqual(redact_smoke_text("platform-secret pilot-secret",
+            "platform-secret", "pilot-secret"), "[credential] [credential]")
+
+    def test_unsafe_target_overwrites_stale_success_without_credential_leak(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "report.json"
+            output.write_text('{"pass":true}')
+            env = {**os.environ, "PRODUCTION_URL": "https://attacker.invalid",
+                   "TARGET_COMMIT": "a" * 40, "EXPECTED_VERSION": "test",
+                   "SMOKE_REQUIRE_AUTH": "true", "SMOKE_API_KEY": "private-key-canary",
+                   "VERCEL_AUTOMATION_BYPASS_SECRET": ""}
+            result = subprocess.run([sys.executable, "scripts/production_smoke.py",
+                "--output", str(output)], env=env, cwd=ROOT,
+                capture_output=True, text=True, timeout=5)
+            self.assertEqual(result.returncode, 2)
+            report = json.loads(output.read_text())
+            self.assertFalse(report["pass"])
+            self.assertEqual(report["checks"], [])
+            self.assertNotIn("private-key-canary",
+                             result.stdout + result.stderr + output.read_text())
+
+    def test_sso_redirect_fails_as_authorization_without_polling(self):
+        class Redirect(BaseHTTPRequestHandler):
+            requests = 0
+            def do_GET(self):
+                type(self).requests += 1
+                self.send_response(302)
+                self.send_header("Location", "https://vercel.com/sso-api?private-canary=1")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+            def log_message(self, *args):
+                pass
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Redirect)
+        runner = threading.Thread(target=lambda: server.serve_forever(poll_interval=.01))
+        runner.start()
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / "report.json"
+                env = {**os.environ, "PRODUCTION_URL": f"http://127.0.0.1:{server.server_port}",
+                       "TARGET_COMMIT": "a" * 40, "EXPECTED_VERSION": "test",
+                       "SMOKE_REQUIRE_AUTH": "false", "SMOKE_API_KEY": "",
+                       "VERCEL_AUTOMATION_BYPASS_SECRET": "",
+                       "SMOKE_MAX_WAIT_SECONDS": "30"}
+                result = subprocess.run([sys.executable, "scripts/production_smoke.py",
+                    "--output", str(output)], env=env, cwd=ROOT,
+                    capture_output=True, text=True, timeout=5)
+                self.assertEqual(result.returncode, 2)
+                report = json.loads(output.read_text())
+                self.assertEqual(report["phase"], "authorization")
+                self.assertEqual(report["checks"], [])
+                self.assertEqual(Redirect.requests, 1)
+                self.assertNotIn("private-canary", result.stdout + output.read_text())
         finally:
             server.shutdown()
             server.server_close()
