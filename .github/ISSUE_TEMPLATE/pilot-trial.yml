@@ -1,0 +1,112 @@
+name: Genuine pilot trial
+description: Track a real consented participant or engagement with sanitized evidence; attendance starts pending.
+title: 'Pilot trial: '
+body:
+- type: markdown
+  attributes:
+    value: Follow docs/PILOT_TRIAL_OPERATIONS.md. Use one opaque record ID. Do not publish participant identities,
+      contact information, recordings or client evidence. The coordinator verifies restricted consent and observation
+      receipts. No actual participant, booking or consent is implied by opening this issue.
+- type: input
+  id: record_id
+  attributes:
+    label: Opaque study or engagement ID
+  validations:
+    required: true
+- type: dropdown
+  id: track
+  attributes:
+    label: Evidence track
+    options:
+    - Ten-person controlled cohort
+    - Five authorized engagement follow-up
+    - Reserve or recruitment only
+  validations:
+    required: true
+- type: dropdown
+  id: role
+  attributes:
+    label: Declared participant role
+    options:
+    - Accessibility practitioner
+    - Agency report owner
+    - Recipient in authorized engagement
+    - Pending screening
+  validations:
+    required: true
+- type: dropdown
+  id: state
+  attributes:
+    label: Current evidence state
+    options:
+    - Pending recruitment
+    - Invitation sent; no acceptance yet
+    - Accepted; consent or booking pending
+    - Consented and confirmed booking
+    - Observed session completed
+    - Withdrawn or declined
+    - Failed or incomplete; retest pending
+  validations:
+    required: true
+- type: textarea
+  id: coordination
+  attributes:
+    label: Coordination and consent receipt references
+    description: Record coordinator responsibility acceptance, opaque consent/scheduling receipt IDs, time/timezone
+      if confirmed, retention deadline and accommodations. If absent, state pending. No public contact details.
+  validations:
+    required: true
+- type: textarea
+  id: candidate
+  attributes:
+    label: Exact candidate and environment
+    description: Full forty-character source SHA; artifact/input/brief digests; mode and OS/browser/AT versions.
+      For hosted work reference deployment ID and observed exact-SHA evidence without access tokens. State pending
+      or local-only when applicable.
+  validations:
+    required: true
+- type: textarea
+  id: observations
+  attributes:
+    label: Observed generation, verification, inspection and editing
+    description: For attended sessions record step times, unassisted vs assisted completion, facilitator interventions,
+      corrections/severity and sanitized evidence references. Record failed attempts and retests separately. Unobserved
+      results remain pending.
+  validations:
+    required: true
+- type: textarea
+  id: comprehension
+  attributes:
+    label: Claims comprehension and handoff feedback
+    description: Record certification interpretation, ambiguous wording, willingness to hand output to a client,
+      PDF blocker answer and an actual second-export request. Preserve negative answers. Intent is not acceptance
+      or repeat use.
+  validations:
+    required: true
+- type: textarea
+  id: engagement
+  attributes:
+    label: Recipient action, payment and repeat evidence
+    description: For a follow-up record authorization receipt, baseline/review/support minutes, output digest, recipient
+      action and second completed or paid handoff evidence. Otherwise state not applicable or pending.
+  validations:
+    required: true
+- type: textarea
+  id: gate_counting
+  attributes:
+    label: Gate counting and unresolved blockers
+    description: 'Practitioner subgroup: 4/5 generation and 3/5 editing within 30 minutes. Full cohort: 8/10 completion,
+      median corrections at most two, zero certification interpretations and 4/10 second-export requests. Identify
+      cohort slot and counting role; one person counts once. Do not declare aggregate gates from one issue.'
+  validations:
+    required: true
+- type: checkboxes
+  id: privacy
+  attributes:
+    label: Public record privacy
+    options:
+    - label: This issue contains no sensitive exports, secrets, capability URLs, private consent records or personal
+        participant details.
+      required: true
+    - label: I understand an issue record or synthetic workflow is not evidence of actual human participation.
+      required: true

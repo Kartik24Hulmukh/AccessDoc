@@ -8,9 +8,8 @@ An AccessDoc evidence bundle is a ZIP file containing documentation of what an a
 
 | File | What it is | How to read it |
 |------|-----------|---------------|
-| `report.html` | **Accessible** HTML report (axe-core-audited) | Open in a browser — this is the primary artifact for screen reader users |
+| `report.html` | Semantic HTML companion; automated checks are scoped, not conformance certification | Open in a browser; review with the recipient’s assistive technology before relying on it |
 | `report.pdf` | Untagged PDF convenience copy (NOT accessible — no PDF/UA structure tree) | Open in any PDF viewer — for visual reference only |
-| `receipt.json` | Machine-readable scan metadata + summary | JSON viewer or `jq` |
 | `receipt.json` | Machine-readable scan metadata + summary | JSON viewer or `jq` |
 | `openacr.yaml` | EN 301 549-mapped OpenACR (EU procurement format) | YAML viewer |
 | `attestation.intoto.json` | in-toto attestation with SHA-256 digests | JSON viewer |
@@ -38,7 +37,7 @@ with zipfile.ZipFile('bundle.zip') as z:
 "
 ```
 
-If all files show `OK`, the bundle is intact. Any `MISMATCH` means the file was altered after generation.
+If all files show `OK`, their bytes match this manifest. A mismatch can indicate corruption or alteration. An attacker can rewrite both a file and an unsigned manifest; hashes alone do not prove origin, truthful findings, human approval, or protection against coordinated rewriting. Use the shipped verifier for structural checks and independently verified signing evidence where required.
 
 ## Understanding the coverage limit
 
@@ -74,7 +73,7 @@ The `eaa-evidence.md` file maps findings to EN 301 549 clauses (Chapter 9, Web) 
 
 ## What this bundle IS
 
-- A tamper-evident record of what an automated scan found
+- An integrity-checkable record of supplied testing evidence; unsigned hashes are not proof of authorship
 - Documentation of a conformance *effort*
 - A starting point for a full accessibility evaluation
 - Verifiable evidence you can share with stakeholders
@@ -83,7 +82,8 @@ The `eaa-evidence.md` file maps findings to EN 301 549 clauses (Chapter 9, Web) 
 
 - The PDF (`report.pdf`) is **NOT accessible** — it is an untagged PDF without
   PDF/UA structure. Screen readers cannot navigate it semantically.
-- The **HTML report** (`report.html`) IS accessible (axe-core-audited, zero
-  violations at critical/serious/moderate impact levels).
-- For clients who need an accessible document, share `report.html`, not
-  `report.pdf`.
+- The **HTML report** (`report.html`) is the semantic companion intended to
+  reduce the barrier of the untagged PDF. Automated checks do not establish
+  independent assistive-technology usability or WCAG conformance.
+- Prefer the HTML companion for review, but validate the actual generated
+  output with the recipient’s tools and needs before making an accessibility claim.
