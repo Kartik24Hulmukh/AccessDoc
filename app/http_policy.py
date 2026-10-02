@@ -27,7 +27,35 @@ def readiness_reasons():
     required = os.getenv("ACCESSDOC_REQUIRE_AUTH", "false").lower() == "true"
     keys = bool(os.getenv("ACCESSDOC_API_KEY", "") or any(
         k.strip() for k in os.getenv("ACCESSDOC_API_KEYS", "").split(",")))
-    return ["AUTH_NOT_CONFIGURED"] if required and not keys else []
+    reasons = ["AUTH_NOT_CONFIGURED"] if required and not keys else []
+    state = operation_state()
+    reasons.extend(state["configuration_errors"])
+    if not state["generation_enabled"] and "GENERATION_CONFIG_INVALID" not in reasons:
+        reasons.append("GENERATION_DISABLED")
+    return reasons
+
+
+def operation_state():
+    """Independent, passive process admission controls; never return env values."""
+    result = {"configuration_errors": []}
+    for name, env in (("generation", "ACCESSDOC_GENERATION_ENABLED"),
+                      ("remediation", "ACCESSDOC_REMEDIATION_ENABLED")):
+        value = os.getenv(env, "true").strip().lower()
+        result[name + "_enabled"] = value == "true"
+        if value not in ("true", "false"):
+            result["configuration_errors"].append(name.upper() + "_CONFIG_INVALID")
+    return result
+
+
+def operation_error(remediation=False):
+    """Disable new work, not already accepted jobs or fleet/account spending."""
+    name = "remediation" if remediation else "generation"
+    state = operation_state()
+    if not state[name + "_enabled"]:
+        return 503, (name.upper() + "_CONFIG_INVALID"
+                     if name.upper() + "_CONFIG_INVALID" in state["configuration_errors"]
+                     else name.upper() + "_DISABLED")
+    return None
 
 
 def auth_error(headers):

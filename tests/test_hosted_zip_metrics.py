@@ -3,6 +3,8 @@ import json
 import unittest
 from unittest.mock import Mock, patch, call
 import api.handler as adapter
+from app.bundle import validate_bundle
+from tests.test_operational_controls import serve, request, PAYLOAD
 
 
 class HostedZipMetricsTests(unittest.TestCase):
@@ -25,10 +27,16 @@ class HostedZipMetricsTests(unittest.TestCase):
             return bump
 
     def test_successful_zip_counts_request_once(self):
-        h = self.handler()
-        bump = self.run_post(h)
+        # Accounting now belongs to completion, not the direct ZIP writer.
+        # Exercise the complete request over a real socket so duplicate
+        # writer+completion accounting cannot hide behind a mocked lifecycle.
+        with patch.object(adapter, "_bump", wraps=adapter._bump) as bump:
+            with serve(adapter, adapter.handler) as server:
+                status, _, body = request(server, "POST", "/api/bundle", PAYLOAD)
+        self.assertEqual(status, 200, body)
+        self.assertTrue(validate_bundle(body)["valid"])
         self.assertEqual(bump.call_args_list.count(call("requests_total")), 1)
-        h.wfile.write.assert_called_once_with(b"synthetic-zip")
+        self.assertEqual(bump.call_args_list.count(call("reports_total")), 1)
 
     def test_broken_zip_socket_is_counted_not_raised(self):
         for error in (BrokenPipeError, ConnectionResetError):

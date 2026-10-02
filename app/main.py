@@ -5,7 +5,7 @@ from http.server import ThreadingHTTPServer,BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse
 from .models import VERSION
-from .http_policy import auth_error, public_body, auth_required, remediation_body, readiness_reasons
+from .http_policy import auth_error, public_body, auth_required, remediation_body, readiness_reasons, operation_state, operation_error
 from .limits import LimitExceeded, MAX_HTTP_BODY_BYTES, limits_summary
 from . import telemetry
 from .http_body import BodyDeadlineExceeded, TruncatedBodyError, body_deadline, read_body
@@ -112,7 +112,8 @@ class Handler(BaseHTTPRequestHandler):
   if not getattr(self,'_trace_ctx',None):self._trace_ctx=telemetry.start_trace(self.headers.get('traceparent') if getattr(self,'headers',None) else None,request_id=self.request_id)
   return self._trace_ctx
  def _log(self,status,start):
-  print(json.dumps({'ts':time.time(),'level':'info','event':'http_request','trace_id':self._trace()['trace_id'],'span_id':self._trace()['span_id'],'request_id':self.request_id,'ip':safe_external(self.client_address[0]),'method':self.command,'route':('/download/[token]' if urlparse(self.path).path.startswith(('/download/','/download-html/','/download-receipt/')) else safe_external(urlparse(self.path).path)),'status':status,'duration_ms':round((time.monotonic()-start)*1000,2)},separators=(',',':')),flush=True)
+  self._trace()
+  telemetry.log_event('http_request',request_id=self.request_id,method=telemetry.http_method(self.command),route=telemetry.http_route(self.path),status=status,duration_ms=round((time.monotonic()-start)*1000,2))
  def _security(self,ctype):
   self.send_header('Content-Type',ctype);self.send_header('X-Content-Type-Options','nosniff');self.send_header('X-Frame-Options','DENY');self.send_header('Referrer-Policy','no-referrer');self.send_header('Permissions-Policy','camera=(), microphone=(), geolocation=()');self.send_header('Cross-Origin-Resource-Policy','same-origin');self.send_header('Cross-Origin-Opener-Policy','same-origin');self.send_header('Cache-Control','no-store');self.send_header('Pragma','no-cache');self.send_header('X-Request-ID',self.request_id);self.send_header('traceparent',telemetry.traceparent_header(self._trace()));self.send_header('Content-Security-Policy',"default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
  def _send(self,status,body=b'',ctype='application/json; charset=utf-8',extra=None):
@@ -168,7 +169,7 @@ class Handler(BaseHTTPRequestHandler):
   except json.JSONDecodeError:raise ValueError('Invalid JSON request')
  def handle_one_request(self):
   # Reset per-request state first: on a keep-alive socket an idle timeout raises before a new request line is read, and stale values from the previous request would otherwise be logged as a phantom HTTP 500 on that old route.
-  self.raw_requestline=b'';self.command=None;self.path='';self.request_id=secrets.token_hex(16);self._status=500;start=time.monotonic();start_ns=time.time_ns();telemetry.clear();self._trace_ctx=None
+  self.raw_requestline=b'';self.command=None;self.path='';self.headers=None;self.request_id=secrets.token_hex(16);self._status=500;start=time.monotonic();start_ns=time.time_ns();telemetry.clear();self._trace_ctx=None
   try:
    super().handle_one_request()
   except (TimeoutError,ConnectionError,BrokenPipeError,OSError):self.close_connection=True;metric('client_disconnects_total')
@@ -181,7 +182,7 @@ class Handler(BaseHTTPRequestHandler):
     metric('requests_total')
     try:self._log(self._status,start)
     except:pass
-    try:telemetry.record_server_span(self._trace(),self.command,('/download/[token]' if urlparse(self.path).path.startswith(('/download/','/download-html/','/download-receipt/')) else safe_external(urlparse(self.path).path)),self._status,start_ns,time.time_ns())
+    try:telemetry.record_server_span(self._trace(),telemetry.http_method(self.command),telemetry.http_route(self.path),self._status,start_ns,time.time_ns())
     except:pass
    telemetry.clear()
  def _preflight(self):
@@ -197,7 +198,7 @@ class Handler(BaseHTTPRequestHandler):
    if getattr(STORE,'closed',False):reasons.append('STORE_CLOSED')
    if not READY:reasons.append('DRAINING')
    ready=not reasons
-   return self._json(200 if ready else 503,{'status':'ready' if ready else 'not_ready','readiness_reasons':reasons,'commit':_commit_sha(),'gateway':remediation.health(),'tracing':telemetry.export_status()})
+   return self._json(200 if ready else 503,{'status':'ready' if ready else 'not_ready','readiness_reasons':reasons,'commit':_commit_sha(),'gateway':remediation.health(),'tracing':telemetry.export_status(),'operations':operation_state()})
   if path=='/metrics':
    lines=[]
    with METRICS_LOCK:
@@ -206,7 +207,7 @@ class Handler(BaseHTTPRequestHandler):
    for k,v in remediation.STATS.items():lines.append(f'accessdoc_gateway_{k} {v}')
    for m,b in remediation.health().get('models',{}).items():lines.append(f'accessdoc_gateway_circuit_open{{model="{m}"}} {1 if b.get("state")=="open" else 0}')
    return self._send(200,('\n'.join(lines)+'\n').encode(),'text/plain; version=0.0.4; charset=utf-8')
-  if path=='/limits':return self._json(200,dict(limits_summary(),api_key_required=auth_required(),rate_limit_per_minute=int(os.getenv('RATE_LIMIT_PER_MINUTE','30'))))
+  if path=='/limits':return self._json(200,dict(limits_summary(),api_key_required=auth_required(),rate_limit_per_minute=int(os.getenv('RATE_LIMIT_PER_MINUTE','30')),operations=operation_state()))
   if path=='/api/sample':return self._send(200,(ROOT/'public/sample/axe-sample.json').read_bytes(),'application/json; charset=utf-8')
   match=re.fullmatch(r'/(download|download-html|download-receipt)/([A-Za-z0-9_-]{32})',path)
   if match:
@@ -226,9 +227,13 @@ class Handler(BaseHTTPRequestHandler):
    if ctype.startswith('text/') or ctype in ('application/javascript','application/json'):ctype+='; charset=utf-8'
    return self._send(200,data,ctype)
   self._json(404,{'error':{'code':'NOT_FOUND','message':'Not found'}})
+ def do_HEAD(self):
+  self.do_GET()
  def do_POST(self):
   # Every POST closes: unread rejected bodies must never become another request.
   self.close_connection=True
+  # Adopt parsed inbound context before native serial/hedged work starts.
+  self._trace()
   if not self._preflight():return
   path=urlparse(self.path).path
   if path not in ('/api/generate','/api/v1/generate','/api/bundle','/api/remediate'):return self._json(404,{'error':{'code':'NOT_FOUND','message':'Not found'}})
@@ -236,6 +241,9 @@ class Handler(BaseHTTPRequestHandler):
   if denied:
    status,code=denied;return self._json(status,{'error':{'code':code,'message':'API access denied'}})
   if not self._validate_origin():return self._json(403,{'error':{'code':'CROSS_SITE_REQUEST','message':'Cross-site requests are not allowed'}})
+  disabled=operation_error(path=='/api/remediate')
+  if disabled:
+   status,code=disabled;return self._json(status,{'error':{'code':code,'message':'This operation is disabled by the operator'}},{'Retry-After':'30'})
   if not READY:return self._json(503,{'error':{'code':'DRAINING','message':'Server is shutting down. Try again shortly.'}})
   _ok,_retry=rate_limit_state(self.client_address[0])
   if not _ok:

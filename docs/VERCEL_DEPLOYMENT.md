@@ -37,3 +37,40 @@ Record project/deployment ID, exact URL/SHA, timestamp, and actual settings (not
 - Immutable previous-good deployment/image, authorized rollback rehearsal and measured recovery below five minutes; verify restored health, output, auth, and observability.
 
 See `docs/PILOT_TRIAL_OPERATIONS.md`, `docs/EVALUATION_PROTOCOL.md`, `docs/RELEASE_GATES.md`, and `docs/hosted-pilot-runbook.md` for genuine participant and human approval gates. Remain an experimental beta; do not promote a public upload service before these gates pass.
+
+## Independent operation shutdown and telemetry controls
+
+Both adapters accept `ACCESSDOC_GENERATION_ENABLED` and
+`ACCESSDOC_REMEDIATION_ENABLED`, each defaulting to `true`. Only `true` and `false`
+(case-insensitive, surrounding whitespace ignored) are accepted. A missing
+variable preserves the default; an empty or invalid value disables that operation
+and adds a fixed configuration error to readiness. No raw environment value is
+published. Provision environment changes through the hosting control plane and
+activate them by restart/redeployment; this is not a remotely mutable API.
+
+Authenticated disabled POSTs return 503 and `Retry-After: 30` **before reading the
+body or acquiring a pipeline permit**. Authentication remains enforced first.
+Generation and remediation can be disabled separately. Disabling generation
+makes `/readyz` fail; intentionally disabling optional remediation does not.
+`/healthz` stays live, and HEAD uses the same readiness status as GET. These gates
+refuse new work, not already accepted work. The remediation gate disables both
+paid and offline guidance; it is not a provider monetary ceiling. Preserve
+account/WAF limits and a separate provider-side kill procedure.
+
+Hosted request completion now emits one structured `http_request` log and one
+SERVER-kind span for GET, HEAD, POST, OPTIONS and rejected requests. Response
+`X-Request-ID` and `traceparent` correlate ZIPs and errors as well as JSON/static
+responses. Route labels use a finite vocabulary; arbitrary paths, query strings,
+capability tokens and client addresses are omitted. Do not infer that proxy/CDN
+logs have the same redaction.
+
+The bounded OTLP exporter uses the existing native transport, a single sender,
+and shared absolute export/flush/shutdown budgets. HTTP 200 JSON acknowledgements
+are required; partial rejection is not success and is not retried. Readiness
+exposes cumulative exported/rejected/failed/dropped counters and fixed error codes,
+never collector response text. An empty later flush is not recovery of earlier
+losses. Collector work shares process-wide native admission with model requests;
+collector saturation may consume a slot, so validate this interaction in staging.
+Expired shutdown returns failure while owned native cleanup remains scheduled;
+no extra blocking grace is added. Local collector proofs do not establish a
+working central collector, retention policy or delivered alert.
