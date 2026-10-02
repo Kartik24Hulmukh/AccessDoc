@@ -1,0 +1,54 @@
+{
+  "scope": "local working-tree candidate; not hosted or deployed verification",
+  "comparison_baseline_commit": "b7f97df3b3566768322d5e39b6ee2ada20e76189",
+  "tests_passed": 1000,
+  "tests_skipped": 1,
+  "subtests_passed": 282,
+  "skip_reason": "ACCESSDOC_PRODUCTION_URL unset; deployed identity/functional test not performed",
+  "release_gates": {
+    "compile": {
+      "status": "PASS",
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "tests": {
+      "status": "PASS",
+      "exitCode": 0,
+      "stdout": "4441206,\"level\":\"info\",\"event\":\"http_request\",\"trace_id\":\"2d84f9117af4f09e143e7dbe54fbc869\",\"span_id\":\"20cf0ba729cf0cb1\",\"request_id\":\"47373400c77e\",\"method\":\"POST\",\"route\":\"/[unmatched]\",\"status\":404,\"duration_ms\":0.93}\n................................... [  6%]\n.............................................................. [ 12%]\n.............................................................s.......... [ 19%]\n.................................................................. [ 26%]\n...........................................................{\"ts\":1790939879.4673896,\"level\":\"info\",\"event\":\"http_request\",\"trace_id\":\"d9c341e415f1c1640b679247d6d1b52f\",\"span_id\":\"056b33a21fa69844\",\"request_id\":\"285afb3aabc2\",\"method\":\"POST\",\"route\":\"/\",\"status\":400,\"duration_ms\":0.84}\n...... [ 32%]\n....{\"ts\":1790939880.0067809,\"level\":\"info\",\"event\":\"http_request\",\"trace_id\":\"fe4e5474ef4548c3ce324ecdc9f88d87\",\"span_id\":\"1a55c95c5e387c7a\",\"request_id\":\"f58644bfc93492fdf6f6442e59ca59bc\",\"method\":\"GET\",\"route\":\"/readyz\",\"status\":200,\"duration_ms\":0.77}\n......................................................... [ 38%]\n................................................ [ 43%]\n....................................... [ 47%]\n............................................... [ 52%]\n.................................... [ 55%]\n................................................................... [ 62%]\n................................................................... [ 69%]\n...................................................... [ 74%]\n........................................................................ [ 81%]\n.........................................................{\"ts\":1790939955.7989328,\"level\":\"info\",\"event\":\"http_request\",\"trace_id\":\"a2086d277217f3786e09ca82b47b82a1\",\"span_id\":\"7cf297bf846f1ab8\",\"request_id\":\"1891996bf839\",\"method\":\"POST\",\"route\":\"/api/remediate\",\"status\":422,\"duration_ms\":1.01}\n............... [ 88%]\n.............................................................. [ 95%]\n.................................................              [100%]\n=============================== warnings summary ===============================\ntests/test_stress_matrix.py::SecurityStressTests::test_duplicate_zip_paths_rejected\n  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'report.html'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_zip_hardening.py::ZipHardeningTests::test_duplicate_manifest_json\n  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'manifest.json'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_zip_hardening.py::ZipHardeningTests::test_duplicate_report_pdf\n  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'report.pdf'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n1000 passed, 1 skipped, 3 warnings, 282 subtests passed in 120.89s (0:02:00)\n",
+      "stderr": ""
+    },
+    "secret_patterns": {
+      "status": "PASS",
+      "detail": []
+    },
+    "claims": {
+      "status": "PASS",
+      "detail": []
+    },
+    "placeholders": {
+      "status": "PASS",
+      "detail": []
+    },
+    "stale_files": {
+      "status": "PASS",
+      "detail": []
+    },
+    "immutable_action_refs": {
+      "status": "PASS",
+      "detail": []
+    },
+    "non_publishing_workflows": {
+      "status": "PASS",
+      "detail": []
+    },
+    "required_files": {
+      "status": "PASS",
+      "detail": []
+    },
+    "version_consistency": {
+      "status": "PASS",
+      "detail": []
+    }
+  }
+}
