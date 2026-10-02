@@ -1,8 +1,9 @@
 # Receipt format
 
 `receipt.json` is the machine-readable core of an AccessDoc evidence bundle. It
-identifies the submitted scanner input and the generated report by SHA-256, and
-records what was found, by which engine, against which rule catalog.
+records normalized supplied findings and metadata, including the supplied engine
+and the mapping catalog. It does not hash or authenticate the complete original
+scanner input. Bundle manifests separately identify generated member bytes.
 
 Machine-readable contract: [`schemas/receipt-1.2.schema.json`](../schemas/receipt-1.2.schema.json)
 
@@ -10,14 +11,14 @@ Machine-readable contract: [`schemas/receipt-1.2.schema.json`](../schemas/receip
 
 | Property | Provided by | Not provided |
 |---|---|---|
-| The receipt has not been edited since generation | `finding_fingerprint` re-derivation + manifest digests | — |
+| Present finding content is self-consistent | `finding_fingerprint` re-derivation | Original bytes, authorship and source truth; anyone can recompute hashes |
 | Every bundle member is byte-identical to what was attested | `manifest.json` SHA-256 over each member | — |
 | The bundle was built by this project's workflow | Sigstore signature (signing workflow) | Unsigned bundles prove nothing about origin |
 | The audit happened on the stated date | — | `audit_date` is **caller-supplied** and never independently timestamped |
 | The submitter is who they claim | — | No submitter authentication exists |
 | The site conforms to WCAG | — | Automated scans detect roughly 30-57% of WCAG issues |
 
-A receipt is evidence of *what a scan reported*, bound to specific bytes. It is
+A receipt organizes supplied scanner observations, bound to current bundle bytes. It is
 not a conformance claim and not a legal opinion.
 
 ## Schema versions
@@ -41,8 +42,36 @@ Nothing is removed in 1.2; every 1.1 field is still present. To adopt it:
    to `rule-level` automatically and says so in `trend.json.warnings`. This is
    deliberate: mixing precision levels silently is how false remediation claims
    get made.
-3. Once two consecutive audits are both 1.2, `trend.json` gains
-   `remediated_findings`, `persisting_findings`, and `introduced_findings`.
+3. When compatible supplied scope and supported fingerprint versions permit comparison, `trend.json` can carry
+   `not_observed_findings`, `persisting_findings`, and `introduced_findings`.
+   These describe supplied endpoints only, not verified remediation or regressions.
+
+## Count units and bundle response headers
+
+`summary.finding_groups` counts distinct `(source, rule id)` groups;
+`total_violations` counts emitted finding instances; `unmapped_findings` counts
+instances with no supplied/mapped WCAG criteria (not unknown severity).
+`pending_instances` counts unresolved target instances separately. Both bundle
+adapters expose these as `X-AccessDoc-Finding-Count`, `-Instance-Count`,
+`-Unmapped-Count`, and `-Pending-Count`. This corrects earlier header semantics
+that conflated groups with instances and unmapped rules with unknown severity.
+These summary fields are additive and optional on old receipts.
+
+## Additive unresolved-check evidence
+
+Current schema 1.2 receipts also carry `summary.total_incomplete` (supplied rule
+count) and `pending_checks[]` (normalized target instances). Each pending entry
+has `id`, `description`, `help_url`, `target`, `source: automated`,
+`status: needs-review`, and `nodes`. These are neither violations nor passes.
+They remain separate in the HTML, receipt and convenience PDF. PDF display is
+bounded with an explicit pointer to full receipt detail. An absent target stays
+unknown; no actionable selector is invented.
+
+Both fields are optional for legacy receipts. Missing pending evidence does not
+mean zero unresolved checks, complete coverage, or conformance. Null input
+arrays retain the established empty-array compatibility policy. Supplied
+metadata and matching scope do not authenticate a page, date, scan state,
+reviewer, actions taken or source truth.
 
 ## Comparison precision tiers
 
@@ -50,7 +79,7 @@ Nothing is removed in 1.2; every 1.1 field is still present. To adopt it:
 link, never the strongest:
 
 - **`target-level`** — both receipts carry per-finding targets and verifiable
-  fingerprints. Individual barriers can be tracked across time.
+  fingerprints. Supplied target identities can be compared, subject to compatible scope and human review.
 - **`rule-level`** — rule ids exist on both sides. Rules can be tracked; elements
   cannot.
 - **`aggregate-only`** — counts only. No finding may be described as remediated,
@@ -75,8 +104,8 @@ three values is detectable by recomputation.
 - Not a secret, not a MAC, and not keyed. Anyone can compute it. It proves
   self-consistency, not authorship.
 - Not stable across DOM restructuring. If a selector changes because the page was
-  refactored, the fingerprint changes and the finding will be reported as
-  introduced rather than persisting. Judgement is still required.
+  refactored, the fingerprint changes and the identifier may be observed only in the later supplied receipt. That is
+  not evidence of a newly introduced barrier or verified remediation.
 - Not meaningful for findings with fallback identity. When a scanner supplies no
   usable target, the deterministic value `<rule-id>:no-target` is used, which
   collapses that finding to rule-level identity even inside a 1.2 receipt.

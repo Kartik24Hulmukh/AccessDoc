@@ -2,7 +2,7 @@
 
 ## Actual architecture
 
-`vercel.json` uses the legacy `@vercel/python` build for `api/handler.py` and routes every path to that handler. The handler serves the report UI and embedded static assets, JSON health, and the bounded bundle endpoint. `POST /api/bundle` returns a ZIP in the request; generated capability downloads use process-local ephemeral storage and are not durable or tenant-bound. Local/container transport is `python -m app.main`.
+`vercel.json` uses the legacy `@vercel/python` build for `api/handler.py` and routes every path to that handler. The handler serves the report UI and embedded static assets, JSON health, and the bounded bundle endpoint. `POST /api/bundle` returns a ZIP directly in the request; this hosted adapter does not provide server-held capability downloads. The separate local/container transport (`python -m app.main`) uses process-local, expiring capability downloads that are neither durable nor tenant-bound. Do not apply its report-retention behavior to the Vercel adapter; provider and browser/log retention require their own review.
 
 Python is selected by `.python-version`. Runtime dependencies come from `requirements.txt`; the optional model transport uses pooled aiohttp and c-ares DNS. CI records dependency/security evidence. Neither this file nor a green CI job establishes provider limits.
 

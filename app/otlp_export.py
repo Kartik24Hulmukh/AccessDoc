@@ -19,12 +19,13 @@ import itertools
 import json
 import math
 import os
+import queue
 import threading
 import time
 import urllib.parse
 
 import requests
-from .gateway_transport import PooledSession
+from .gateway_transport import PooledSession, _take
 
 _MAX_QUEUE = 2048
 _MAX_BATCH = 256
@@ -135,6 +136,13 @@ class OTLPExporter:
         self._wake = threading.Event()
         self._stop = threading.Event()
         self._closing = False
+        self._finalize = threading.Event()
+        # Sender serialization + applying before every dequeue bounds this
+        # mailbox to one completion. Existing sender owns deferred accounting.
+        self._pending = queue.SimpleQueue()
+        self._discard_pending = False
+        self._record_losses = itertools.count()
+        self._record_loss_seen = 0
         self._session = PooledSession(_MAX_RESPONSE_BYTES) if self.enabled else None
         if self._session is not None:
             self._session.proxy = None  # collector has no gateway proxy/credential routing
@@ -165,7 +173,17 @@ class OTLPExporter:
             "attributes": [_attr(k, v) for k, v in itertools.islice((attrs or {}).items(), 32)],
             "status": {"code": 1 if status_ok else 2},
         }
-        with self._lock:
+        if self._closing:
+            return False
+        if not self._lock.acquire(blocking=False):
+            # CPython's C-level next(count) is one atomic primitive; a scalar
+            # ledger, not one queued object per contended record. Applied under
+            # _lock without imposing a blocking second mutex on record.
+            next(self._record_losses)
+            self._wake.set()
+            return False
+        try:
+            self._apply_pending()
             if self._closing:
                 return False
             if len(self._q) == self._q.maxlen:
@@ -173,14 +191,45 @@ class OTLPExporter:
             self._q.append(rec)
             if len(self._q) >= self.max_batch:
                 self._wake.set()
+        finally:
+            self._lock.release()
         return True
 
-    def _drain(self):
-        # Only the sender owner may dequeue: includes daemon, flush and shutdown.
-        with self._lock:
+    def _apply_pending(self):
+        # Called only while holding _lock. No blocking/network operations here.
+        marker = next(self._record_losses)
+        self.dropped += marker - self._record_loss_seen
+        self._record_loss_seen = marker + 1
+        while True:
+            try:
+                accepted, rejected, failed, error = self._pending.get_nowait()
+            except queue.Empty:
+                break
+            self.exported += accepted
+            self.rejected_spans += rejected
+            if error:
+                self.failed_batches += 1
+                self.failed_spans += failed
+                self.last_error = error
+            self._inflight = 0
+        if self._discard_pending:
+            lost = len(self._q)
+            self._q.clear()
+            self.dropped += lost
+            self.shutdown_dropped += lost
+            self._discard_pending = False
+
+    def _drain(self, deadline):
+        # Only sender may dequeue; every caller-side state wait is budgeted.
+        if not _take(self._lock, deadline):
+            return None
+        try:
+            self._apply_pending()
             batch = [self._q.popleft() for _ in range(min(self.max_batch, len(self._q)))]
             self._inflight = len(batch)
-        return batch
+            return batch
+        finally:
+            self._lock.release()
 
     def _payload(self, batch):
         return {"resourceSpans": [{
@@ -231,14 +280,16 @@ class OTLPExporter:
         finally:
             if response is not None:
                 response.close()  # bounded memory-only native facade, not blocking socket drain
-            with self._lock:
-                self.exported += accepted
-                self.rejected_spans += rejected
-                if error:
-                    self.failed_batches += 1
-                    self.failed_spans += len(batch) - accepted - rejected
-                    self.last_error = error
-                self._inflight = 0
+            self._pending.put((accepted, rejected, len(batch)-accepted-rejected, error))
+            if _take(self._lock, deadline):
+                try:
+                    self._apply_pending()
+                finally:
+                    self._lock.release()
+            else:
+                self._wake.set()
+                # Result isn't fully accounted within the caller budget.
+                return False
         return error is None
 
     def _flush_until(self, deadline, baseline):
@@ -247,14 +298,21 @@ class OTLPExporter:
         ok = True
         try:
             while time.monotonic() < deadline:
-                batch = self._drain()
+                batch = self._drain(deadline)
+                if batch is None:
+                    return False
                 if not batch:
                     break
                 if not self._send(batch, deadline):
                     ok = False
                     break  # never spin through pending batches after a failed attempt
-            with self._lock:
+            if not _take(self._lock, deadline):
+                return False
+            try:
+                self._apply_pending()
                 return ok and not self._q and not self._inflight and (self.failed_batches, self.dropped) == baseline
+            finally:
+                self._lock.release()
         finally:
             self._sender.release()
 
@@ -267,27 +325,44 @@ class OTLPExporter:
         of losses before this call: consult cumulative failure/drop counters.
         """
         deadline = time.monotonic() + _budget(self.timeout if timeout is None else timeout)
-        with self._lock:
+        if not _take(self._lock, deadline):
+            return False
+        try:
+            self._apply_pending()
             baseline = (self.failed_batches, self.dropped)
+        finally:
+            self._lock.release()
         return self._flush_until(deadline, baseline)
 
     def _run(self):
-        while not self._stop.is_set():
-            self._wake.wait(self.flush_interval)
-            self._wake.clear()
-            if self._stop.is_set():
-                break
-            deadline = time.monotonic() + self.timeout
-            if not self._sender.acquire(timeout=max(0.0, deadline - time.monotonic())):
-                continue
-            try:
+        try:
+            while not self._stop.is_set():
+                self._wake.wait(self.flush_interval)
+                self._wake.clear()
                 if self._stop.is_set():
                     break
-                batch = self._drain()
-                if batch:
-                    self._send(batch, deadline)
-            finally:
-                self._sender.release()
+                deadline = time.monotonic() + self.timeout
+                if not _take(self._sender, deadline):
+                    continue
+                try:
+                    if self._stop.is_set():
+                        break
+                    batch = self._drain(deadline)
+                    if batch:
+                        self._send(batch, deadline)
+                finally:
+                    self._sender.release()
+        finally:
+            # This existing owner must not exit before the bounded shutdown
+            # caller has published final accounting/disposal intent. No detached
+            # cleanup thread, and no extra grace in the caller's return path.
+            self._finalize.wait()
+            with self._sender, self._lock:
+                self._apply_pending()
+                self._discard_pending = True
+                self._apply_pending()
+            if self._session is not None:
+                self._session.close(deadline=time.monotonic())
 
     def shutdown(self, timeout=2.0):
         """Stop admission, drain once, cancel/close owner within ONE shared budget.
@@ -297,17 +372,27 @@ class OTLPExporter:
         Remaining queued spans are counted as shutdown drops, never transmitted.
         """
         deadline = time.monotonic() + _budget(timeout)
-        with self._lock:
-            self._closing = True
-            baseline = (self.failed_batches, self.dropped)
+        # Immediate admission intent; record rechecks inside the queue mutex.
+        self._closing = True
         self._stop.set()
         self._wake.set()
-        ok = self._flush_until(deadline, baseline)
-        with self._lock:
-            lost = len(self._q)
-            self._q.clear()
-            self.dropped += lost
-            self.shutdown_dropped += lost
+        ok = False
+        if _take(self._lock, deadline):
+            try:
+                self._apply_pending()
+                baseline = (self.failed_batches, self.dropped)
+            finally:
+                self._lock.release()
+            ok = self._flush_until(deadline, baseline)
+        self._discard_pending = True
+        if _take(self._lock, deadline):
+            try:
+                self._apply_pending()
+            finally:
+                self._lock.release()
+        else:
+            ok = False
+        self._finalize.set()
         cleaned = self._session.close(deadline=deadline) if self._session is not None else True
         if self._thread is not None and threading.current_thread() is not self._thread:
             self._thread.join(max(0.0, deadline - time.monotonic()))
@@ -316,25 +401,65 @@ class OTLPExporter:
 
     def stats(self):
         with self._lock:
+            self._apply_pending()
             return {"enabled": self.enabled, "exported": self.exported, "dropped": self.dropped,
                     "failed_batches": self.failed_batches, "queued": len(self._q),
                     "rejected_spans": self.rejected_spans, "failed_spans": self.failed_spans,
                     "shutdown_dropped": self.shutdown_dropped, "inflight": self._inflight,
-                    "closing": self._closing, "last_error": self.last_error}
+                    "closing": self._closing, "last_error": self.last_error,
+                    "bootstrap_dropped": _bootstrap_loss_snapshot()}
 
 
 _default = None
 _default_lock = threading.Lock()
+# Separate process-wide losses where no exporter existed to own the span yet.
+# CPython count uses atomic C-level next; snapshot markers are accounted below.
+_bootstrap_losses = itertools.count()
+_bootstrap_snapshot_lock = threading.Lock()
+_bootstrap_marker = -1
+_bootstrap_total = 0
 
 
-def get_exporter():
+def _bootstrap_loss_snapshot():
+    # count has no public peek operation. Account a snapshot marker exactly as
+    # the exporter-owned record loss ledger does; never use pickle internals.
+    # A competing observer receives the last completed monotonic snapshot.
+    global _bootstrap_marker, _bootstrap_total
+    if not _bootstrap_snapshot_lock.acquire(blocking=False):
+        return _bootstrap_total
+    try:
+        marker = next(_bootstrap_losses)
+        _bootstrap_total += marker - _bootstrap_marker - 1
+        _bootstrap_marker = marker
+        return _bootstrap_total
+    finally:
+        _bootstrap_snapshot_lock.release()
+
+
+def get_exporter(*, deadline=None):
+    """Fast-path existing exporter; bootstrap contention never blocks telemetry.
+
+    A supplied deadline budgets bootstrap mutex wait. With no deadline (the
+    request-path telemetry API), a busy bootstrap fails immediately and is
+    visible separately as cumulative process-wide bootstrap_dropped.
+    """
     global _default
-    with _default_lock:
+    existing = _default
+    if existing is not None:
+        return existing
+    acquired = (_default_lock.acquire(blocking=False) if deadline is None else
+                _take(_default_lock, deadline))
+    if not acquired:
+        next(_bootstrap_losses)
+        raise requests.Timeout("OTLP exporter bootstrap busy")
+    try:
         if _default is None:
             _default = OTLPExporter()
             if _default.enabled:
                 atexit.register(_default.shutdown, 1.0)
         return _default
+    finally:
+        _default_lock.release()
 
 
 def reset_exporter(exporter=None):

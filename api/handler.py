@@ -155,6 +155,7 @@ _STATIC_FILES = {
     "/docs": ("docs.html", "text/html; charset=utf-8"),
     "/docs/index.html": ("docs.html", "text/html; charset=utf-8"),
     "/openapi.json": ("openapi.json", "application/json; charset=utf-8"),
+    "/static/favicon.svg": ("static/favicon.svg", "image/svg+xml"),
     "/static/app.css": ("static/app.css", "text/css; charset=utf-8"),
     "/static/app.js": ("static/app.js", "text/javascript; charset=utf-8"),
     "/static/report.css": ("static/report.css", "text/css; charset=utf-8"),
@@ -737,9 +738,10 @@ class handler(BaseHTTPRequestHandler):
             except Exception:
                 _sum = {}
             _sev = {k: int(_sum.get(k, 0) or 0) for k in ("critical", "serious", "moderate", "minor", "unknown")}
-            self.send_header("X-AccessDoc-Finding-Count", str(_sev["critical"] + _sev["serious"] + _sev["moderate"] + _sev["minor"] + _sev["unknown"]))
+            self.send_header("X-AccessDoc-Finding-Count", str(int(_sum.get("finding_groups", sum(_sev.values())))))
             self.send_header("X-AccessDoc-Instance-Count", str(int(_sum.get("total_violations", 0) or 0)))
-            self.send_header("X-AccessDoc-Unmapped-Count", str(_sev["unknown"]))
+            self.send_header("X-AccessDoc-Unmapped-Count", str(int(_sum.get("unmapped_findings", _sev["unknown"]))))
+            self.send_header("X-AccessDoc-Pending-Count", str(int(_sum.get("pending_instances", 0))))
         self.send_header("Content-Length", str(len(zip_bytes)))
         for k, v in _SECURITY_HEADERS.items():
             self.send_header(k, v)

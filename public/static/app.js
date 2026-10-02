@@ -234,6 +234,7 @@ form.addEventListener('submit', async event => {
       [response.headers.get('X-AccessDoc-Finding-Count') || '0', 'finding groups'],
       [response.headers.get('X-AccessDoc-Instance-Count') || '0', 'instances'],
       [response.headers.get('X-AccessDoc-Unmapped-Count') || '0', 'unmapped'],
+      [response.headers.get('X-AccessDoc-Pending-Count') || '0', 'pending checks'],
       [Math.max(1, Math.round(blob.size / 1024)) + ' KB', 'bundle']
     ];
     for (const [value, label] of stats) {

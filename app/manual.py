@@ -1,9 +1,8 @@
 """Merge human (manual) accessibility findings into the automated finding set.
 
-This is the feature that turns AccessDoc from "automated half" into a complete
-audit deliverable: an auditor pastes their manual findings (CSV, Markdown
-table, or a list of dicts) and they are merged, provenance-labeled
-(source="manual"), and attested alongside the automated ones.
+Supplied manual observations (CSV, Markdown table, or a list of dicts) are
+merged and provenance-labeled (source="manual"). This does not authenticate
+their source, establish complete testing, or record reviewer approval.
 
 Accepted input shapes for parse_manual_findings():
   * list[dict]  keys: id, impact, description, help_url?, wcag_scs?, nodes?
@@ -12,6 +11,7 @@ Accepted input shapes for parse_manual_findings():
 """
 import csv
 import io
+import re
 from .models import AuditViolation, SOURCE_MANUAL
 from .limits import MAX_MANUAL_FINDINGS, MAX_NODES_PER_VIOLATION, LimitExceeded
 
@@ -69,14 +69,24 @@ def _node_count(value):
 
 
 def _row_to_violation(row):
-    target = str(row.get("target") or row.get("selector") or "").strip()
+    # Preserve sparse, identified findings, but never turn an empty/malformed
+    # observation into an invented default finding or stringify a container.
+    for field in ("id", "rule", "description", "desc", "help_url", "helpUrl",
+                  "target", "selector"):
+        if field in row and row[field] is not None and not isinstance(row[field], str):
+            raise ValueError("manual finding text fields must be strings or null")
+    rule_id = (row.get("id") or row.get("rule") or "").strip()
+    description = (row.get("description") or row.get("desc") or "").strip()
+    if not rule_id and not description:
+        raise ValueError("manual finding requires a nonempty id or description")
+    target = (row.get("target") or row.get("selector") or "").strip()
     if not target:
         target = _MANUAL_NO_TARGET
     return AuditViolation(
-        id=str(row.get("id") or row.get("rule") or "manual-finding").strip(),
+        id=rule_id or "manual-finding",
         impact=_norm_impact(row.get("impact")),
-        description=str(row.get("description") or row.get("desc") or "").strip(),
-        help_url=str(row.get("help_url") or row.get("helpUrl") or "").strip(),
+        description=description,
+        help_url=(row.get("help_url") or row.get("helpUrl") or "").strip(),
         wcag_scs=_split_scs(row.get("wcag_scs") or row.get("wcag") or row.get("sc")),
         nodes=_node_count(row.get("nodes")),
         source=SOURCE_MANUAL,
@@ -87,7 +97,11 @@ def _row_to_violation(row):
 def _column_indexes(header):
     # Last duplicate header wins, matching DictReader. Ignored columns never
     # create thousands of padded dictionary entries for each narrow row.
-    return {name: i for i, name in enumerate(header) if name in _ROW_FIELDS}
+    indexes = {name: i for i, name in enumerate(header) if name in _ROW_FIELDS}
+    if not indexes.keys() & {"id", "rule", "description", "desc"}:
+        raise ValueError("manual findings require CSV or Markdown headers "
+                         "including id or description; plain prose is unsupported")
+    return indexes
 
 
 def _project_cells(cells, indexes):
@@ -105,7 +119,9 @@ def _parse_markdown_table(text):
         if indexes is None:
             indexes = _column_indexes([c.lower() for c in cells])
             continue
-        if set("".join(cells)) <= set("-: "):  # separator row
+        if cells and all(re.fullmatch(r":?-{3,}:?", c) for c in cells):
+            # Separator rows, not blank observation rows. Retain compatibility
+            # with sparse tables and explanatory non-table lines.
             continue
         yield _project_cells(cells, indexes)
 
@@ -136,12 +152,14 @@ def _bounded_findings(rows):
                                 limit_name="MAX_MANUAL_FINDINGS",
                                 limit=MAX_MANUAL_FINDINGS, actual=index + 1)
         findings.append(_row_to_violation(row))
+    if not findings:
+        raise ValueError("nonempty manual findings table has no observations")
     return findings
 
 
 def parse_manual_findings(data):
     """Parse manual findings from list/CSV/Markdown into AuditViolation list."""
-    if not data:
+    if data is None:
         return []
     if isinstance(data, list):
         if len(data) > MAX_MANUAL_FINDINGS:
@@ -151,6 +169,8 @@ def parse_manual_findings(data):
         return [_row_to_violation(r) for r in data]
     if isinstance(data, str):
         stripped = data.strip()
+        if not stripped:
+            return []
         if stripped.startswith("|"):
             return _bounded_findings(_parse_markdown_table(stripped))
         # treat as CSV

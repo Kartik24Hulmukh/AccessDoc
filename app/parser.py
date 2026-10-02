@@ -120,6 +120,42 @@ def _array_or_empty(data, field):
     return value
 
 
+def _pending_checks(entries):
+    """Preserve supplied unresolved check identities without guessing outcomes."""
+    pending = []
+    for index, entry in enumerate(entries):
+        def text(field):
+            value = entry.get(field)
+            if value is None:
+                return ""
+            if not isinstance(value, str):
+                raise ValueError(f"incomplete[{index}].{field} must be a string or null")
+            return value
+        rule = text("id").strip() or "unknown-check"
+        description, help_url = text("description"), text("helpUrl")
+        nodes = entry.get("nodes")
+        if nodes is None:
+            nodes = []
+        if not isinstance(nodes, list):
+            raise ValueError(f"incomplete[{index}].nodes must be a list or null")
+        targets = []
+        seen = set()
+        for node in nodes:
+            if not isinstance(node, dict):
+                raise ValueError(f"incomplete[{index}].nodes must contain objects")
+            target = _bound_target(_extract_node_targets(node))
+            if target and target not in seen:
+                targets.append(target)
+                seen.add(target)
+        for target in targets or [""]:
+            pending.append({
+                "id": rule, "description": description, "help_url": help_url,
+                "target": target, "source": "automated", "status": "needs-review",
+                "nodes": len(nodes),
+            })
+    return pending
+
+
 def parse_axe_json(raw, allow_oversized=None):
     if isinstance(raw, str):
         enforce_scanner_input_size(raw, allow_oversized=allow_oversized)
@@ -149,6 +185,11 @@ def parse_axe_json(raw, allow_oversized=None):
         allow_oversized=allow_oversized,
         scanner_data=data,
     )
+    # Auxiliary result arrays have the same bounded rule/node ceilings.
+    # They must not bypass the shared limit by living outside violations.
+    for entries in (passes_raw, incomplete_raw):
+        enforce_axe_limits(entries, allow_oversized=allow_oversized)
+    pending_checks = _pending_checks(incomplete_raw)
     url = data.get("url")
     if url is None:
         url = ""
@@ -237,5 +278,6 @@ def parse_axe_json(raw, allow_oversized=None):
         total_passes=len(passes_raw),
         total_incomplete=len(incomplete_raw),
         url=url, engine_version=engine_ver,
+        pending_checks=pending_checks,
     )
     return summary, violations

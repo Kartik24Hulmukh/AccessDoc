@@ -114,6 +114,10 @@ jobs:
   dependency-security:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        dependency-scope: [runtime, dev]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -121,19 +125,54 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.13'
-      - name: Install and freeze the candidate dependency snapshot
+      - name: Install and freeze the selected candidate scope
+        env:
+          DEPENDENCY_SCOPE: ${{ matrix.dependency-scope }}
         run: |
-          pip install --requirement requirements-dev.txt
-          python -m pip freeze > dependency-snapshot.txt
-      - name: Fail closed on known advisories and emit CycloneDX SBOM
+          python -m venv .candidate-venv
+          .candidate-venv/bin/python -m pip install --index-url https://pypi.org/simple --require-hashes --only-binary=:all: --no-deps --requirement requirements-installer.txt
+          case "$DEPENDENCY_SCOPE" in
+            runtime) requirement=requirements.txt ;;
+            dev) requirement=requirements-dev.txt ;;
+            *) echo "Unknown dependency scope"; exit 1 ;;
+          esac
+          .candidate-venv/bin/python -m pip install --requirement "$requirement"
+          .candidate-venv/bin/python -m pip check
+          .candidate-venv/bin/python -m pip freeze > dependency-snapshot.txt
+          .candidate-venv/bin/python -m pip freeze --all > installed-environment-snapshot.txt
+          .candidate-venv/bin/python -c "import importlib.metadata; print('pip==' + importlib.metadata.version('pip'))" > installer-snapshot.txt
+      - name: Install audit tooling outside the candidate environment
         run: |
-          pip install pip-audit==2.10.1
-          python -m pip_audit --disable-pip --no-deps -r dependency-snapshot.txt --format cyclonedx-json --output dependency-audit.cdx.json
-      - name: Archive dependency snapshot and SBOM
+          python -m venv .audit-venv
+          .audit-venv/bin/python -m pip install --index-url https://pypi.org/simple --require-hashes --only-binary=:all: --no-deps --requirement requirements-installer.txt
+          .audit-venv/bin/python -m pip install pip-audit==2.10.1
+      - name: Fail closed on selected-scope advisories and emit dependency SBOM
+        run: |
+          .audit-venv/bin/python -m pip_audit --disable-pip --no-deps -r dependency-snapshot.txt --format cyclonedx-json --output dependency-audit.cdx.json
+      - name: Reject skipped, unqueryable or incomplete scope audit coverage
+        if: ${{ !cancelled() }}
+        run: |
+          .audit-venv/bin/python -m pip_audit --disable-pip --no-deps -r dependency-snapshot.txt --format json --output dependency-audit.json
+          .audit-venv/bin/python scripts/audit_dependency_snapshot.py --snapshot dependency-snapshot.txt --audit-json dependency-audit.json
+      - name: Audit installer tooling separately from application dependencies
+        if: ${{ !cancelled() }}
+        run: |
+          .audit-venv/bin/python -m pip_audit --disable-pip --no-deps -r installer-snapshot.txt --format cyclonedx-json --output installer-audit.cdx.json
+      - name: Reject skipped, unqueryable or incomplete installer audit coverage
+        if: ${{ !cancelled() }}
+        run: |
+          .audit-venv/bin/python -m pip_audit --disable-pip --no-deps -r installer-snapshot.txt --format json --output installer-audit.json
+          .audit-venv/bin/python scripts/audit_dependency_snapshot.py --snapshot installer-snapshot.txt --audit-json installer-audit.json
+      - name: Archive scope snapshots and SBOMs
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: dependency-security-${{ github.sha }}
+          name: dependency-security-${{ matrix.dependency-scope }}-${{ github.sha }}
           path: |
             dependency-snapshot.txt
+            installed-environment-snapshot.txt
+            installer-snapshot.txt
             dependency-audit.cdx.json
+            dependency-audit.json
+            installer-audit.cdx.json
+            installer-audit.json

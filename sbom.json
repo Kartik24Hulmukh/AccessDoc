@@ -1,521 +1,1315 @@
 {
+  "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
   "bomFormat": "CycloneDX",
-  "specVersion": "1.5",
-  "serialNumber": "urn:uuid:20260726-accessdoc-v0.7.0-beta.7",
-  "version": 1,
-  "metadata": {
-    "timestamp": "2026-07-26T22:43:05.729382+00:00",
-    "component": {
-      "type": "application",
-      "bom-ref": "pkg:github/Kartik24Hulmukh/AccessDoc@v0.7.0-beta.7",
-      "name": "AccessDoc",
-      "version": "0.7.0-beta.7"
-    },
-    "tools": [
-      {
-        "vendor": "AccessDoc",
-        "name": "manual-sbom-generator",
-        "version": "1.0"
-      }
-    ]
-  },
   "components": [
     {
+      "bom-ref": "aiodns==3.6.1",
+      "description": "Simple DNS resolver for asyncio",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata: Home-page",
+          "type": "website",
+          "url": "https://github.com/saghul/aiodns"
+        },
+        {
+          "comment": "Measured target wheel; SHA-256 matched public PyPI version metadata. Not signed provenance.",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "46233ccad25f2037903828c5d05b64590eaa756e51d12b4a5616e2defcbc98c7"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://files.pythonhosted.org/packages/09/e3/9f777774ebe8f664bcd564f9de3936490a16effa82a969372161c9b0fb21/aiodns-3.6.1-py3-none-any.whl"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "aiodns",
+      "purl": "pkg:pypi/aiodns@3.6.1",
       "type": "library",
-      "bom-ref": "pkg:pypi/attrs@25.3.0",
+      "version": "3.6.1"
+    },
+    {
+      "bom-ref": "aiohappyeyeballs==2.7.1",
+      "description": "Happy Eyeballs for asyncio",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Documentation",
+          "type": "documentation",
+          "url": "https://aiohappyeyeballs.readthedocs.io"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Bug Tracker",
+          "type": "issue-tracker",
+          "url": "https://github.com/aio-libs/aiohappyeyeballs/issues"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Changelog",
+          "type": "release-notes",
+          "url": "https://github.com/aio-libs/aiohappyeyeballs/blob/main/CHANGELOG.md"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Repository",
+          "type": "vcs",
+          "url": "https://github.com/aio-libs/aiohappyeyeballs"
+        },
+        {
+          "comment": "Measured target wheel; SHA-256 matched public PyPI version metadata. Not signed provenance.",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "9243213661e29250eb41368e5daa826fc017156c3b8a11440826b2e3ed376472"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://files.pythonhosted.org/packages/71/43/1947f06babed6b3f1d7f38b0c767f52df66bfb2bc10b468c4a7de9eceff2/aiohappyeyeballs-2.7.1-py3-none-any.whl"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "PSF-2.0"
+          }
+        },
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "Python-2.0"
+          }
+        }
+      ],
+      "name": "aiohappyeyeballs",
+      "purl": "pkg:pypi/aiohappyeyeballs@2.7.1",
+      "type": "library",
+      "version": "2.7.1"
+    },
+    {
+      "bom-ref": "aiohttp==3.14.3",
+      "description": "Async http client/server framework (asyncio)",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Coverage: codecov",
+          "type": "other",
+          "url": "https://codecov.io/github/aio-libs/aiohttp"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Docs: RTD",
+          "type": "other",
+          "url": "https://docs.aiohttp.org"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Docs: Changelog",
+          "type": "other",
+          "url": "https://docs.aiohttp.org/en/stable/changes.html"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: GitHub: repo",
+          "type": "other",
+          "url": "https://github.com/aio-libs/aiohttp"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: CI: GitHub Actions",
+          "type": "other",
+          "url": "https://github.com/aio-libs/aiohttp/actions?query=workflow%3ACI"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: GitHub: issues",
+          "type": "other",
+          "url": "https://github.com/aio-libs/aiohttp/issues"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Homepage",
+          "type": "website",
+          "url": "https://github.com/aio-libs/aiohttp"
+        },
+        {
+          "comment": "Measured target wheel; SHA-256 matched public PyPI version metadata. Not signed provenance.",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "d7d2deec16eeedf55f2c7cf75b521ea3856a5177e123844f8fd0f114ce252cb5"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://files.pythonhosted.org/packages/ca/1c/7da8d08e74d56f00070822f9638ff3f1c563f8ad87d1efa996c87bfc8644/aiohttp-3.14.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl"
+        }
+      ],
+      "licenses": [
+        {
+          "acknowledgement": "declared",
+          "expression": "Apache-2.0 AND MIT"
+        }
+      ],
+      "name": "aiohttp",
+      "purl": "pkg:pypi/aiohttp@3.14.3",
+      "type": "library",
+      "version": "3.14.3"
+    },
+    {
+      "bom-ref": "aiosignal==1.4.0",
+      "description": "aiosignal: a list of registered asynchronous callbacks",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Coverage: codecov",
+          "type": "other",
+          "url": "https://codecov.io/github/aio-libs/aiosignal"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Docs: RTD",
+          "type": "other",
+          "url": "https://docs.aiosignal.org"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: GitHub: repo",
+          "type": "other",
+          "url": "https://github.com/aio-libs/aiosignal"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: CI: GitHub Actions",
+          "type": "other",
+          "url": "https://github.com/aio-libs/aiosignal/actions"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: GitHub: issues",
+          "type": "other",
+          "url": "https://github.com/aio-libs/aiosignal/issues"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Chat: Gitter",
+          "type": "other",
+          "url": "https://gitter.im/aio-libs/Lobby"
+        },
+        {
+          "comment": "from packaging metadata: Home-page",
+          "type": "website",
+          "url": "https://github.com/aio-libs/aiosignal"
+        },
+        {
+          "comment": "Measured target wheel; SHA-256 matched public PyPI version metadata. Not signed provenance.",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "053243f8b92b990551949e63930a839ff0cf0b0ebbe0597b0f3fb19e1a0fe82e"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://files.pythonhosted.org/packages/fb/76/641ae371508676492379f16e2fa48f4e2c11741bd63c48be4b12a6b09cba/aiosignal-1.4.0-py3-none-any.whl"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "name": "License :: OSI Approved :: Apache Software License"
+          }
+        },
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "name": "declared license of 'aiosignal'",
+            "text": {
+              "content": "Apache 2.0",
+              "contentType": "text/plain"
+            }
+          }
+        }
+      ],
+      "name": "aiosignal",
+      "purl": "pkg:pypi/aiosignal@1.4.0",
+      "type": "library",
+      "version": "1.4.0"
+    },
+    {
+      "bom-ref": "attrs==26.1.0",
+      "description": "Classes Without Boilerplate",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Documentation",
+          "type": "documentation",
+          "url": "https://www.attrs.org/"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Funding",
+          "type": "other",
+          "url": "https://github.com/sponsors/hynek"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Tidelift",
+          "type": "other",
+          "url": "https://tidelift.com/subscription/pkg/pypi-attrs?utm_source=pypi-attrs&utm_medium=pypi"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Changelog",
+          "type": "release-notes",
+          "url": "https://www.attrs.org/en/stable/changelog.html"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: GitHub",
+          "type": "vcs",
+          "url": "https://github.com/python-attrs/attrs"
+        },
+        {
+          "comment": "Measured target wheel; SHA-256 matched public PyPI version metadata. Not signed provenance.",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://files.pythonhosted.org/packages/64/b4/17d4b0b2a2dc85a6df63d1157e028ed19f90d4cd97c36717afef2bc2f395/attrs-26.1.0-py3-none-any.whl"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
       "name": "attrs",
-      "version": "25.3.0",
-      "purl": "pkg:pypi/attrs@25.3.0"
+      "purl": "pkg:pypi/attrs@26.1.0",
+      "type": "library",
+      "version": "26.1.0"
     },
     {
-      "type": "library",
-      "bom-ref": "pkg:pypi/automat@25.4.16",
-      "name": "automat",
-      "version": "25.4.16",
-      "purl": "pkg:pypi/automat@25.4.16"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/beautifulsoup4@4.13.4",
-      "name": "beautifulsoup4",
-      "version": "4.13.4",
-      "purl": "pkg:pypi/beautifulsoup4@4.13.4"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/certifi@2025.10.5",
+      "bom-ref": "certifi==2026.7.22",
+      "description": "Python package for providing Mozilla's CA Bundle.",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Source",
+          "type": "other",
+          "url": "https://github.com/certifi/python-certifi"
+        },
+        {
+          "comment": "from packaging metadata: Home-page",
+          "type": "website",
+          "url": "https://github.com/certifi/python-certifi"
+        },
+        {
+          "comment": "Measured target wheel; SHA-256 matched public PyPI version metadata. Not signed provenance.",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://files.pythonhosted.org/packages/0b/a7/71ac2cff56fec219ed242bb11b8efb69fcc4bec75db06fb7bfe35de520e6/certifi-2026.7.22-py3-none-any.whl"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MPL-2.0"
+          }
+        },
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "name": "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)"
+          }
+        }
+      ],
       "name": "certifi",
-      "version": "2025.10.5",
-      "purl": "pkg:pypi/certifi@2025.10.5"
+      "purl": "pkg:pypi/certifi@2026.7.22",
+      "type": "library",
+      "version": "2026.7.22"
     },
     {
-      "type": "library",
-      "bom-ref": "pkg:pypi/cffi@1.17.1",
+      "bom-ref": "cffi==2.1.1",
+      "description": "Foreign Function Interface for Python calling C code.",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Download",
+          "type": "distribution",
+          "url": "https://github.com/python-cffi/cffi/releases"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Documentation",
+          "type": "documentation",
+          "url": "https://cffi.readthedocs.io/"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Issue Tracker",
+          "type": "issue-tracker",
+          "url": "https://github.com/python-cffi/cffi/issues"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Source Code",
+          "type": "other",
+          "url": "https://github.com/python-cffi/cffi"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Contact",
+          "type": "other",
+          "url": "https://groups.google.com/forum/#!forum/python-cffi"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Changelog",
+          "type": "release-notes",
+          "url": "https://cffi.readthedocs.io/en/latest/whatsnew.html"
+        },
+        {
+          "comment": "Measured target wheel; SHA-256 matched public PyPI version metadata. Not signed provenance.",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "a931079504ecc49efed7744c476a5c343a92fabf66dec2db95edb1b2fdc770e2"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://files.pythonhosted.org/packages/95/95/86342356ff5953b3fb06f7ef7c5bee212d45e770abc7218d451b9148313c/cffi-2.1.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT-0"
+          }
+        }
+      ],
       "name": "cffi",
-      "version": "1.17.1",
-      "purl": "pkg:pypi/cffi@1.17.1"
+      "purl": "pkg:pypi/cffi@2.1.1",
+      "type": "library",
+      "version": "2.1.1"
     },
     {
+      "bom-ref": "charset-normalizer==3.5.2",
+      "description": "The Real First Universal Charset Detector. Open, modern and actively maintained alternative to Chardet.",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Documentation",
+          "type": "documentation",
+          "url": "https://charset-normalizer.readthedocs.io/"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Issue tracker",
+          "type": "issue-tracker",
+          "url": "https://github.com/jawah/charset_normalizer/issues"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Code",
+          "type": "other",
+          "url": "https://github.com/jawah/charset_normalizer"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Changelog",
+          "type": "release-notes",
+          "url": "https://github.com/jawah/charset_normalizer/blob/master/CHANGELOG.md"
+        },
+        {
+          "comment": "Measured target wheel; SHA-256 matched public PyPI version metadata. Not signed provenance.",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "7218e8f32b0956cfcd048fd42d9d5779809745ca1d86113ca56f66e7ae1549c4"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://files.pythonhosted.org/packages/4b/85/41d27f234b82e47c167a5f6c0f62501dc0c640585ff4aba79e08a390336a/charset_normalizer-3.5.2-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "charset-normalizer",
+      "purl": "pkg:pypi/charset-normalizer@3.5.2",
       "type": "library",
-      "bom-ref": "pkg:pypi/chardet@5.2.0",
-      "name": "chardet",
-      "version": "5.2.0",
-      "purl": "pkg:pypi/chardet@5.2.0"
+      "version": "3.5.2"
     },
     {
+      "bom-ref": "frozenlist==1.8.0",
+      "description": "A list-like structure which implements collections.abc.MutableSequence",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Coverage: codecov",
+          "type": "other",
+          "url": "https://codecov.io/github/aio-libs/frozenlist"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Docs: RTD",
+          "type": "other",
+          "url": "https://frozenlist.aio-libs.org"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Code of Conduct",
+          "type": "other",
+          "url": "https://github.com/aio-libs/.github/blob/master/CODE_OF_CONDUCT.md"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: GitHub: repo",
+          "type": "other",
+          "url": "https://github.com/aio-libs/frozenlist"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: CI: Github Actions",
+          "type": "other",
+          "url": "https://github.com/aio-libs/frozenlist/actions"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Docs: Changelog",
+          "type": "other",
+          "url": "https://github.com/aio-libs/frozenlist/blob/master/CHANGES.rst#changelog"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: GitHub: issues",
+          "type": "other",
+          "url": "https://github.com/aio-libs/frozenlist/issues"
+        },
+        {
+          "comment": "from packaging metadata: Home-page",
+          "type": "website",
+          "url": "https://github.com/aio-libs/frozenlist"
+        },
+        {
+          "comment": "Measured target wheel; SHA-256 matched public PyPI version metadata. Not signed provenance.",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "fb30f9626572a76dfe4293c7194a09fb1fe93ba94c7d4f720dfae3b646b45027"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://files.pythonhosted.org/packages/d5/4e/e4691508f9477ce67da2015d8c00acd751e6287739123113a9fca6f1604e/frozenlist-1.8.0-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "frozenlist",
+      "purl": "pkg:pypi/frozenlist@1.8.0",
       "type": "library",
-      "bom-ref": "pkg:pypi/charset_normalizer@3.4.2",
-      "name": "charset_normalizer",
-      "version": "3.4.2",
-      "purl": "pkg:pypi/charset_normalizer@3.4.2"
+      "version": "1.8.0"
     },
     {
-      "type": "library",
-      "bom-ref": "pkg:pypi/click@8.2.1",
-      "name": "click",
-      "version": "8.2.1",
-      "purl": "pkg:pypi/click@8.2.1"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/colorama@0.4.6",
-      "name": "colorama",
-      "version": "0.4.6",
-      "purl": "pkg:pypi/colorama@0.4.6"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/constantly@23.10.4",
-      "name": "constantly",
-      "version": "23.10.4",
-      "purl": "pkg:pypi/constantly@23.10.4"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/cryptography@45.0.4",
-      "name": "cryptography",
-      "version": "45.0.4",
-      "purl": "pkg:pypi/cryptography@45.0.4"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/defusedxml@0.7.1",
-      "name": "defusedxml",
-      "version": "0.7.1",
-      "purl": "pkg:pypi/defusedxml@0.7.1"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/filelock@3.18.0",
-      "name": "filelock",
-      "version": "3.18.0",
-      "purl": "pkg:pypi/filelock@3.18.0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/fsspec@2025.5.1",
-      "name": "fsspec",
-      "version": "2025.5.1",
-      "purl": "pkg:pypi/fsspec@2025.5.1"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/greenlet@3.2.3",
-      "name": "greenlet",
-      "version": "3.2.3",
-      "purl": "pkg:pypi/greenlet@3.2.3"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/hyperlink@21.0.0",
-      "name": "hyperlink",
-      "version": "21.0.0",
-      "purl": "pkg:pypi/hyperlink@21.0.0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/idna@3.10",
+      "bom-ref": "idna==3.20",
+      "description": "Internationalized Domain Names in Applications (IDNA)",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Issue tracker",
+          "type": "issue-tracker",
+          "url": "https://github.com/kjd/idna/issues"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Source",
+          "type": "other",
+          "url": "https://github.com/kjd/idna"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Changelog",
+          "type": "release-notes",
+          "url": "https://github.com/kjd/idna/blob/master/HISTORY.md"
+        },
+        {
+          "comment": "Measured target wheel; SHA-256 matched public PyPI version metadata. Not signed provenance.",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://files.pythonhosted.org/packages/58/a2/bb081bab032533a855d44de1d56f8e8426114ff1ba5d1f07a438a0a654f8/idna-3.20-py3-none-any.whl"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
       "name": "idna",
-      "version": "3.10",
-      "purl": "pkg:pypi/idna@3.10"
+      "purl": "pkg:pypi/idna@3.20",
+      "type": "library",
+      "version": "3.20"
     },
     {
+      "bom-ref": "multidict==6.9.1",
+      "description": "multidict implementation",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Coverage: codecov",
+          "type": "other",
+          "url": "https://codecov.io/github/aio-libs/multidict"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Code of Conduct",
+          "type": "other",
+          "url": "https://github.com/aio-libs/.github/blob/master/CODE_OF_CONDUCT.md"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: GitHub: repo",
+          "type": "other",
+          "url": "https://github.com/aio-libs/multidict"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: CI: GitHub",
+          "type": "other",
+          "url": "https://github.com/aio-libs/multidict/actions"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: GitHub: issues",
+          "type": "other",
+          "url": "https://github.com/aio-libs/multidict/issues"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Docs: RTD",
+          "type": "other",
+          "url": "https://multidict.aio-libs.org"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Docs: Changelog",
+          "type": "other",
+          "url": "https://multidict.aio-libs.org/en/latest/changes/"
+        },
+        {
+          "comment": "from packaging metadata: Home-page",
+          "type": "website",
+          "url": "https://github.com/aio-libs/multidict"
+        },
+        {
+          "comment": "Measured target wheel; SHA-256 matched public PyPI version metadata. Not signed provenance.",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "7fd79c521f6290c69125fa2b85fa65d9e657e6a8ffaf722dc881b926bef4aa5c"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://files.pythonhosted.org/packages/93/f2/e06c8e42074d0a4b8419bfe92afbd1d262190b69549ecbcd2dffa4f103c2/multidict-6.9.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "name": "declared license of 'multidict'",
+            "text": {
+              "content": "Apache License 2.0",
+              "contentType": "text/plain"
+            }
+          }
+        }
+      ],
+      "name": "multidict",
+      "purl": "pkg:pypi/multidict@6.9.1",
       "type": "library",
-      "bom-ref": "pkg:pypi/incremental@24.7.2",
-      "name": "incremental",
-      "version": "24.7.2",
-      "purl": "pkg:pypi/incremental@24.7.2"
+      "version": "6.9.1"
     },
     {
-      "type": "library",
-      "bom-ref": "pkg:pypi/iniconfig@2.1.0",
-      "name": "iniconfig",
-      "version": "2.1.0",
-      "purl": "pkg:pypi/iniconfig@2.1.0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/jaraco.functools@4.6.0",
-      "name": "jaraco.functools",
-      "version": "4.6.0",
-      "purl": "pkg:pypi/jaraco.functools@4.6.0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/jinja2@3.1.6",
-      "name": "jinja2",
-      "version": "3.1.6",
-      "purl": "pkg:pypi/jinja2@3.1.6"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/lxml@5.4.0",
-      "name": "lxml",
-      "version": "5.4.0",
-      "purl": "pkg:pypi/lxml@5.4.0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/matplotlib@3.10.3",
-      "name": "matplotlib",
-      "version": "3.10.3",
-      "purl": "pkg:pypi/matplotlib@3.10.3"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/more_itertools@11.1.0",
-      "name": "more_itertools",
-      "version": "11.1.0",
-      "purl": "pkg:pypi/more_itertools@11.1.0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/numba@0.61.2",
-      "name": "numba",
-      "version": "0.61.2",
-      "purl": "pkg:pypi/numba@0.61.2"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/numpy@1.26.4",
-      "name": "numpy",
-      "version": "1.26.4",
-      "purl": "pkg:pypi/numpy@1.26.4"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/openpyxl@3.1.5",
-      "name": "openpyxl",
-      "version": "3.1.5",
-      "purl": "pkg:pypi/openpyxl@3.1.5"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/outcome@1.3.0.post0",
-      "name": "outcome",
-      "version": "1.3.0.post0",
-      "purl": "pkg:pypi/outcome@1.3.0.post0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/packaging@24.2",
-      "name": "packaging",
-      "version": "24.2",
-      "purl": "pkg:pypi/packaging@24.2"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/pandas@2.2.3",
-      "name": "pandas",
-      "version": "2.2.3",
-      "purl": "pkg:pypi/pandas@2.2.3"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/pillow@11.3.0",
+      "bom-ref": "pillow==12.3.0",
+      "description": "Python Imaging Library (fork)",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Documentation",
+          "type": "documentation",
+          "url": "https://pillow.readthedocs.io"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Mastodon",
+          "type": "other",
+          "url": "https://fosstodon.org/@pillow"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Source",
+          "type": "other",
+          "url": "https://github.com/python-pillow/Pillow"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Release notes",
+          "type": "other",
+          "url": "https://pillow.readthedocs.io/en/stable/releasenotes/index.html"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Funding",
+          "type": "other",
+          "url": "https://tidelift.com/subscription/pkg/pypi-pillow?utm_source=pypi-pillow&utm_medium=pypi"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Changelog",
+          "type": "release-notes",
+          "url": "https://github.com/python-pillow/Pillow/releases"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Homepage",
+          "type": "website",
+          "url": "https://python-pillow.github.io"
+        },
+        {
+          "comment": "Measured target wheel; SHA-256 matched public PyPI version metadata. Not signed provenance.",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "0847a763afefb695bc912d7c131e7e0632d4edc1d8698f58ddabec8e46b8b6d3"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://files.pythonhosted.org/packages/f7/62/de5bdd77d935331f4f802edc11e4d82950f642caad6cb2f949837b8560e2/pillow-12.3.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT-CMU"
+          }
+        }
+      ],
       "name": "pillow",
-      "version": "11.3.0",
-      "purl": "pkg:pypi/pillow@11.3.0"
+      "purl": "pkg:pypi/pillow@12.3.0",
+      "type": "library",
+      "version": "12.3.0"
     },
     {
+      "bom-ref": "propcache==0.5.4",
+      "description": "Accelerated property cache",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Coverage: codecov",
+          "type": "other",
+          "url": "https://codecov.io/github/aio-libs/propcache"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Code of Conduct",
+          "type": "other",
+          "url": "https://github.com/aio-libs/.github/blob/master/CODE_OF_CONDUCT.md"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: GitHub: repo",
+          "type": "other",
+          "url": "https://github.com/aio-libs/propcache"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: CI: GitHub Workflows",
+          "type": "other",
+          "url": "https://github.com/aio-libs/propcache/actions?query=branch:master"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: GitHub: issues",
+          "type": "other",
+          "url": "https://github.com/aio-libs/propcache/issues"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Docs: RTD",
+          "type": "other",
+          "url": "https://propcache.readthedocs.io"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Docs: Changelog",
+          "type": "other",
+          "url": "https://propcache.readthedocs.io/en/latest/changes/"
+        },
+        {
+          "comment": "from packaging metadata: Home-page",
+          "type": "website",
+          "url": "https://github.com/aio-libs/propcache"
+        },
+        {
+          "comment": "Measured target wheel; SHA-256 matched public PyPI version metadata. Not signed provenance.",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "f85915e00dcb1cd9f2f890ead064ed40a27df06f0db65be427b29482ae357572"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://files.pythonhosted.org/packages/ed/74/08e6c1faf26ee2732023a3828787ba535557122774f4a386b1f715cbd8e0/propcache-0.5.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "propcache",
+      "purl": "pkg:pypi/propcache@0.5.4",
       "type": "library",
-      "bom-ref": "pkg:pypi/pip@25.0.1",
-      "name": "pip",
-      "version": "25.0.1",
-      "purl": "pkg:pypi/pip@25.0.1"
+      "version": "0.5.4"
     },
     {
+      "bom-ref": "pycares==4.11.0",
+      "description": "Python interface for c-ares",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata: Home-page",
+          "type": "website",
+          "url": "http://github.com/saghul/pycares"
+        },
+        {
+          "comment": "Measured target wheel; SHA-256 matched public PyPI version metadata. Not signed provenance.",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "aa160dc9e785212c49c12bb891e242c949758b99542946cc8e2098ef391f93b0"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://files.pythonhosted.org/packages/ea/77/a00d962b90432993afbf3bd05da8fe42117e0d9037cd7fd428dc41094d7b/pycares-4.11.0-cp313-cp313-manylinux_2_28_x86_64.whl"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "pycares",
+      "purl": "pkg:pypi/pycares@4.11.0",
       "type": "library",
-      "bom-ref": "pkg:pypi/platformdirs@4.3.8",
-      "name": "platformdirs",
-      "version": "4.3.8",
-      "purl": "pkg:pypi/platformdirs@4.3.8"
+      "version": "4.11.0"
     },
     {
-      "type": "library",
-      "bom-ref": "pkg:pypi/playwright@1.52.0",
-      "name": "playwright",
-      "version": "1.52.0",
-      "purl": "pkg:pypi/playwright@1.52.0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/pluggy@1.6.0",
-      "name": "pluggy",
-      "version": "1.6.0",
-      "purl": "pkg:pypi/pluggy@1.6.0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/psutil@7.0.0",
-      "name": "psutil",
-      "version": "7.0.0",
-      "purl": "pkg:pypi/psutil@7.0.0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/pyarrow@20.0.0",
-      "name": "pyarrow",
-      "version": "20.0.0",
-      "purl": "pkg:pypi/pyarrow@20.0.0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/pyasn1@0.6.1",
-      "name": "pyasn1",
-      "version": "0.6.1",
-      "purl": "pkg:pypi/pyasn1@0.6.1"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/pyasn1-modules@0.4.2",
-      "name": "pyasn1-modules",
-      "version": "0.4.2",
-      "purl": "pkg:pypi/pyasn1-modules@0.4.2"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/pycparser@2.22",
+      "bom-ref": "pycparser==3.0",
+      "description": "C parser in Python",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Homepage",
+          "type": "website",
+          "url": "https://github.com/eliben/pycparser"
+        },
+        {
+          "comment": "Measured target wheel; SHA-256 matched public PyPI version metadata. Not signed provenance.",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://files.pythonhosted.org/packages/0c/c3/44f3fbbfa403ea2a7c779186dc20772604442dde72947e7d01069cbe98e3/pycparser-3.0-py3-none-any.whl"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
       "name": "pycparser",
-      "version": "2.22",
-      "purl": "pkg:pypi/pycparser@2.22"
+      "purl": "pkg:pypi/pycparser@3.0",
+      "type": "library",
+      "version": "3.0"
     },
     {
-      "type": "library",
-      "bom-ref": "pkg:pypi/pyee@13.0.0",
-      "name": "pyee",
-      "version": "13.0.0",
-      "purl": "pkg:pypi/pyee@13.0.0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/pygments@2.19.1",
-      "name": "pygments",
-      "version": "2.19.1",
-      "purl": "pkg:pypi/pygments@2.19.1"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/pymysql@1.1.1",
-      "name": "pymysql",
-      "version": "1.1.1",
-      "purl": "pkg:pypi/pymysql@1.1.1"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/pyopenssl@25.1.0",
-      "name": "pyopenssl",
-      "version": "25.1.0",
-      "purl": "pkg:pypi/pyopenssl@25.1.0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/pypdf@6.14.2",
-      "name": "pypdf",
-      "version": "6.14.2",
-      "purl": "pkg:pypi/pypdf@6.14.2"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/PySocks@1.7.1",
-      "name": "PySocks",
-      "version": "1.7.1",
-      "purl": "pkg:pypi/PySocks@1.7.1"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/pytest@8.3.5",
-      "name": "pytest",
-      "version": "8.3.5",
-      "purl": "pkg:pypi/pytest@8.3.5"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/python-dateutil@2.9.0.post0",
-      "name": "python-dateutil",
-      "version": "2.9.0.post0",
-      "purl": "pkg:pypi/python-dateutil@2.9.0.post0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/pytz@2025.2",
-      "name": "pytz",
-      "version": "2025.2",
-      "purl": "pkg:pypi/pytz@2025.2"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/PyYAML@6.0.2",
-      "name": "PyYAML",
-      "version": "6.0.2",
-      "purl": "pkg:pypi/PyYAML@6.0.2"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/reportlab@4.4.1",
+      "bom-ref": "reportlab==5.0.1",
+      "description": "The Reportlab Toolkit",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata: Home-page",
+          "type": "website",
+          "url": "https://www.reportlab.com/"
+        },
+        {
+          "comment": "Measured target wheel; SHA-256 matched public PyPI version metadata. Not signed provenance.",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "1c36e6bb0e71780c72331eba60da7f602e8d4389a8723825af71342e49d791e8"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://files.pythonhosted.org/packages/db/cb/dacbc268cb68d0428ea2cbd85266195a9ab3e677449589ddae59bd7542ac/reportlab-5.0.1-py3-none-any.whl"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "name": "License :: OSI Approved :: BSD License"
+          }
+        },
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "name": "declared license of 'reportlab'",
+            "text": {
+              "content": "BSD license (see license.txt for details), Copyright (c) 2000-2025, ReportLab Inc.",
+              "contentType": "text/plain"
+            }
+          }
+        }
+      ],
       "name": "reportlab",
-      "version": "4.4.1",
-      "purl": "pkg:pypi/reportlab@4.4.1"
+      "purl": "pkg:pypi/reportlab@5.0.1",
+      "type": "library",
+      "version": "5.0.1"
     },
     {
-      "type": "library",
-      "bom-ref": "pkg:pypi/requests@2.32.4",
+      "bom-ref": "requests==2.34.2",
+      "description": "Python HTTP for Humans.",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Documentation",
+          "type": "documentation",
+          "url": "https://requests.readthedocs.io"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Source",
+          "type": "other",
+          "url": "https://github.com/psf/requests"
+        },
+        {
+          "comment": "Measured target wheel; SHA-256 matched public PyPI version metadata. Not signed provenance.",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://files.pythonhosted.org/packages/a0/f4/c67b0b3f1b9245e8d266f0f112c500d50e5b4e83cb6f3b71b6528104182a/requests-2.34.2-py3-none-any.whl"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "Apache-2.0"
+          }
+        },
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "name": "License :: OSI Approved :: Apache Software License"
+          }
+        }
+      ],
       "name": "requests",
-      "version": "2.32.4",
-      "purl": "pkg:pypi/requests@2.32.4"
+      "purl": "pkg:pypi/requests@2.34.2",
+      "type": "library",
+      "version": "2.34.2"
     },
     {
-      "type": "library",
-      "bom-ref": "pkg:pypi/scipy@1.13.1",
-      "name": "scipy",
-      "version": "1.13.1",
-      "purl": "pkg:pypi/scipy@1.13.1"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/service-identity@24.2.0",
-      "name": "service-identity",
-      "version": "24.2.0",
-      "purl": "pkg:pypi/service-identity@24.2.0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/setuptools@80.9.0",
-      "name": "setuptools",
-      "version": "80.9.0",
-      "purl": "pkg:pypi/setuptools@80.9.0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/sigstore@4.4.0",
-      "name": "sigstore",
-      "version": "4.4.0",
-      "purl": "pkg:pypi/sigstore@4.4.0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/sniffio@1.3.1",
-      "name": "sniffio",
-      "version": "1.3.1",
-      "purl": "pkg:pypi/sniffio@1.3.1"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/sortedcontainers@2.4.0",
-      "name": "sortedcontainers",
-      "version": "2.4.0",
-      "purl": "pkg:pypi/sortedcontainers@2.4.0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/SQLAlchemy@2.0.41",
-      "name": "SQLAlchemy",
-      "version": "2.0.41",
-      "purl": "pkg:pypi/SQLAlchemy@2.0.41"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/tabulate@0.10.0",
-      "name": "tabulate",
-      "version": "0.10.0",
-      "purl": "pkg:pypi/tabulate@0.10.0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/trio@0.30.0",
-      "name": "trio",
-      "version": "0.30.0",
-      "purl": "pkg:pypi/trio@0.30.0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/twisted@25.5.0",
-      "name": "twisted",
-      "version": "25.5.0",
-      "purl": "pkg:pypi/twisted@25.5.0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/typing-extensions@4.13.2",
-      "name": "typing-extensions",
-      "version": "4.13.2",
-      "purl": "pkg:pypi/typing-extensions@4.13.2"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/typing_extensions@4.13.2",
-      "name": "typing_extensions",
-      "version": "4.13.2",
-      "purl": "pkg:pypi/typing_extensions@4.13.2"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/tzdata@2025.2",
-      "name": "tzdata",
-      "version": "2025.2",
-      "purl": "pkg:pypi/tzdata@2025.2"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/urllib3@2.4.0",
+      "bom-ref": "urllib3==2.8.0",
+      "description": "HTTP library with thread-safe connection pooling, file post, and more.",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Documentation",
+          "type": "documentation",
+          "url": "https://urllib3.readthedocs.io"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Issue tracker",
+          "type": "issue-tracker",
+          "url": "https://github.com/urllib3/urllib3/issues"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Code",
+          "type": "other",
+          "url": "https://github.com/urllib3/urllib3"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Security policy",
+          "type": "other",
+          "url": "https://urllib3.readthedocs.io/en/latest/security.html"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Changelog",
+          "type": "release-notes",
+          "url": "https://github.com/urllib3/urllib3/blob/main/CHANGES.rst"
+        },
+        {
+          "comment": "Measured target wheel; SHA-256 matched public PyPI version metadata. Not signed provenance.",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://files.pythonhosted.org/packages/92/9d/c4e665119135114480843e7ab388fa94d8480650450e6f8e26b70d323a4c/urllib3-2.8.0-py3-none-any.whl"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
       "name": "urllib3",
-      "version": "2.4.0",
-      "purl": "pkg:pypi/urllib3@2.4.0"
+      "purl": "pkg:pypi/urllib3@2.8.0",
+      "type": "library",
+      "version": "2.8.0"
     },
     {
+      "bom-ref": "yarl==1.25.1",
+      "description": "Yet another URL library",
+      "externalReferences": [
+        {
+          "comment": "from packaging metadata Project-URL: Coverage: codecov",
+          "type": "other",
+          "url": "https://codecov.io/github/aio-libs/yarl"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Code of Conduct",
+          "type": "other",
+          "url": "https://github.com/aio-libs/.github/blob/master/CODE_OF_CONDUCT.md"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: GitHub: repo",
+          "type": "other",
+          "url": "https://github.com/aio-libs/yarl"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: CI: GitHub Workflows",
+          "type": "other",
+          "url": "https://github.com/aio-libs/yarl/actions?query=branch:master"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: GitHub: issues",
+          "type": "other",
+          "url": "https://github.com/aio-libs/yarl/issues"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Docs: RTD",
+          "type": "other",
+          "url": "https://yarl.aio-libs.org"
+        },
+        {
+          "comment": "from packaging metadata Project-URL: Docs: Changelog",
+          "type": "other",
+          "url": "https://yarl.aio-libs.org/en/latest/changes/"
+        },
+        {
+          "comment": "from packaging metadata: Home-page",
+          "type": "website",
+          "url": "https://github.com/aio-libs/yarl"
+        },
+        {
+          "comment": "Measured target wheel; SHA-256 matched public PyPI version metadata. Not signed provenance.",
+          "hashes": [
+            {
+              "alg": "SHA-256",
+              "content": "be80550d9bfe83d9b62398a37081a90434e6df2d978ec345c3d2820de6beddab"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://files.pythonhosted.org/packages/0e/b7/a82a49bf88340b837ef6972b508a1604ae377b9e6904b46b10cf5f1cf925/yarl-1.25.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "yarl",
+      "purl": "pkg:pypi/yarl@1.25.1",
       "type": "library",
-      "bom-ref": "pkg:pypi/wsproto@1.2.0",
-      "name": "wsproto",
-      "version": "1.2.0",
-      "purl": "pkg:pypi/wsproto@1.2.0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/xarray@2025.4.0",
-      "name": "xarray",
-      "version": "2025.4.0",
-      "purl": "pkg:pypi/xarray@2025.4.0"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/xlrd@2.0.1",
-      "name": "xlrd",
-      "version": "2.0.1",
-      "purl": "pkg:pypi/xlrd@2.0.1"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/xlsxwriter@3.2.9",
-      "name": "xlsxwriter",
-      "version": "3.2.9",
-      "purl": "pkg:pypi/xlsxwriter@3.2.9"
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:pypi/zope-interface@7.2",
-      "name": "zope-interface",
-      "version": "7.2",
-      "purl": "pkg:pypi/zope-interface@7.2"
+      "version": "1.25.1"
     }
-  ]
+  ],
+  "dependencies": [
+    {
+      "dependsOn": [
+        "pycares==4.11.0"
+      ],
+      "ref": "aiodns==3.6.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "aiohappyeyeballs==2.7.1"
+    },
+    {
+      "dependsOn": [
+        "aiodns==3.6.1",
+        "aiohappyeyeballs==2.7.1",
+        "aiosignal==1.4.0",
+        "attrs==26.1.0",
+        "frozenlist==1.8.0",
+        "multidict==6.9.1",
+        "propcache==0.5.4",
+        "yarl==1.25.1"
+      ],
+      "ref": "aiohttp==3.14.3"
+    },
+    {
+      "dependsOn": [
+        "frozenlist==1.8.0"
+      ],
+      "ref": "aiosignal==1.4.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "attrs==26.1.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "certifi==2026.7.22"
+    },
+    {
+      "dependsOn": [
+        "pycparser==3.0"
+      ],
+      "ref": "cffi==2.1.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "charset-normalizer==3.5.2"
+    },
+    {
+      "dependsOn": [],
+      "ref": "frozenlist==1.8.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "idna==3.20"
+    },
+    {
+      "dependsOn": [],
+      "ref": "multidict==6.9.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pillow==12.3.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "propcache==0.5.4"
+    },
+    {
+      "dependsOn": [
+        "cffi==2.1.1",
+        "idna==3.20"
+      ],
+      "ref": "pycares==4.11.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pycparser==3.0"
+    },
+    {
+      "dependsOn": [
+        "charset-normalizer==3.5.2",
+        "pillow==12.3.0"
+      ],
+      "ref": "reportlab==5.0.1"
+    },
+    {
+      "dependsOn": [
+        "certifi==2026.7.22",
+        "charset-normalizer==3.5.2",
+        "idna==3.20",
+        "urllib3==2.8.0"
+      ],
+      "ref": "requests==2.34.2"
+    },
+    {
+      "dependsOn": [
+        "aiodns==3.6.1",
+        "aiohttp==3.14.3",
+        "reportlab==5.0.1",
+        "requests==2.34.2"
+      ],
+      "ref": "root-component"
+    },
+    {
+      "dependsOn": [],
+      "ref": "urllib3==2.8.0"
+    },
+    {
+      "dependsOn": [
+        "idna==3.20",
+        "multidict==6.9.1",
+        "propcache==0.5.4"
+      ],
+      "ref": "yarl==1.25.1"
+    }
+  ],
+  "metadata": {
+    "component": {
+      "bom-ref": "root-component",
+      "description": "Tamper-evident WCAG accessibility evidence bundle generator (PDF, OpenACR, SARIF, VPAT, EAA, in-toto)",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "accessdoc",
+      "properties": [
+        {
+          "name": "accessdoc:source:commit",
+          "value": "16a527cccb6974d846a83de30fbfaf384dda13c3"
+        },
+        {
+          "name": "accessdoc:inventory:scope",
+          "value": "Local 19-package runtime dependency snapshot only; excludes installer/dev/scan/signing; not a deployable-artifact or production SBOM"
+        },
+        {
+          "name": "accessdoc:inventory:target",
+          "value": "Linux x86_64 CPython 3.13.14 host; not a built container inventory"
+        },
+        {
+          "name": "accessdoc:inventory:input-sha256",
+          "value": "8fa155f762b113279b42004f3da38ede316aa07de32184faade2c5f5400690b5"
+        },
+        {
+          "name": "accessdoc:source:requirements.txt:sha256",
+          "value": "75904ded39b80add78416ee581d38738850ea3646afe77ff7dc1dd2a874ea492"
+        },
+        {
+          "name": "accessdoc:source:requirements.txt:git-blob-sha1",
+          "value": "f1cb855a73e45b5345378efbb37efc83346ba803"
+        },
+        {
+          "name": "accessdoc:source:pyproject.toml:sha256",
+          "value": "800a90766f57417f8d368c83d5696321f148b9cb01bfdd6b9d3b9e24608e79c9"
+        },
+        {
+          "name": "accessdoc:source:pyproject.toml:git-blob-sha1",
+          "value": "ec77457f91118a3b177519bbeba1722c941827d9"
+        }
+      ],
+      "type": "application",
+      "version": "0.7.0-beta.7"
+    },
+    "properties": [
+      {
+        "name": "cdx:reproducible",
+        "value": "true"
+      }
+    ],
+    "tools": {
+      "components": [
+        {
+          "description": "CycloneDX Software Bill of Materials (SBOM) generator for Python projects and environments",
+          "externalReferences": [
+            {
+              "type": "build-system",
+              "url": "https://github.com/CycloneDX/cyclonedx-python/actions"
+            },
+            {
+              "type": "distribution",
+              "url": "https://pypi.org/project/cyclonedx-bom/"
+            },
+            {
+              "type": "documentation",
+              "url": "https://cyclonedx-bom-tool.readthedocs.io/"
+            },
+            {
+              "type": "issue-tracker",
+              "url": "https://github.com/CycloneDX/cyclonedx-python/issues"
+            },
+            {
+              "type": "license",
+              "url": "https://github.com/CycloneDX/cyclonedx-python/blob/main/LICENSE"
+            },
+            {
+              "type": "release-notes",
+              "url": "https://github.com/CycloneDX/cyclonedx-python/blob/main/CHANGELOG.md"
+            },
+            {
+              "type": "vcs",
+              "url": "https://github.com/CycloneDX/cyclonedx-python/"
+            },
+            {
+              "type": "website",
+              "url": "https://github.com/CycloneDX/cyclonedx-python/#readme"
+            }
+          ],
+          "group": "CycloneDX",
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "Apache-2.0"
+              }
+            }
+          ],
+          "name": "cyclonedx-py",
+          "type": "application",
+          "version": "7.5.0"
+        },
+        {
+          "description": "Python library for CycloneDX",
+          "externalReferences": [
+            {
+              "type": "build-system",
+              "url": "https://github.com/CycloneDX/cyclonedx-python-lib/actions"
+            },
+            {
+              "type": "distribution",
+              "url": "https://pypi.org/project/cyclonedx-python-lib/"
+            },
+            {
+              "type": "documentation",
+              "url": "https://cyclonedx-python-library.readthedocs.io/"
+            },
+            {
+              "type": "issue-tracker",
+              "url": "https://github.com/CycloneDX/cyclonedx-python-lib/issues"
+            },
+            {
+              "type": "license",
+              "url": "https://github.com/CycloneDX/cyclonedx-python-lib/blob/main/LICENSE"
+            },
+            {
+              "type": "release-notes",
+              "url": "https://github.com/CycloneDX/cyclonedx-python-lib/blob/main/CHANGELOG.md"
+            },
+            {
+              "type": "vcs",
+              "url": "https://github.com/CycloneDX/cyclonedx-python-lib"
+            },
+            {
+              "type": "website",
+              "url": "https://github.com/CycloneDX/cyclonedx-python-lib/#readme"
+            }
+          ],
+          "group": "CycloneDX",
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "Apache-2.0"
+              }
+            }
+          ],
+          "name": "cyclonedx-python-lib",
+          "type": "library",
+          "version": "11.12.0"
+        }
+      ]
+    }
+  },
+  "specVersion": "1.6",
+  "version": 1
 }

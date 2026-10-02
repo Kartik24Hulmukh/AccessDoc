@@ -8,6 +8,7 @@ import asyncio
 import atexit
 from concurrent.futures import Future, TimeoutError as FutureTimeout
 import inspect
+import itertools
 import os
 import threading
 import time
@@ -19,6 +20,11 @@ import requests
 
 class CancelledAttempt(requests.RequestException):
     """The owning request cancelled this attempt, not a provider failure."""
+
+
+def _take(lock, deadline):
+    """Every caller-side mutex wait consumes the same absolute budget."""
+    return lock.acquire(timeout=max(0.0, deadline - time.monotonic()))
 
 
 class _Response:
@@ -38,6 +44,7 @@ class _Call:
         self.owner, self.deadline, self.cancel, self.options = owner, deadline, cancel, options
         self.result, self.done, self.task = Future(), threading.Event(), None
         self.cancel_requested = False
+        self.registered = self.retired = False
 
 
 class _Engine:
@@ -46,47 +53,173 @@ class _Engine:
         if self.capacity < 1:
             raise ValueError("GATEWAY_MAX_UPSTREAM_REQUESTS must be positive")
         self.condition = threading.Condition()
+        self.admission_wake = threading.Event()
         self.owners, self.calls, self.clients = set(), set(), {}
         self.used, self.peak, self.closed = 0, 0, False
         self.ready = threading.Event()
         self.start_error = None
+        self.terminated = threading.Event()
+        self.cleanups = set()
+        self.cleanup_errors = {}
         self.thread = threading.Thread(target=self._run, name="gateway-io", daemon=True)
         self.thread.start()
 
     def _run(self):
-        # c-ares integrates directly with selector descriptors, also on Windows.
+        # Only this thread creates tasks and owns deferred cleanup. The global
+        # engine remains a retirement barrier until this thread actually exits.
         try:
             self.loop = asyncio.SelectorEventLoop()
             asyncio.set_event_loop(self.loop)
-        except Exception as exc:
-            self.start_error = type(exc).__name__
             self.ready.set()
-            return
-        self.ready.set()
-        try:
+            # Closure may have been published before the loop existed. Such
+            # an owner remains in our registry; bootstrap owns its deferred
+            # intent instead of relying on a dropped cross-thread callback.
+            for owner in list(self.owners):
+                if owner.closed:
+                    self.loop.call_soon(self._close_owner, owner)
             if not self.closed:
                 self.loop.run_forever()
+        except Exception as exc:
+            self.start_error = type(exc).__name__
         finally:
-            self.loop.run_until_complete(self._close_all())
-            self.loop.close()
+            self.closed = True
+            self.ready.set()
+            try:
+                if hasattr(self, "loop"):
+                    try:
+                        self.loop.run_until_complete(self._close_all())
+                    except Exception:
+                        # A cleanup failure must not strand the selector open
+                        # or leave a completion future claiming pending forever.
+                        for owner in set(self.owners) | set(self.clients):
+                            if not owner._close_future.done():
+                                owner._close_future.set_exception(
+                                    CancelledAttempt("gateway cleanup failed"))
+                    finally:
+                        self.loop.close()
+            finally:
+                self.terminated.set()
 
     async def _close_client(self, owner):
-        pair = self.clients.pop(owner, None)
-        if pair:
-            client, resolver = pair
+        # Keep the pair visible until cleanup completes, including a suspended
+        # resolver. Failure is retained and never retried or called success.
+        if owner in self.cleanup_errors:
+            raise self.cleanup_errors[owner]
+        pair = self.clients.get(owner)
+        if not pair:
+            return
+        client, resolver = pair
+        failed = False
+        try:
             await client.close()
+        except Exception:
+            failed = True
+        try:
             result = resolver.close()
             if inspect.isawaitable(result):
                 await result
+        except Exception:
+            failed = True
+        if failed:
+            error = CancelledAttempt("gateway cleanup failed")
+            self.cleanup_errors[owner] = error
+            raise error
+        self.clients.pop(owner, None)
 
     async def _close_all(self):
-        tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
-        for task in tasks:
-            task.cancel()
+        with self.condition:
+            calls = list(self.calls)
+        for call in calls:
+            call.cancel_requested = True
+            if call.task is None:
+                self._retire(call, error=CancelledAttempt("gateway transport closed"))
+            elif not call.task.done():
+                call.task.cancel()
+        tasks = [c.task for c in calls if c.task is not None]
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
+        # Completion dispatch may be deliberately delayed; retirement itself
+        # is idempotent, including a never-submitted registered reservation.
+        for call in calls:
+            if call.task is not None:
+                self._finish(call, call.task)
+        if self.cleanups:
+            await asyncio.gather(*list(self.cleanups), return_exceptions=True)
+        cleanup_owners = set(self.owners) | set(self.clients)
         for owner in list(self.clients):
+            try:
+                await self._close_client(owner)
+            except Exception:
+                # Attempt every owner's cleanup even if an earlier resolver
+                # fails. _close_client records a sanitized terminal outcome.
+                pass
+        for owner in cleanup_owners:
+            if not owner._close_future.done():
+                if owner in self.cleanup_errors:
+                    owner._close_future.set_exception(self.cleanup_errors[owner])
+                else:
+                    owner._close_future.set_result(True)
+
+    def _schedule(self, callback):
+        # Do not create a coroutine on a caller thread or a stopped/open loop.
+        if self.closed or not self.ready.is_set() or not hasattr(self, "loop"):
+            return False
+        try:
+            if self.loop.is_closed():
+                return False
+            self.loop.call_soon_threadsafe(callback)
+            return True
+        except RuntimeError:
+            return False
+
+    def close_owner(self, owner):
+        # closed intent is visible even if callback dispatch is paused. If the
+        # engine is retiring, _close_all owns this owner's resources instead.
+        if next(owner._close_requests) == 0:
+            self._schedule(lambda: self._close_owner(owner))
+
+    def _close_owner(self, owner):
+        if self.closed:
+            return
+        with _ENGINE_LOCK:
+            self.owners.discard(owner)
+            last = not self.owners
+            if last:
+                self.closed = True
+        with self.condition:
+            calls = [c for c in self.calls if c.owner is owner]
+            self._wake_admission()
+        for call in calls:
+            self.cancel_call(call)
+        if last:
+            # _close_all, not a newly queued coroutine, owns final cleanup.
+            # Include the retired owner for its completion future.
+            self.owners.add(owner)
+            self.loop.stop()
+            return
+        if owner._cleanup_started:
+            return
+        owner._cleanup_started = True
+        async def cleanup():
+            for call in calls:
+                if call.task is not None:
+                    await asyncio.gather(call.task, return_exceptions=True)
+                    self._finish(call, call.task)
+                else:
+                    self._retire(call, error=CancelledAttempt("gateway transport closed"))
             await self._close_client(owner)
+        task = self.loop.create_task(cleanup())
+        self.cleanups.add(task)
+        def finished(task):
+            self.cleanups.discard(task)
+            if not owner._close_future.done():
+                if task.cancelled():
+                    owner._close_future.set_exception(CancelledAttempt("gateway cleanup cancelled"))
+                elif task.exception() is not None:
+                    owner._close_future.set_exception(task.exception())
+                else:
+                    owner._close_future.set_result(True)
+        task.add_done_callback(finished)
 
     def _client(self, owner):
         if owner not in self.clients:
@@ -102,39 +235,72 @@ class _Engine:
             self.clients[owner] = client, resolver
         return self.clients[owner][0]
 
-    def acquire(self, owner, deadline, cancel):
-        with self.condition:
-            while self.used >= self.capacity:
-                remaining = deadline - time.monotonic()
+    def _wake_admission(self):
+        # Registry mutex held by selector. Each epoch stays signaled forever;
+        # later waiters use a fresh event, so notification cannot be cleared
+        # before an earlier waiter actually begins its unlocked wait.
+        wake, self.admission_wake = self.admission_wake, threading.Event()
+        wake.set()
+        self.condition.notify_all()
+
+    def acquire(self, call):
+        deadline, owner, cancel = call.deadline, call.owner, call.cancel
+        while True:
+            if not _take(self.condition, deadline):
+                raise requests.Timeout("gateway admission deadline exceeded")
+            try:
                 if owner.closed or self.closed or (cancel and cancel.is_set()):
                     raise CancelledAttempt("gateway attempt cancelled")
+                remaining = deadline - time.monotonic()
                 if remaining <= 0:
                     raise requests.Timeout("gateway admission deadline exceeded")
-                self.condition.wait(remaining)
-            if owner.closed or self.closed or (cancel and cancel.is_set()):
-                raise CancelledAttempt("gateway attempt cancelled")
-            if time.monotonic() >= deadline:
+                if self.used < self.capacity:
+                    # Reservation and registry publication are one transaction.
+                    self.calls.add(call)
+                    call.registered = True
+                    self.used += 1
+                    self.peak = max(self.peak, self.used)
+                    return
+                wake = self.admission_wake
+            finally:
+                self.condition.release()
+            # Condition.wait would implicitly reacquire an unbounded mutex.
+            # Wait unlocked, then re-enter through _take(original deadline).
+            if not wake.wait(max(0.0, deadline - time.monotonic())):
                 raise requests.Timeout("gateway admission deadline exceeded")
-            self.used += 1
-            self.peak = max(self.peak, self.used)
 
     def submit(self, call):
-        with self.condition:
-            self.calls.add(call)
         def start():
+            if call.retired or call.done.is_set() or call.result.done():
+                return
+            if (self.closed or call.owner.closed or call.cancel_requested
+                    or (call.cancel and call.cancel.is_set())):
+                self._retire(call, error=CancelledAttempt("gateway attempt cancelled"))
+                return
+            if time.monotonic() >= call.deadline:
+                self._retire(call, error=requests.Timeout("gateway absolute HTTP deadline exceeded"))
+                return
             call.task = self.loop.create_task(self._request(call))
             call.task.add_done_callback(lambda task: self._finish(call, task))
-            if call.cancel_requested or (call.cancel and call.cancel.is_set()):
-                call.task.cancel()
-        try:
-            self.loop.call_soon_threadsafe(start)
-        except RuntimeError:
-            with self.condition:
+        if not self._schedule(start):
+            call.cancel_requested = True
+            # If retiring, _close_all owns retirement of the registered call;
+            # do not take its mutex or create a late task on the caller thread.
+
+    def _retire(self, call, value=None, error=None):
+        with self.condition:
+            if call.retired:
+                return
+            call.retired = True
+            if call.registered:
                 self.calls.discard(call)
                 self.used -= 1
-                self.condition.notify_all()
+                self._wake_admission()
+            if error is None:
+                call.result.set_result(value)
+            else:
+                call.result.set_exception(error)
             call.done.set()
-            call.result.set_exception(CancelledAttempt("gateway transport closed"))
 
     def _finish(self, call, task):
         try:
@@ -146,47 +312,50 @@ class _Engine:
         except requests.RequestException as exc:
             error = exc
         except Exception as exc:
-            # Do not copy URLs, proxy credentials or request headers into errors.
             error = requests.ConnectionError("gateway transport failure: " + type(exc).__name__)
         else:
-            error = None
-        finally:
-            with self.condition:
-                self.calls.discard(call)
-                self.used -= 1
-                self.condition.notify_all()
-            call.done.set()
-        if error is None:
-            call.result.set_result(value)
-        else:
-            call.result.set_exception(error)
+            return self._retire(call, value=value)
+        self._retire(call, error=error)
 
     def cancel_call(self, call):
         call.cancel_requested = True
         def cancel():
-            if call.task and not call.task.done():
+            if call.retired:
+                return
+            if call.task is None:
+                self._retire(call, error=CancelledAttempt("gateway attempt cancelled"))
+            elif not call.task.done():
                 call.task.cancel()
-        if not self.loop.is_closed():
-            self.loop.call_soon_threadsafe(cancel)
+        self._schedule(cancel)
 
     def cancel_owner(self, owner, event=None):
-        with self.condition:
-            calls = [c for c in self.calls if c.owner is owner and
-                     (event is None or c.cancel is event)]
-            self.condition.notify_all()  # wake cancelled admission waiters too
-        for call in calls:
-            self.cancel_call(call)
-        return calls
+        def cancel():
+            with self.condition:
+                calls = [c for c in self.calls if c.owner is owner and
+                         (event is None or c.cancel is event)]
+                self._wake_admission()
+            for call in calls:
+                self.cancel_call(call)
+        self._schedule(cancel)
+        return []  # asynchronous intent; completion belongs to each call.done
 
     async def _request(self, call):
         remaining = call.deadline - time.monotonic()
         if remaining <= 0:
             raise asyncio.TimeoutError()
-        if self.closed or call.owner.closed or (call.cancel and call.cancel.is_set()):
+        if (self.closed or call.owner.closed or call.cancel_requested or call.retired
+                or (call.cancel and call.cancel.is_set())):
             raise asyncio.CancelledError()
         return await asyncio.wait_for(self._perform(call), timeout=remaining)
 
     async def _perform(self, call):
+        # wait_for schedules another task; closure/cancellation may have arrived
+        # since _request's check. Refuse before pool/resolver/socket creation.
+        if (self.closed or call.owner.closed or call.cancel_requested or call.retired
+                or (call.cancel and call.cancel.is_set())):
+            raise asyncio.CancelledError()
+        if time.monotonic() >= call.deadline:
+            raise asyncio.TimeoutError()
         options = call.options
         connect, read = options["timeout"]
         timeout = aiohttp.ClientTimeout(
@@ -248,14 +417,14 @@ class _Engine:
                     "loop_alive": self.thread.is_alive()}
 
     def stop(self, deadline=None):
-        with self.condition:
-            self.closed = True
-            self.condition.notify_all()
-            calls = list(self.calls)
-        for call in calls:
-            self.cancel_call(call)
-        if self.ready.is_set() and hasattr(self, "loop") and not self.loop.is_closed():
-            self.loop.call_soon_threadsafe(self.loop.stop)
+        # Publish stop without waiting for a contended condition/global mutex.
+        self.closed = True
+        self.admission_wake.set()
+        if self.ready.is_set() and hasattr(self, "loop"):
+            try:
+                self.loop.call_soon_threadsafe(self.loop.stop)
+            except RuntimeError:
+                pass
         if threading.current_thread() is not self.thread:
             self.thread.join(timeout=2 if deadline is None else max(0.0, deadline - time.monotonic()))
 
@@ -285,24 +454,69 @@ class PooledSession:
             if not valid:
                 raise ValueError("GATEWAY_PROXY_URL must be a clean HTTP(S) origin")
         self._engine, self._lock = None, threading.RLock()
-        self._close_future = None
+        self._close_future = Future()
+        self._cleanup_started = False
+        # Atomic CPython count primitive deduplicates publication, including
+        # repeated close while selector dispatch is paused.
+        self._close_requests = itertools.count()
 
-    def _attach(self):
+    def _attach(self, deadline=None):
         global _ENGINE
-        with self._lock, _ENGINE_LOCK:
-            if self.closed:
-                raise CancelledAttempt("gateway transport closed")
-            if self._engine is None:
-                if _ENGINE is None or _ENGINE.closed:
-                    _ENGINE = _Engine()
-                self._engine = _ENGINE
-                self._engine.owners.add(self)
-            return self._engine
+        deadline = time.monotonic() + 2 if deadline is None else deadline
+        if not _take(self._lock, deadline):
+            raise requests.Timeout("gateway session admission deadline exceeded")
+        try:
+            while True:
+                if self.closed:
+                    raise CancelledAttempt("gateway transport closed")
+                if self._engine is not None:
+                    if self._engine.closed:
+                        raise CancelledAttempt("gateway transport retiring")
+                    return self._engine
+                if not _take(_ENGINE_LOCK, deadline):
+                    raise requests.Timeout("gateway process admission deadline exceeded")
+                retiring = None
+                try:
+                    if _ENGINE is not None and _ENGINE.closed and _ENGINE.thread.is_alive():
+                        retiring = _ENGINE
+                    else:
+                        if _ENGINE is None or _ENGINE.closed:
+                            _ENGINE = _Engine()
+                        # Publish owner registration before the session pointer.
+                        # close can never consume its single publication token
+                        # for an engine whose startup scan cannot see this owner.
+                        engine = _ENGINE
+                        engine.owners.add(self)
+                        # stop deliberately publishes intent without the global
+                        # mutex. It may have completed during owner insertion.
+                        # This owner has never admitted IO: detach and close it
+                        # instead of returning a finalized engine whose final
+                        # snapshot can no longer resolve its closure future.
+                        if engine.closed:
+                            engine.owners.discard(self)
+                            self.closed = True
+                            raise CancelledAttempt("gateway transport retiring")
+                        self._engine = engine
+                finally:
+                    _ENGINE_LOCK.release()
+                if retiring is not None:
+                    # No global lock is held while retirement waits. A completed
+                    # cleanup event is not enough: actual thread exit is required.
+                    retiring.thread.join(max(0.0, deadline - time.monotonic()))
+                    if retiring.thread.is_alive() or time.monotonic() >= deadline:
+                        raise requests.Timeout("gateway retirement deadline exceeded")
+                    continue
+                if self.closed:
+                    self._engine.close_owner(self)
+                    raise CancelledAttempt("gateway transport closed")
+                return self._engine
+        finally:
+            self._lock.release()
 
     def post(self, url, *, headers, json, timeout, stream=True,
              deadline=None, cancel=None):
         deadline = deadline if deadline is not None else time.monotonic() + sum(timeout)
-        engine = self._attach()
+        engine = self._attach(deadline)
         # Reserve a small part of the existing budget for native cancellation
         # drain; never add an unconditional reporting grace to caller latency.
         remaining = deadline - time.monotonic()
@@ -312,9 +526,9 @@ class PooledSession:
             raise requests.Timeout("gateway I/O startup deadline exceeded")
         if engine.start_error:
             raise requests.ConnectionError("gateway I/O startup failed: " + engine.start_error)
-        engine.acquire(self, network_deadline, cancel)
         call = _Call(self, network_deadline, cancel,
                      {"url": url, "headers": headers, "json": json, "timeout": timeout})
+        engine.acquire(call)
         engine.submit(call)
         try:
             return call.result.result(timeout=max(0.0, network_deadline - time.monotonic()))
@@ -334,67 +548,43 @@ class PooledSession:
             "inflight": 0, "peak_inflight": 0, "active_calls": 0, "loop_alive": False}
 
     def close(self, timeout=None, *, deadline=None):
-        """Close this owner; optional absolute budget includes cancellation/cleanup.
+        """Publish closure immediately; wait only within the caller's budget.
 
-        With no arguments preserve the gateway's historical two-second drain
-        plus engine-stop behavior. Explicit budgets return a cleanup-completed
-        bool; expired budgets still schedule native cancellation and cleanup,
-        but never wait an extra grace interval. Other owners are not stopped.
+        Deferred cleanup is owned by the existing selector and its finalizer,
+        never by a detached helper thread or a caller-created late coroutine.
         """
-        global _ENGINE
         bounded = timeout is not None or deadline is not None
-        if deadline is None and timeout is not None:
-            deadline = time.monotonic() + max(0.0, timeout)
-        with self._lock:
-            if self.closed:
-                if not bounded:
-                    return None
-                engine = self._engine
-                if not engine:
-                    return True
-                with engine.condition:
-                    active = any(c.owner is self for c in engine.calls)
-                if engine.closed:
-                    return not active and not engine.thread.is_alive()
-                future = self._close_future
-                return (not active and future is not None and future.done()
-                        and not future.cancelled() and future.exception() is None)
-            self.closed = True
+        end = (deadline if deadline is not None else
+               time.monotonic() + (2 if timeout is None else max(0.0, timeout)))
+        self.closed = True
+        engine = self._engine
+        if engine is not None:
+            engine.close_owner(self)
+        if not _take(self._lock, end):
+            return False if bounded else None
+        try:
             engine = self._engine
-        if not engine:
-            return True if bounded else None
-        calls = engine.cancel_owner(self)
-        end = deadline if bounded else time.monotonic() + 2
-        complete = True
-        for call in calls:
-            complete = call.done.wait(max(0.0, end - time.monotonic())) and complete
-        if engine.thread.is_alive() and engine.ready.is_set() and hasattr(engine, "loop"):
-            future = asyncio.run_coroutine_threadsafe(engine._close_client(self), engine.loop)
-            self._close_future = future
-            if threading.current_thread() is not engine.thread:
-                if bounded:
-                    try:
-                        future.result(timeout=max(0.0, end - time.monotonic()))
-                    except Exception:
-                        complete = False  # cleanup remains owned by the selector
-                else:
-                    future.result(timeout=max(0.001, end - time.monotonic()))
-        with _ENGINE_LOCK:
-            engine.owners.discard(self)
-            last_owner = not engine.owners
-            if last_owner and _ENGINE is engine:
-                _ENGINE = None
-        if last_owner:
-            # Never hold global attach admission while joining a retiring engine.
-            engine.stop(deadline=end if bounded else None)
-            complete = not engine.thread.is_alive() and complete
-        return complete if bounded else None
+            if engine is None:
+                if not self._close_future.done():
+                    self._close_future.set_result(True)
+                return True if bounded else None
+            engine.close_owner(self)
+        finally:
+            self._lock.release()
+        complete = False
+        try:
+            complete = self._close_future.result(timeout=max(0.0, end-time.monotonic()))
+        except Exception:
+            pass
+        if engine.closed and threading.current_thread() is not engine.thread:
+            engine.thread.join(max(0.0, end-time.monotonic()))
+            complete = complete and not engine.thread.is_alive()
+        return bool(complete) if bounded else None
 
 
 def shutdown_transport():
-    global _ENGINE
-    with _ENGINE_LOCK:
-        engine, _ENGINE = _ENGINE, None
+    # Do not clear the process retirement barrier before actual termination.
+    engine = _ENGINE
     if engine:
         engine.stop()
 

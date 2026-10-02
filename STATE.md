@@ -1,3 +1,12 @@
+# Current resume — 2 October 2026
+
+- Base: launch branch `cccdef72b93fd37c2c3b5b220c2f1301449f84c0`, newer than the supplied operator archive.
+- Local changes restore lost native retirement/deadline, source-fidelity, pending-check and scope-safe history repairs; integrated local verdicts are recorded separately in the delivery evidence; hosted/target acceptance is not inferred.
+- Public launch remains HOLD. Hosted portability, exact deployment acceptance, operator configuration and genuine independent/human gates are unresolved.
+- Connected GitHub MCP reports re-authentication required; no Vercel connection is available in this session. Public clone access is read-only evidence, not push or deployment authorization.
+- Synthetic load is not real-human evaluation or a successful-capacity multiplier. Real-provider calls were not made in this resume.
+- The remainder of this file is historical evidence, not current acceptance.
+
 # AccessDoc state
 
 - Release candidate: `0.7.0-beta.7`.
