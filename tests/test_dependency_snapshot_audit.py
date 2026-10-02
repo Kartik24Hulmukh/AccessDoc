@@ -106,7 +106,7 @@ class SnapshotAuditTests(unittest.TestCase):
 
 class SupplyChainSourceContracts(unittest.TestCase):
     def test_runtime_sbom_scope_and_exact_inventory(self):
-        bom = json.loads((ROOT/"sbom.json").read_text())
+        bom = json.loads((ROOT/"sbom.json").read_text(encoding="utf-8"))
         self.assertEqual(bom["specVersion"], "1.6")
         self.assertEqual(len(bom["components"]), 19)
         names = {x["name"].lower(): x["version"] for x in bom["components"]}
@@ -118,10 +118,15 @@ class SupplyChainSourceContracts(unittest.TestCase):
         self.assertTrue(all(x.get("licenses") for x in bom["components"]))
 
     def test_sbom_binds_exact_dependency_input_bytes(self):
-        bom = json.loads((ROOT/"sbom.json").read_text())
+        bom = json.loads((ROOT/"sbom.json").read_text(encoding="utf-8"))
         props = {x["name"]: x["value"] for x in bom["metadata"]["component"].get("properties", [])}
         for name in ["requirements.txt", "pyproject.toml"]:
-            self.assertEqual(props["accessdoc:source:"+name+":sha256"], hashlib.sha256((ROOT/name).read_bytes()).hexdigest())
+            # The SBOM binds the current committed source blob, not Git's
+            # platform-specific (possibly CRLF) working-tree representation.
+            source_bytes = subprocess.check_output(["git", "show", "HEAD:" + name], cwd=ROOT)
+            self.assertEqual(props["accessdoc:source:"+name+":sha256"], hashlib.sha256(source_bytes).hexdigest())
+            git_blob = b"blob " + str(len(source_bytes)).encode("ascii") + b"\0" + source_bytes
+            self.assertEqual(props["accessdoc:source:"+name+":git-blob-sha1"], hashlib.sha1(git_blob, usedforsecurity=False).hexdigest())
         self.assertIn("local", props["accessdoc:inventory:scope"].lower())
         self.assertIn("not", props["accessdoc:inventory:scope"].lower())
         self.assertIn("3.13.14", props["accessdoc:inventory:target"])
@@ -129,7 +134,7 @@ class SupplyChainSourceContracts(unittest.TestCase):
         self.assertNotIn("serialNumber", bom)
 
     def test_ci_separates_runtime_dev_and_installer(self):
-        job = yaml.safe_load((ROOT/".github/workflows/ci.yml").read_text())["jobs"]["dependency-security"]
+        job = yaml.safe_load((ROOT/".github/workflows/ci.yml").read_text(encoding="utf-8"))["jobs"]["dependency-security"]
         self.assertEqual(job["strategy"]["matrix"]["dependency-scope"], ["runtime", "dev"])
         runs = "\n".join(x.get("run", "") for x in job["steps"])
         self.assertIn(".candidate-venv/bin/python -m pip freeze --all", runs)
@@ -141,16 +146,16 @@ class SupplyChainSourceContracts(unittest.TestCase):
         self.assertTrue(any("dependency-audit.cdx.json" in x.get("with", {}).get("path", "") and x.get("if") == "always()" for x in job["steps"]))
 
     def test_installer_bootstrap_is_one_verified_universal_wheel_hash(self):
-        rows = [line.strip() for line in (ROOT/"requirements-installer.txt").read_text().splitlines()
+        rows = [line.strip() for line in (ROOT/"requirements-installer.txt").read_text(encoding="utf-8").splitlines()
                 if line.strip() and not line.strip().startswith("#")]
         self.assertEqual(rows, ["pip==26.2.1 --hash=sha256:71138adf1f4ca900cdb7d289c21b7494329f2332b6d85f0e1c42108c0384ed3e"])
-        text = (ROOT/"requirements-installer.txt").read_text()
+        text = (ROOT/"requirements-installer.txt").read_text(encoding="utf-8")
         self.assertIn("pip-26.2.1-py3-none-any.whl", text)
         self.assertNotIn("sys_platform", text)
         self.assertNotIn("manylinux", text)
 
     def test_ci_bootstraps_candidate_and_auditor_before_other_installs(self):
-        job = yaml.safe_load((ROOT/".github/workflows/ci.yml").read_text())["jobs"]["dependency-security"]
+        job = yaml.safe_load((ROOT/".github/workflows/ci.yml").read_text(encoding="utf-8"))["jobs"]["dependency-security"]
         runs = "\n".join(step.get("run", "") for step in job["steps"])
         for env, later in [(".candidate-venv", "--requirement \"$requirement\""),
                            (".audit-venv", "pip-audit==2.10.1")]:
@@ -160,16 +165,16 @@ class SupplyChainSourceContracts(unittest.TestCase):
         self.assertNotIn("runtime-linux-cp313.hashlock", runs)
 
     def test_docs_distinguish_portable_installer_from_native_locks(self):
-        doc = (ROOT/"docs/SUPPLY_CHAIN.md").read_text()
+        doc = (ROOT/"docs/SUPPLY_CHAIN.md").read_text(encoding="utf-8")
         for phrase in ["requirements-installer.txt", "py3-none-any", "both candidate and audit", "transitive/hash lock"]:
             self.assertIn(phrase, doc)
 
     def test_notices_and_scope_doc_are_truthful(self):
-        text = (ROOT/"THIRD_PARTY_NOTICES.md").read_text()
+        text = (ROOT/"THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8")
         self.assertNotIn("Version used for verified release: 5.0.0", text)
         self.assertIn("5.0.1", text)
         self.assertIn("not a license-compliance", text)
-        doc = (ROOT/"docs/SUPPLY_CHAIN.md").read_text()
+        doc = (ROOT/"docs/SUPPLY_CHAIN.md").read_text(encoding="utf-8")
         for term in ["Python 3.12", "Windows", "macOS", "container", "installer", "local"]:
             self.assertIn(term, doc)
 

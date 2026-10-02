@@ -1,6 +1,8 @@
 """Bounded source fidelity regressions; synthetic evidence, not human review."""
 import json
-import subprocess
+from io import BytesIO
+
+from pypdf import PdfReader
 import tempfile
 import unittest
 from pathlib import Path
@@ -10,6 +12,19 @@ from app.models import AuditSummary, AuditViolation
 from app.reporter import generate_pdf_report
 from app.sarif import FINGERPRINT_KEY, generate_sarif
 from app.receipt_builder import compute_finding_fingerprint
+
+
+def _pdf_reader(path):
+    """Strict, test-only portable reader; pypdf is a required dev dependency."""
+    return PdfReader(BytesIO(Path(path).read_bytes()), strict=True)
+
+
+def pdf_text(path):
+    return "\n".join(page.extract_text() for page in _pdf_reader(path).pages)
+
+
+def pdf_metadata(path):
+    return "\n".join(f"{key}: {value}" for key, value in _pdf_reader(path).metadata.items())
 
 
 def finding(source='manual', rule='image-alt', sc='2.1.1', help_url=''):
@@ -28,8 +43,8 @@ class CrossExportSourceFidelityTests(unittest.TestCase):
                 # Deliberately stale summary source count: actual supplied rows win.
                 path.write_bytes(generate_pdf_report(AuditSummary(total_violations=99,
                     manual_findings=99, url='https://example.invalid', engine_version='4.11.0'), findings))
-                text = subprocess.check_output(['pdftotext', str(path), '-'], text=True)
-                metadata = subprocess.check_output(['pdfinfo', str(path)], text=True)
+                text = pdf_text(path)
+                metadata = pdf_metadata(path)
                 self.assertIn('Supplied Accessibility Evidence Report', text)
                 self.assertIn('Supplied accessibility evidence', metadata)
                 self.assertNotIn('Automated Audit Report', text)
@@ -99,7 +114,7 @@ class PendingPdfFidelityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'pending.pdf'
             path.write_bytes(generate_pdf_report(summary, []))
-            return subprocess.check_output(['pdftotext', str(path), '-'], text=True)
+            return pdf_text(path)
 
     def test_pending_details_remain_unresolved_not_findings(self):
         summary = AuditSummary(total_incomplete=1)
@@ -165,7 +180,7 @@ class IntegratedSourceFidelityTests(unittest.TestCase):
             self.assertIn('No reviewer approval is recorded', text)
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'report.pdf'; path.write_bytes(artifacts.pdf_bytes)
-            text = subprocess.check_output(['pdftotext', str(path), '-'], text=True)
+            text = pdf_text(path)
         self.assertIn('Supplied manual findings: 1', text)
         self.assertIn('Automated findings: 1', text)
         self.assertIn('Unresolved focus observation', text)
@@ -190,6 +205,6 @@ class IntegratedSourceFidelityTests(unittest.TestCase):
         self.assertTrue(first.startswith(b'%PDF'))
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'pending.pdf'; path.write_bytes(first)
-            text = subprocess.check_output(['pdftotext', str(path), '-'], text=True)
+            text = pdf_text(path)
         self.assertIn('Display shortened', text)
         self.assertIn('receipt.json', text)

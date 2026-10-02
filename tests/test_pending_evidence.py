@@ -130,7 +130,7 @@ class PendingEvidenceTests(unittest.TestCase):
         data = scanner()
         data["violations"] = [{"id": "image-alt", "impact": None}]
         receipt = json.loads(build_artifacts({"scanner_input": data}).receipt_json)
-        schema = json.loads((root / "schemas/receipt-1.2.schema.json").read_text())
+        schema = json.loads((root / "schemas/receipt-1.2.schema.json").read_text(encoding="utf-8"))
         jsonschema.validate(receipt, schema)
         broken = copy.deepcopy(receipt)
         broken["pending_checks"][0]["status"] = "passed"
@@ -141,7 +141,7 @@ class PendingEvidenceTests(unittest.TestCase):
     def test_manual_format_guidance_is_not_plain_prose(self):
         from pathlib import Path
         root = Path(__file__).resolve().parents[1]
-        html = (root / "public/index.html").read_text()
+        html = (root / "public/index.html").read_text(encoding="utf-8")
         self.assertIn("CSV or Markdown table", html)
         self.assertIn("Plain prose is not supported", html)
 

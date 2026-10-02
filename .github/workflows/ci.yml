@@ -102,6 +102,20 @@ jobs:
       - name: Publish bounded failed-test diagnostics
         if: failure()
         run: python scripts/report_test_failures.py portability-results.xml
+      - name: Fixed serial native wait primitive diagnosis
+        if: ${{ !cancelled() }}
+        run: python scripts/diagnose_native_primitives.py --output native-primitives.json
+      - name: Single instrumented native failure-case diagnosis
+        if: ${{ !cancelled() }}
+        run: python scripts/diagnose_native_cases.py --repo . --output native-cases.json
+      - name: Archive bounded native diagnostic receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-diagnosis-${{ matrix.os }}-${{ github.sha }}
+          path: |
+            native-primitives.json
+            native-cases.json
       - name: Bounded local concurrency and malformed-input contract gate
         run: python scripts/hardening_load.py --output hardening-load-${{ matrix.os }}.json
       - name: Archive portability load metrics
