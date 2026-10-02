@@ -1,0 +1,41 @@
+name: vercel-readonly-access
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - harden/accessdoc-v1-launch
+    paths:
+      - .github/workflows/vercel-access-verify.yml
+      - scripts/verify_vercel_access.py
+      - tests/test_vercel_access.py
+permissions:
+  contents: read
+concurrency:
+  group: vercel-readonly-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.repository == 'Kartik24Hulmukh/AccessDoc' && (github.ref == 'refs/heads/harden/accessdoc-v1-launch' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    environment: accessdoc-pilot-verification
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - name: Verify project-bound metadata with no configuration changes
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          TARGET_COMMIT: ${{ github.sha }}
+        run: python scripts/verify_vercel_access.py --output vercel-access.json
+      - name: Archive sanitized verification outcome
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: vercel-readonly-${{ github.sha }}
+          path: vercel-access.json
+          if-no-files-found: error
+          retention-days: 7

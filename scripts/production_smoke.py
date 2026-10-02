@@ -7,12 +7,18 @@ from urllib.parse import urlsplit
 
 
 def validate_target_url(url, bypass=False, api_key=False):
-    target = urlsplit(url)
+    try:
+        target = urlsplit(url)
+        port = target.port
+    except ValueError:
+        raise ValueError("Smoke target has an invalid origin") from None
     local = target.hostname in ("127.0.0.1", "::1", "localhost")
     if (target.scheme not in ("https", "http") or not target.hostname or
             (target.scheme == "http" and not local) or target.username or
             target.password or target.query or target.fragment or
-            target.path not in ("", "/")):
+            target.path not in ("", "/") or
+            (port is not None and not 1 <= port <= 65535) or
+            (not local and port not in (None, 443))):
         raise ValueError("Smoke target must be a clean HTTPS origin or local HTTP origin")
     if bypass and (target.scheme != "https" or
             not (target.hostname == "access-doc.vercel.app" or re.fullmatch(
@@ -79,9 +85,20 @@ def error_response_matches(status, body, expected):
 class SameOriginRedirectHandler(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         def origin(url):
-            p = urlsplit(url)
-            return p.scheme, p.hostname, p.port or (443 if p.scheme == "https" else 80)
-        if origin(req.full_url) != origin(newurl):
+            try:
+                p = urlsplit(url)
+                port = p.port
+                if (p.scheme not in ("https", "http") or not p.hostname or
+                        p.username or p.password or
+                        (port is not None and not 1 <= port <= 65535)):
+                    return None
+                return p.scheme, p.hostname, (
+                    (443 if p.scheme == "https" else 80) if port is None else port)
+            except ValueError:
+                return None
+        source = origin(req.full_url)
+        destination = origin(newurl)
+        if source is None or destination is None or source != destination:
             raise urllib.error.HTTPError(req.full_url, code,
                                          "Cross-origin smoke redirect rejected", headers, fp)
         return super().redirect_request(req, fp, code, msg, headers, newurl)
