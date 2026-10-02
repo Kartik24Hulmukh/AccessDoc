@@ -40,7 +40,7 @@ def redact_smoke_text(value, *credentials):
     text = str(value)
     for credential in credentials:
         if credential:
-            text = text.replace(credential, "[credential]")
+            text = re.sub(re.escape(credential), "[credential]", text, flags=re.I)
     return text
 
 
@@ -118,14 +118,15 @@ def main(argv=None):
     def report(passed, phase="functional"):
         if args.output:
             from pathlib import Path
-            Path(args.output).write_text(json.dumps({"pass": passed, "phase": phase,
+            serialized = json.dumps({"pass": passed, "phase": phase,
                 "expected_commit": TARGET_COMMIT if re.fullmatch(
                     r"[0-9a-fA-F]{40}", TARGET_COMMIT) else None,
                 "observed_commit": last_observed_commit,
                 "target_origin": BASE, "elapsed_seconds": round(time.monotonic() - started, 3),
                 "authenticated_pilot": bool(API_KEY),
                 "checks": checks_run, "check_results": check_results,
-                "failures": failures}, indent=2) + "\n")
+                "failures": failures}, indent=2)
+            Path(args.output).write_text(redact_smoke_text(serialized, BYPASS, API_KEY) + "\n")
 
     validate_target_url(BASE, bool(BYPASS), bool(API_KEY))
     if not re.fullmatch(r"[0-9a-fA-F]{40}", TARGET_COMMIT):
@@ -183,18 +184,23 @@ def main(argv=None):
                 ver = data.get("adapter_version", "")
                 svc_status = data.get("status", "")
                 deployed_commit = data.get("commit", "")
-                # Health JSON is untrusted. A server can reflect credentials
-                # into metadata, not only into the error text shown on stdout.
-                last_observed_commit = (deployed_commit
-                    if exact_commit_matches(deployed_commit, deployed_commit)
-                    and deployed_commit not in (BYPASS, API_KEY) else None)
-                print(f"  Attempt {attempts}: status={status}, adapter_version={ver!r}, status_field={svc_status!r}, commit={deployed_commit!r}")
+                # Never archive unexpected upstream strings, even if they look
+                # like hashes: substrings or case variants can reflect secrets.
+                collision = any(c and c.casefold() in TARGET_COMMIT.casefold()
+                                for c in (BYPASS, API_KEY))
+                last_observed_commit = (TARGET_COMMIT
+                    if exact_commit_matches(deployed_commit, TARGET_COMMIT)
+                    and not collision else None)
+                print(f"  Attempt {attempts}: status={status}, "
+                      f"expected_version_matches={ver == EXPECTED}, "
+                      f"service_ready={svc_status == 'ok'}, "
+                      f"expected_commit_matches={last_observed_commit is not None}")
                 commit_matches = exact_commit_matches(last_observed_commit, TARGET_COMMIT)
                 if svc_status == "ok" and commit_matches:
                     ready = True
                     break
             except Exception as e:
-                print(f"  Attempt {attempts}: 200 but JSON parse failed: {e}")
+                print(f"  Attempt {attempts}: invalid health JSON ({type(e).__name__})")
         else:
             print(f"  Attempt {attempts}: status={status}")
             if status in (301, 302, 303, 307, 308, 401, 403):
@@ -218,7 +224,9 @@ def main(argv=None):
         checks_run.append(name)
         check_results.append({"name": name, "pass": bool(condition)})
         tag = "PASS" if condition else "FAIL"
-        print(f"  [{tag}] {name}" + (f" — {detail}" if detail else ""))
+        # Details may contain arbitrary response bodies, header values or paths.
+        # Outcome categories are sufficient for this credential-bearing gate.
+        print(f"  [{tag}] {name}")
         if not condition:
             failures.append(name)
 
@@ -290,7 +298,6 @@ def main(argv=None):
         )
         verify_output = result.stdout + result.stderr
         print(f"  cli.py verify exit code: {result.returncode}")
-        print(f"  cli.py verify output: {verify_output.strip()[:500]}")
         try:
             verify_json = json.loads(result.stdout)
             verify_valid = verify_json.get("valid", False)
@@ -317,11 +324,7 @@ def main(argv=None):
                 rule_ids = receipt.get("rule_ids")
                 violations = receipt.get("violations")
                 fpv = receipt.get("finding_fingerprint_version", "")
-                print(f"  schema_version: {sv!r}")
-                print(f"  accessdoc_version: {av!r}")
-                print(f"  rule_ids: {rule_ids}")
                 print(f"  violations count: {len(violations) if isinstance(violations, list) else 'N/A'}")
-                print(f"  finding_fingerprint_version: {fpv!r}")
 
                 check("receipt schema_version is '1.2'", sv == "1.2",
                       f"got {sv!r}")

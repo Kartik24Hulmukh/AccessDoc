@@ -1,0 +1,38 @@
+[
+  {
+    "phase": "before",
+    "case": "substring",
+    "exit": 1,
+    "source_sha256": "f74b2740e137f37065c8ec960a776a34aaf65290952cf0095a6f763043ff86f2",
+    "artifact_credential_present": true,
+    "stdout_credential_present": false,
+    "checks": 0
+  },
+  {
+    "phase": "before",
+    "case": "uppercase",
+    "exit": 1,
+    "source_sha256": "f74b2740e137f37065c8ec960a776a34aaf65290952cf0095a6f763043ff86f2",
+    "artifact_credential_present": true,
+    "stdout_credential_present": true,
+    "checks": 0
+  },
+  {
+    "phase": "after",
+    "case": "substring",
+    "exit": 1,
+    "source_sha256": "69ab07fd261d5ed31573a0da92380aa912c2570474dd8dcc6b5963c71ff2310e",
+    "artifact_credential_present": false,
+    "stdout_credential_present": false,
+    "checks": 0
+  },
+  {
+    "phase": "after",
+    "case": "uppercase",
+    "exit": 1,
+    "source_sha256": "69ab07fd261d5ed31573a0da92380aa912c2570474dd8dcc6b5963c71ff2310e",
+    "artifact_credential_present": false,
+    "stdout_credential_present": false,
+    "checks": 0
+  }
+]
