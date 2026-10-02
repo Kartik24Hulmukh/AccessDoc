@@ -183,9 +183,13 @@ def main(argv=None):
                 ver = data.get("adapter_version", "")
                 svc_status = data.get("status", "")
                 deployed_commit = data.get("commit", "")
-                last_observed_commit = deployed_commit
+                # Health JSON is untrusted. A server can reflect credentials
+                # into metadata, not only into the error text shown on stdout.
+                last_observed_commit = (deployed_commit
+                    if exact_commit_matches(deployed_commit, deployed_commit)
+                    and deployed_commit not in (BYPASS, API_KEY) else None)
                 print(f"  Attempt {attempts}: status={status}, adapter_version={ver!r}, status_field={svc_status!r}, commit={deployed_commit!r}")
-                commit_matches = exact_commit_matches(deployed_commit, TARGET_COMMIT)
+                commit_matches = exact_commit_matches(last_observed_commit, TARGET_COMMIT)
                 if svc_status == "ok" and commit_matches:
                     ready = True
                     break

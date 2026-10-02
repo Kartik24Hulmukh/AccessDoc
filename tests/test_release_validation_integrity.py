@@ -278,6 +278,44 @@ class ReleaseValidationIntegrityTests(unittest.TestCase):
             runner.join(2)
             self.assertFalse(runner.is_alive())
 
+    def test_reflected_untrusted_commit_cannot_leak_into_artifact(self):
+        credential = "b" * 40
+        class Reflection(BaseHTTPRequestHandler):
+            def do_GET(self):
+                data = json.dumps({"status": "ok", "adapter_version": "test",
+                                   "commit": credential}).encode()
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+            def log_message(self, *args):
+                pass
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Reflection)
+        runner = threading.Thread(target=lambda: server.serve_forever(poll_interval=.01))
+        runner.start()
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                output = Path(directory) / "report.json"
+                env = {**os.environ, "PRODUCTION_URL": f"http://127.0.0.1:{server.server_port}",
+                       "TARGET_COMMIT": "a" * 40, "EXPECTED_VERSION": "test",
+                       "SMOKE_REQUIRE_AUTH": "true", "SMOKE_API_KEY": credential,
+                       "VERCEL_AUTOMATION_BYPASS_SECRET": "",
+                       "SMOKE_MAX_WAIT_SECONDS": ".05", "SMOKE_POLL_INTERVAL_SECONDS": ".02"}
+                result = subprocess.run([sys.executable, "scripts/production_smoke.py",
+                    "--output", str(output)], env=env, cwd=ROOT,
+                    capture_output=True, text=True, timeout=5)
+                self.assertEqual(result.returncode, 1)
+                report = json.loads(output.read_text())
+                self.assertIsNone(report["observed_commit"])
+                self.assertNotIn(credential,
+                                 output.read_text() + result.stdout + result.stderr)
+                self.assertEqual(report["checks"], [])
+        finally:
+            server.shutdown()
+            server.server_close()
+            runner.join(2)
+            self.assertFalse(runner.is_alive())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -50,3 +50,9 @@ Vercel's official OAuth connection was requested; both attempts returned decline
 4. Rotate credentials disclosed in chat. Keep PR95 draft and auto-merge disabled while target or human gates remain pending. No claim of production readiness, human participation, general OCR ingestion, production capacity, actual traction or launch follows from local green checks.
 
 Raw scoped receipts and hash manifest are in `docs/evidence/pilot-gates-2026-10-02/`. The original browser-environment failure and synthetic before/after remain visible; target/approval blockers are not converted to successful statuses.
+
+## Follow-up adversarial metadata check
+
+After the first repair was committed, a synthetic hostile health response demonstrated that stdout redaction alone was insufficient: an invalid `commit` field could reflect the synthetic pilot credential into the JSON artifact. The frozen before report contains only the deliberately synthetic canary, not a real credential. This remained a failing readiness run, but artifact secrecy still required repair.
+
+The runner now records only complete SHA-shaped deployment identities that are not equal to either credential. The before/after real-loopback reproduction changes `synthetic_credential_in_report` from true to false; neither run passes readiness or executes application checks. A new regression uses a forty-character hexadecimal synthetic credential, so the fix cannot rely solely on rejecting malformed SHA syntax. The focused suite now passes 18 tests/12 subtests. This follow-up changes validation tooling only, not the 59 application/runtime files. The 945-test full receipt above is the earlier candidate's historical result; final exact-head full-suite and hosted CI receipts are recorded separately in the delivery capsule and PR update, rather than inferred from it.

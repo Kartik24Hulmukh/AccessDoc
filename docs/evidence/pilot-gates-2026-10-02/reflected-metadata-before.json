@@ -1,0 +1,12 @@
+{
+  "pass": false,
+  "phase": "readiness",
+  "expected_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "observed_commit": "synthetic-reflected-pilot-key",
+  "target_origin": "http://127.0.0.1:43713",
+  "elapsed_seconds": 0.059,
+  "authenticated_pilot": true,
+  "checks": [],
+  "check_results": [],
+  "failures": []
+}

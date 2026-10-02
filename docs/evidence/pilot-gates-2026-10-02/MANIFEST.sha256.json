@@ -7,9 +7,12 @@
   "github-environment-summary.json": "5befb80108c07fe42986a7c44f9a6b7620500fd6fd126ea17d70630591cf0a05",
   "playwright-install.log": "cfbb05cb3be248fef8bbfa09f4c5a960d3f18e2c5f2e40b684c0a7dd8e607872",
   "preview-metadata.json": "6707ad5d229c9a7fbaa4d289f6d5122927b65564b510872046c468b53799b1c7",
+  "reflected-metadata-after.json": "5c61ce7f6bf31429868c7d9cc074d92a7e5308743bb14c4bb42724fa0075fe49",
+  "reflected-metadata-before.json": "bf4155f7cdd7df17133675f826c13fe2fb1038363550865be50bd82f7e7d5d33",
   "release-verifier-environment-failure.json": "288da243fdc28402323aa93bf0907235991ed29417dfb560546001aab77c92b5",
   "release-verifier-final.json": "8b60d7bd9eddaca9d10e4d7bd787db493d3d86bb42230a04b6adbc3b866c9277",
   "smoke-tests-before.log": "d0f018085eb93bfc9f5234230cf3043f47cb33213fb09e652380d8134972168d",
   "smoke-tests-final.log": "f547032fc5e9699be4e3c689d48f24a03975b40098ed50c26f8851b5cf60b339",
+  "smoke-tests-secrecy-final.log": "cab7219309edf4218e5a1ada393f24c18dbc578862de311f140eea8a55fa8a7b",
   "vercel-client-grant-check.json": "c3fe7c9fdcab3efd9bcdee1615512dd6924637abd94bab411b26d3a57d6f2dc3"
 }
