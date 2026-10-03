@@ -1,0 +1,45 @@
+{
+  "scope": "real loopback sockets; 3 samples/status; descriptive order statistics, not provider SLO",
+  "rows": {
+    "429": {
+      "budget_ms": 100,
+      "samples": [
+        {
+          "elapsed_ms": 811.69,
+          "outcome": "http-429"
+        },
+        {
+          "elapsed_ms": 807.873,
+          "outcome": "http-429"
+        },
+        {
+          "elapsed_ms": 808.211,
+          "outcome": "http-429"
+        }
+      ],
+      "p50_ms": 808.211,
+      "p95_ms": 811.69,
+      "p99_ms": 811.69
+    },
+    "402": {
+      "budget_ms": 100,
+      "samples": [
+        {
+          "elapsed_ms": 807.893,
+          "outcome": "http-402"
+        },
+        {
+          "elapsed_ms": 808.296,
+          "outcome": "http-402"
+        },
+        {
+          "elapsed_ms": 808.003,
+          "outcome": "http-402"
+        }
+      ],
+      "p50_ms": 808.003,
+      "p95_ms": 808.296,
+      "p99_ms": 808.296
+    }
+  }
+}

@@ -1,0 +1,135 @@
+test_cancel_and_input_change_discard_synthetic_late_bundle (tests.test_hosted_ui_revision.HostedUIRevisionTests.test_cancel_and_input_change_discard_synthetic_late_bundle) ... ERROR
+test_cancel_retry_timer_prevents_synthetic_second_request (tests.test_hosted_ui_revision.HostedUIRevisionTests.test_cancel_retry_timer_prevents_synthetic_second_request) ... ERROR
+test_cancel_synthetic_file_read_and_reset_private_fields (tests.test_hosted_ui_revision.HostedUIRevisionTests.test_cancel_synthetic_file_read_and_reset_private_fields) ... ERROR
+test_failed_replacement_retains_labelled_real_download (tests.test_hosted_ui_revision.HostedUIRevisionTests.test_failed_replacement_retains_labelled_real_download) ... ERROR
+test_file_only_real_bundle_and_synthetic_guidance_share_revision (tests.test_hosted_ui_revision.HostedUIRevisionTests.test_file_only_real_bundle_and_synthetic_guidance_share_revision) ... ERROR
+test_reset_and_evidence_change_discard_synthetic_late_guidance (tests.test_hosted_ui_revision.HostedUIRevisionTests.test_reset_and_evidence_change_discard_synthetic_late_guidance) ... ERROR
+test_sample_clears_upload_and_invalidates_guidance (tests.test_hosted_ui_revision.HostedUIRevisionTests.test_sample_clears_upload_and_invalidates_guidance) ... ERROR
+
+======================================================================
+ERROR: test_cancel_and_input_change_discard_synthetic_late_bundle (tests.test_hosted_ui_revision.HostedUIRevisionTests.test_cancel_and_input_change_discard_synthetic_late_bundle)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/AccessDoc/tests/test_hosted_ui_revision.py", line 52, in setUp
+    self.page.on("download", self.downloads.append)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/playwright/sync_api/_generated.py", line 8444, in on
+    return super().on(event=event, f=f)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_sync_base.py", line 126, in on
+    self._impl_obj.on(event, self._wrap_handler(f))
+                             ~~~~~~~~~~~~~~~~~~^^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_sync_base.py", line 121, in _wrap_handler
+    return mapping.wrap_handler(handler)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/playwright/_impl/_impl_to_api_mapping.py", line 157, in wrap_handler
+    setattr(handler, IMPL_ATTR, wrapper)
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'builtin_function_or_method' object has no attribute '_pw_impl_instance_' and no __dict__ for setting new attributes
+
+======================================================================
+ERROR: test_cancel_retry_timer_prevents_synthetic_second_request (tests.test_hosted_ui_revision.HostedUIRevisionTests.test_cancel_retry_timer_prevents_synthetic_second_request)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/AccessDoc/tests/test_hosted_ui_revision.py", line 41, in setUp
+    self.playwright = sync_playwright().start()
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/playwright/sync_api/_context_manager.py", line 83, in start
+    return self.__enter__()
+           ~~~~~~~~~~~~~~^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/playwright/sync_api/_context_manager.py", line 46, in __enter__
+                raise Error(
+    ...<2 lines>...
+                )
+playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+Please use the Async API instead.
+
+======================================================================
+ERROR: test_cancel_synthetic_file_read_and_reset_private_fields (tests.test_hosted_ui_revision.HostedUIRevisionTests.test_cancel_synthetic_file_read_and_reset_private_fields)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/AccessDoc/tests/test_hosted_ui_revision.py", line 41, in setUp
+    self.playwright = sync_playwright().start()
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/playwright/sync_api/_context_manager.py", line 83, in start
+    return self.__enter__()
+           ~~~~~~~~~~~~~~^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/playwright/sync_api/_context_manager.py", line 46, in __enter__
+                raise Error(
+    ...<2 lines>...
+                )
+playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+Please use the Async API instead.
+
+======================================================================
+ERROR: test_failed_replacement_retains_labelled_real_download (tests.test_hosted_ui_revision.HostedUIRevisionTests.test_failed_replacement_retains_labelled_real_download)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/AccessDoc/tests/test_hosted_ui_revision.py", line 41, in setUp
+    self.playwright = sync_playwright().start()
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/playwright/sync_api/_context_manager.py", line 83, in start
+    return self.__enter__()
+           ~~~~~~~~~~~~~~^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/playwright/sync_api/_context_manager.py", line 46, in __enter__
+                raise Error(
+    ...<2 lines>...
+                )
+playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+Please use the Async API instead.
+
+======================================================================
+ERROR: test_file_only_real_bundle_and_synthetic_guidance_share_revision (tests.test_hosted_ui_revision.HostedUIRevisionTests.test_file_only_real_bundle_and_synthetic_guidance_share_revision)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/AccessDoc/tests/test_hosted_ui_revision.py", line 41, in setUp
+    self.playwright = sync_playwright().start()
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/playwright/sync_api/_context_manager.py", line 83, in start
+    return self.__enter__()
+           ~~~~~~~~~~~~~~^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/playwright/sync_api/_context_manager.py", line 46, in __enter__
+                raise Error(
+    ...<2 lines>...
+                )
+playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+Please use the Async API instead.
+
+======================================================================
+ERROR: test_reset_and_evidence_change_discard_synthetic_late_guidance (tests.test_hosted_ui_revision.HostedUIRevisionTests.test_reset_and_evidence_change_discard_synthetic_late_guidance)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/AccessDoc/tests/test_hosted_ui_revision.py", line 41, in setUp
+    self.playwright = sync_playwright().start()
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/playwright/sync_api/_context_manager.py", line 83, in start
+    return self.__enter__()
+           ~~~~~~~~~~~~~~^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/playwright/sync_api/_context_manager.py", line 46, in __enter__
+                raise Error(
+    ...<2 lines>...
+                )
+playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+Please use the Async API instead.
+
+======================================================================
+ERROR: test_sample_clears_upload_and_invalidates_guidance (tests.test_hosted_ui_revision.HostedUIRevisionTests.test_sample_clears_upload_and_invalidates_guidance)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/AccessDoc/tests/test_hosted_ui_revision.py", line 41, in setUp
+    self.playwright = sync_playwright().start()
+                      ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/playwright/sync_api/_context_manager.py", line 83, in start
+    return self.__enter__()
+           ~~~~~~~~~~~~~~^^
+  File "/data/accessdoc-venv/lib64/python3.13/site-packages/playwright/sync_api/_context_manager.py", line 46, in __enter__
+                raise Error(
+    ...<2 lines>...
+                )
+playwright._impl._errors.Error: It looks like you are using Playwright Sync API inside the asyncio loop.
+Please use the Async API instead.
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.636s
+
+FAILED (errors=7)

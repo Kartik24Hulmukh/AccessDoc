@@ -121,11 +121,16 @@ def build_receipt(summary, violations, metadata):
             "unknown": summary.unknown,
             "total_violations": summary.total_violations,
             "total_passes": summary.total_passes,
+            "total_incomplete": summary.total_incomplete,
             "manual_findings": summary.manual_findings,
+            "finding_groups": len({(v.source, v.id) for v in violations}),
+            "unmapped_findings": sum(not v.wcag_scs for v in violations),
+            "pending_instances": len(summary.pending_checks),
         },
         "rule_ids": rule_ids_for_receipt(violations),
         "finding_fingerprint_version": FINDING_FINGERPRINT_VERSION,
         "violations": [_violation_to_receipt_entry(v) for v in violations],
+        "pending_checks": [dict(check) for check in summary.pending_checks],
     }
     return receipt
 

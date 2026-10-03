@@ -1,0 +1,88 @@
+{
+  "head": "1f21edeb064e0d01b8932f707c80eedaa8c9f00f",
+  "draft": true,
+  "combined_status": "success",
+  "statuses": [
+    {
+      "context": "Vercel",
+      "state": "success",
+      "target_url": "https://vercel.com/atlas16/access-doc/HGsrxM9Bc8DemDBqQPNPHwjrJeR9"
+    },
+    {
+      "context": "accessdoc/live-gateway",
+      "state": "success",
+      "target_url": null
+    }
+  ],
+  "checks": [
+    {
+      "name": "Vercel Preview Comments",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "lint",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "accessdoc-evidence",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "portability (windows-latest)",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "name": "portability (macos-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "test",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "GitGuardian Security Checks",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "portability (windows-latest)",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "name": "portability (macos-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "test",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "lint",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "deployments": [
+    {
+      "id": 6746748373,
+      "sha": "1f21edeb064e0d01b8932f707c80eedaa8c9f00f",
+      "environment": "Preview",
+      "statuses": [
+        {
+          "state": "success",
+          "environment_url": "https://access-a4it71995-atlas16.vercel.app",
+          "target_url": "https://access-a4it71995-atlas16.vercel.app"
+        }
+      ]
+    }
+  ]
+}

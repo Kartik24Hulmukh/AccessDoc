@@ -1,0 +1,159 @@
+{
+  "scope": "loopback only; 3 samples per input; status change is acceptance improvement, not speedup; identical fixture",
+  "rows": [
+    {
+      "findings": 500,
+      "http_input_bytes": 55855,
+      "samples": [
+        {
+          "status": 201,
+          "post_ms": 87.2,
+          "downloads": {
+            "download_url": {
+              "status": 200,
+              "bytes": 32142,
+              "valid_prefix": true
+            },
+            "html_companion_url": {
+              "status": 200,
+              "bytes": 240429,
+              "valid_prefix": true
+            },
+            "receipt_url": {
+              "status": 200,
+              "bytes": 132286,
+              "valid_prefix": true,
+              "finding_count": 500
+            }
+          }
+        },
+        {
+          "status": 201,
+          "post_ms": 84.779,
+          "downloads": {
+            "download_url": {
+              "status": 200,
+              "bytes": 32142,
+              "valid_prefix": true
+            },
+            "html_companion_url": {
+              "status": 200,
+              "bytes": 240429,
+              "valid_prefix": true
+            },
+            "receipt_url": {
+              "status": 200,
+              "bytes": 132286,
+              "valid_prefix": true,
+              "finding_count": 500
+            }
+          }
+        },
+        {
+          "status": 201,
+          "post_ms": 120.971,
+          "downloads": {
+            "download_url": {
+              "status": 200,
+              "bytes": 32142,
+              "valid_prefix": true
+            },
+            "html_companion_url": {
+              "status": 200,
+              "bytes": 240429,
+              "valid_prefix": true
+            },
+            "receipt_url": {
+              "status": 200,
+              "bytes": 132286,
+              "valid_prefix": true,
+              "finding_count": 500
+            }
+          }
+        }
+      ],
+      "p50_ms": 87.2,
+      "p95_ms": 120.971,
+      "p99_ms": 120.971
+    },
+    {
+      "findings": 1000,
+      "http_input_bytes": 111855,
+      "samples": [
+        {
+          "status": 201,
+          "post_ms": 189.569,
+          "downloads": {
+            "download_url": {
+              "status": 200,
+              "bytes": 61011,
+              "valid_prefix": true
+            },
+            "html_companion_url": {
+              "status": 200,
+              "bytes": 479931,
+              "valid_prefix": true
+            },
+            "receipt_url": {
+              "status": 200,
+              "bytes": 264288,
+              "valid_prefix": true,
+              "finding_count": 1000
+            }
+          }
+        },
+        {
+          "status": 201,
+          "post_ms": 318.864,
+          "downloads": {
+            "download_url": {
+              "status": 200,
+              "bytes": 61011,
+              "valid_prefix": true
+            },
+            "html_companion_url": {
+              "status": 200,
+              "bytes": 479931,
+              "valid_prefix": true
+            },
+            "receipt_url": {
+              "status": 200,
+              "bytes": 264288,
+              "valid_prefix": true,
+              "finding_count": 1000
+            }
+          }
+        },
+        {
+          "status": 201,
+          "post_ms": 322.771,
+          "downloads": {
+            "download_url": {
+              "status": 200,
+              "bytes": 61011,
+              "valid_prefix": true
+            },
+            "html_companion_url": {
+              "status": 200,
+              "bytes": 479931,
+              "valid_prefix": true
+            },
+            "receipt_url": {
+              "status": 200,
+              "bytes": 264288,
+              "valid_prefix": true,
+              "finding_count": 1000
+            }
+          }
+        }
+      ],
+      "p50_ms": 318.864,
+      "p95_ms": 322.771,
+      "p99_ms": 322.771
+    }
+  ],
+  "retained_store": {
+    "items": 6,
+    "bytes": 3630261
+  }
+}

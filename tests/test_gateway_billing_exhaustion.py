@@ -64,20 +64,27 @@ class LiveHttpBillingTests(unittest.TestCase):
         _H.body = BILLING
 
     def _gw(self):
-        return gw.ModelGateway(api_key="sk-test", chain=gw.CANONICAL_CHAIN, budget_seconds=10)
+        gateway = gw.ModelGateway(api_key="sk-test", chain=gw.CANONICAL_CHAIN, budget_seconds=10)
+        self.addCleanup(gateway._session.close)
+        return gateway
 
-    def test_billing_429_holds_whole_chain_after_one_call(self):
+    def test_billing_429_holds_whole_chain_after_bounded_speculation(self):
         g = self._gw()
         r = g.chat("fix alt text")
         self.assertTrue(r.fallback)
         self.assertEqual(r.model, "static-kb")
-        self.assertEqual(len(_H.hits), 1, "only one probe may hit a credit-exhausted account: %r" % _H.hits)
+        # A cold/scheduled primary may not reveal billing failure before the
+        # hedge timer. At most two authorized lanes can precede that knowledge.
+        initial_hits = len(_H.hits)
+        self.assertGreaterEqual(initial_hits, 1)
+        self.assertLessEqual(initial_hits, 2)
+        self.assertEqual(_H.hits[0], gw.CANONICAL_CHAIN[0])
         self.assertTrue(g.health()["billing_exhausted"])
         t0 = time.monotonic()
         for _ in range(50):
             self.assertEqual(g.chat("again").model, "static-kb")
         per_call_ms = (time.monotonic() - t0) * 1000 / 50
-        self.assertEqual(len(_H.hits), 1, "held chain must dispatch nothing")
+        self.assertEqual(len(_H.hits), initial_hits, "held chain must dispatch nothing")
         self.assertLess(per_call_ms, 200.0, "static-KB recovery must be < 200 ms")
 
     def test_hold_expires_after_cooldown(self):

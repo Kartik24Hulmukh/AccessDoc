@@ -160,7 +160,7 @@ class EmbeddedAssetTests(unittest.TestCase):
         import os
         from api import public_assets
         root = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "public")
-        expected = {"index.html", "docs.html", "openapi.json", "static/app.css",
+        expected = {"index.html", "docs.html", "openapi.json", "static/app.css", "static/favicon.svg",
                     "static/app.js", "static/report.css", "sample/axe-sample.json"}
         self.assertEqual(set(public_assets.ASSETS), expected)
         for rel, (digest, _chunks) in public_assets.ASSETS.items():

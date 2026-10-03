@@ -1,0 +1,3618 @@
+{"ts":1790797385.238511,"level":"info","event":"http_request","trace_id":"02ea40b29efd85a2de49a7a618f718a7","span_id":"0ccf19aa86d7c320","request_id":"a99c66439d76cc58f3e5a673a54b2f32","ip":"127.0.0.1","method":"POST","route":"/api/generate","status":201,"duration_ms":87.79}
+{"ts":1790797385.3995192,"level":"info","event":"http_request","trace_id":"41437eefb62637e13005f4e69e1fd99c","span_id":"7acccacd216d207f","request_id":"cf126a7643061268b3906cc3eab0ea1d","ip":"127.0.0.1","method":"POST","route":"/api/bundle","status":200,"duration_ms":158.18}
+{"ts":1790797385.408248,"level":"info","event":"http_request","trace_id":"6037e2d5b58aa7f8d66ef5867d4acd0c","span_id":"4e5a81f76309f9eb","request_id":"3779db09a0f9a32fdff583c94e9311b6","ip":"127.0.0.1","method":"POST","route":"/api/generate","status":201,"duration_ms":7.34}
+{"ts":1790797385.4099803,"level":"info","event":"http_request","trace_id":"ceddad6c22ae20de907623dea2a5b755","span_id":"c6421e0c4377cae4","request_id":"75d6ad1ad400349cdcfbc831627018d0","ip":"127.0.0.1","method":"GET","route":"/download/[token]","status":200,"duration_ms":0.63}
+{"ts":1790797385.411262,"level":"info","event":"http_request","trace_id":"f9e6ae0265c7bec95e6b2d3cef710a85","span_id":"83bfb16b58d7d20b","request_id":"f91ffb7102e7c4cfb8c8e4b7673f2c0f","ip":"127.0.0.1","method":"GET","route":"/download/[token]","status":200,"duration_ms":0.49}
+{"ts":1790797385.412195,"level":"info","event":"http_request","trace_id":"370e0922f7dfd4357180296d62684587","span_id":"881195717e7429dc","request_id":"c44527157f99a59f3d15c7d1cd0b28e4","ip":"127.0.0.1","method":"GET","route":"/download/[token]","status":200,"duration_ms":0.46}
+{"ts":1790797385.4132693,"level":"info","event":"http_request","trace_id":"97373afdb94b741a3a9aeb7f965ea27f","span_id":"7eaa7745cd1b6141","request_id":"ca3efa5cd4b0d05ce4da893123a561f2","ip":"127.0.0.1","method":"GET","route":"/static/../../app/main.py","status":404,"duration_ms":0.47}
+{"ts":1790797385.4145913,"level":"info","event":"http_request","trace_id":"fb38319311a567c40ebd6e8cf243438e","span_id":"178c10a4a3e4e588","request_id":"3a378e4918d049d9a62aecdcc7d1c782","ip":"127.0.0.1","method":"POST","route":"/api/generate","status":422,"duration_ms":0.63}
+{"ts":1790797385.4157834,"level":"info","event":"http_request","trace_id":"449e52e403afefbfbef4a1007f384ec5","span_id":"805b8d231c5acb44","request_id":"a86932c5be7aadc902516798695cb3b2","ip":"127.0.0.1","method":"GET","route":"/readyz","status":503,"duration_ms":0.63}
+{"ts":1790797385.416912,"level":"info","event":"http_request","trace_id":"427ef4a0f3b08c15f75b4af695076872","span_id":"66b8a30af025978d","request_id":"ab04115b1f645b10b94a0ebdc6c811a6","ip":"127.0.0.1","method":"POST","route":"/api/bundle","status":503,"duration_ms":0.29}
+{"event": "request", "request_id": "0d17c625f745", "method": "POST", "status": 503, "duration_ms": 0.33}
+{
+  "storage": {
+    "request_bytes": 16137,
+    "artifact_bytes": {
+      "pdf": 28652,
+      "html": 240473,
+      "receipt": 115061
+    },
+    "store_before": {
+      "items": 0,
+      "bytes": 0
+    },
+    "direct_put": "success",
+    "http_generate": [
+      201,
+      {
+        "report_token": "pLPCIjd8IwPXx5N7ic6zEk7cOuH22obC",
+        "download_url": "/download/pLPCIjd8IwPXx5N7ic6zEk7cOuH22obC",
+        "html_companion_url": "/download-html/pLPCIjd8IwPXx5N7ic6zEk7cOuH22obC",
+        "receipt_url": "/download-receipt/pLPCIjd8IwPXx5N7ic6zEk7cOuH22obC",
+        "detected_format": "axe",
+        "finding_count": 500,
+        "instance_count": 500,
+        "severity_counts": {
+          "critical": 0,
+          "serious": 500,
+          "moderate": 0,
+          "minor": 0,
+          "unknown": 0
+        },
+        "catalog_review_required": 0,
+        "expires_in_seconds": 1800,
+        "input_evidence_receipt": {
+          "schema_version": "1.2",
+          "accessdoc_version": "0.7.0-beta.7",
+          "axe_core_verified_version": "4.11.2",
+          "catalog_version": "wcag-2.2-accessdoc-2026-07",
+          "coverage_note": "Automated scan detects ~30-57% of WCAG issues (Deque 2022).",
+          "audit_date": "2026-09-30",
+          "client_name": "SYNTHETIC NOT HUMAN",
+          "url": "https://synthetic.invalid",
+          "engine_version": "4.10.3",
+          "summary": {
+            "critical": 0,
+            "serious": 500,
+            "moderate": 0,
+            "minor": 0,
+            "unknown": 0,
+            "total_violations": 500,
+            "total_passes": 0,
+            "manual_findings": 0
+          },
+          "rule_ids": [
+            "color-contrast"
+          ],
+          "finding_fingerprint_version": "1",
+          "violations": [
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-0",
+              "finding_fingerprint": "00b64560e28384525b2c61c0bf103bbc0b6d919b6667e19e2d4a0e7cb798b452"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-1",
+              "finding_fingerprint": "7fa796ec17b74f5ed87ab700aba2c18579eb0f8fe7785ad91ac670ca0666fb85"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-2",
+              "finding_fingerprint": "82aec484b5ab37e76dd83f97192015a707db606147566db3e60d9962082ed658"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-3",
+              "finding_fingerprint": "5569ce48a76d831055c9f3b25112462d4b69fcca01aabc63cf6ed5ea8272b64b"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-4",
+              "finding_fingerprint": "3aec1e5c0ae6990d324931ff14884f3e0f686a74edf81013aed2a517c954523b"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-5",
+              "finding_fingerprint": "7db474232b2c5522340d1be20ce8ffcc5b704a5fbb990bd47cc4cd893ac58ce4"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-6",
+              "finding_fingerprint": "8930ccbdb981ebf401b1ec8e1898099772324a8327621dd746da7d4435455949"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-7",
+              "finding_fingerprint": "a6c2137d99d8f3ef076e579ed2a31182c4267c6afa678ac1c98724d775afde6e"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-8",
+              "finding_fingerprint": "145929c33cedcc9b34a540bf546b056148cead99d65ca25cb12fc59404ad56d1"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-9",
+              "finding_fingerprint": "b9d8cb47849b9e0186e8d3557b8c387b57fd02fab6f940be3caf593e5a9581e4"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-10",
+              "finding_fingerprint": "789f8105984c4ae34e8fc6a85000e313e94ef3267fc9354faeeda3507328e389"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-11",
+              "finding_fingerprint": "183aad4c287455f9257860c33ee8eedf411a01165a4a009e0bf92fe2eef5ae0e"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-12",
+              "finding_fingerprint": "018e1a86d09c7e8b6f25ae9cc19404079d365cab1d382a03c7ab8e1baa564445"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-13",
+              "finding_fingerprint": "b4fbcfc337eceac1aeebedd51bee9fb26acc2a29b0cf244fb72f431382a892e5"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-14",
+              "finding_fingerprint": "28abfe53b4173dfb11b5d684156d3caad7032e21c5974475f24095e2a2bbf56f"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-15",
+              "finding_fingerprint": "e258d2de2daa09a63aa211c33679414d9306f2fd20eb2b9d4e8a9b6df45050da"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-16",
+              "finding_fingerprint": "e17534c5f0d3b408dda27318c52ac82551cdd7c6216dc2946152574a5f6ad13f"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-17",
+              "finding_fingerprint": "d0b1c076aac7af7f36a40745917a59b6e477151f7dc11aa1ec9338b285ab4023"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-18",
+              "finding_fingerprint": "d4a878d257e3b7d2b07c8b30aedadb7909c115dbf2f6856cf049685a314712e1"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-19",
+              "finding_fingerprint": "efacd97cbf4ca761c60eb349449098d1967359b9805b862f8d5a58eb5b2e3fc5"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-20",
+              "finding_fingerprint": "9e4650aaccdca2cf7d509ae55643865e388f28c0175599955bd6dc98e3fe0df5"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-21",
+              "finding_fingerprint": "8ee9c96f54f90f898cb360b1ff86b3da302ff59287453ec7adefe54441cad314"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-22",
+              "finding_fingerprint": "bbd46f138a8001b58b2dedc43c7dec132905a02ac20bc56c56ef4d4c28af8cfd"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-23",
+              "finding_fingerprint": "b91dec22fba97dc46151aaf8fea052490cec05f0dc48bdd45896732919485a4e"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-24",
+              "finding_fingerprint": "fa06a1fbc345b2dfeef36bdfca457544a1037e2d29f6201fafe8fc3f31f5a9dc"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-25",
+              "finding_fingerprint": "dee07267422736461ee8e7c4cfcce540099487ffb920cc8b2ab29ecb54ba8ede"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-26",
+              "finding_fingerprint": "3c7ab4eaa1bc40f76f5a74ec4e5b7c922ae4f309e0e13c7af5f2547e31d6e76a"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-27",
+              "finding_fingerprint": "631b428f5988e2ebb494eed805b52f1ff07a2b401a9483094f23d93cae13a44d"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-28",
+              "finding_fingerprint": "665dc91a1eb6bea17a2b309fb456f1b9e936e2bda65d92c3a322616a388581ea"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-29",
+              "finding_fingerprint": "20c974bb73bbce65d1848db5ea5f5c7ef2c397c7dc17ff37a9ea90d9cc610ace"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-30",
+              "finding_fingerprint": "6b142de7b24d88b106a018dbe14cfd196bbb271bcda67015d7b319da123d378b"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-31",
+              "finding_fingerprint": "17ec8cd8709f8658fd382c19b0e14ce68623cf38cef5f0f5783a5790ce10bdee"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-32",
+              "finding_fingerprint": "005e5c04a58e3df90fab0d6a3330d53966d9f1aa71d9bfa1aeb37123223999a5"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-33",
+              "finding_fingerprint": "3e65161c0e5f2689a57af555c32882fb5484832bb207e57d046d044d529fc23c"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-34",
+              "finding_fingerprint": "dfdf7b6b5422af8f96e20dbea5e1c7d9da5b90276af4148fa3bf039cd111d1e1"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-35",
+              "finding_fingerprint": "ff39dfc139436ae079d655a16da239809b23e7bce6f29c2d6e18b3c366e64343"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-36",
+              "finding_fingerprint": "db8504c6c2a80560627a34e9a3051e4bb34090c4840e6e9ea7e46f98d3658b4b"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-37",
+              "finding_fingerprint": "3e5858816597151cffee5b9d338b3b3e9676950e308c991e5022a37b34c52001"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-38",
+              "finding_fingerprint": "27ac8e0e895d00d4b5c3cad1633d9bd43e26089846f51e7760b39cd132f30f4c"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-39",
+              "finding_fingerprint": "98e10ce373af7d4b1d8a85bfebc99dde8d7eede65b9b0f0573d289839074e6df"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-40",
+              "finding_fingerprint": "593d372fd6d491b2fafc3197c7d97be34ebcc5d85f174e31f160aead8c12faf6"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-41",
+              "finding_fingerprint": "f7e2b50aa3dc108af5cda3ef918996960887b406903b5cb0f9bf0c2d69bc0c9c"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-42",
+              "finding_fingerprint": "8b33c48c403927f09add2294aa12e3a4764e97c2ba426f4e8d104778a38d358e"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-43",
+              "finding_fingerprint": "3f8a5c647021b9bea35677c4af0360d394b8834b11fb996b1f4a0e6195c394ac"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-44",
+              "finding_fingerprint": "db4dbcbdf51d85a63b855f281c6b29ba20effd448d3b7cc9c55bc4ab54416ce2"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-45",
+              "finding_fingerprint": "ec48e3ceefc5d758f135028f41abc24213fcd670c60150c2737fc421f4556af7"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-46",
+              "finding_fingerprint": "2b43621bb6b64b3214b545076289222e4a6fd7bdeea55f3aa80d56cc52c77ad7"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-47",
+              "finding_fingerprint": "725f7e041caea5514f6526ea14b09419c660dbed814bdbf724a4a3ed0c8ab9e1"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-48",
+              "finding_fingerprint": "86515f0d5f99ca693b6dce1975b29736f7ecd59a004ae3124626006f199af2ae"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-49",
+              "finding_fingerprint": "9c66655f15d3eb4172d8e5b474c8c7e96203d7848be2924676a0851ee877dc31"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-50",
+              "finding_fingerprint": "c61f99cf20b38b346a1e3290c37d32dc97040c123b74392f44b38e5b808f5254"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-51",
+              "finding_fingerprint": "ba1ddefeb757249009039568fd26c5882a5685e33a63d156b633e89d9ea61fbc"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-52",
+              "finding_fingerprint": "deabfcf1a680e64912cbaaf9d1dd1bb50cdab5019e42e98d7ffff1c8d4addf1f"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-53",
+              "finding_fingerprint": "2dd434778b930da470f7f7a7a38de08d1abea6837a50a37856cf8e6e22a11c99"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-54",
+              "finding_fingerprint": "f02bfa1a242de1b908d3e46b5161d52c1a17414b113438c2834972b35eaaac4a"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-55",
+              "finding_fingerprint": "76c9b0496777bb9a7f49229b36f4a08ab390a4049043213fa08358d162c06b64"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-56",
+              "finding_fingerprint": "8abccef4095b282fcb0d55a0f9deeacebc84931b0806c44d7c2555ab63052f62"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-57",
+              "finding_fingerprint": "fcb59c046e8ec715c07b3bdb07c079344997ba3381b572f0d13fafd24c007ec1"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-58",
+              "finding_fingerprint": "ab42ec37f98e3cb8fe05cd7a7f076d2ac3ecaf15ac9acc4a9432caa230a5270c"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-59",
+              "finding_fingerprint": "2355465cb9818bf5ea8f681ae9ccf3ad3d8f97ab2434b21742fde22d8078d7e7"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-60",
+              "finding_fingerprint": "456374d5d81ad1e93fdd21a7a5d37cfce6c4acd19e438465ebd42f4dde253575"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-61",
+              "finding_fingerprint": "2b243a72d18f994147911b5de282a6fd99280255e744ffb9f389202746bfb27e"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-62",
+              "finding_fingerprint": "d47b8454ba8a5d679480eb3e6f5b55d5019027c26fa1d950578a7fa2d0fd1540"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-63",
+              "finding_fingerprint": "dd06fa5b1735f7e59e32c7b710bdd7389a0fcf195b3cfbfca4cc4348bfd57994"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-64",
+              "finding_fingerprint": "ef55ebd621e3e692f583984ed9b51871225bb59a8c2f4920be2231c4c2ba679a"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-65",
+              "finding_fingerprint": "b46be776a400326d98cf76a0a2d9cca37d220b6fd981d79c5738be0c8f3db3a5"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-66",
+              "finding_fingerprint": "009247a76d2ddf0980f0ab056ba5366c45cace67df89d69cc58b18ef622f9b5b"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-67",
+              "finding_fingerprint": "5a8a98d203731a29fd8c34d1d6a60e2e11aa089284558770c317664bcee7ce35"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-68",
+              "finding_fingerprint": "d83c57e261b128901fbcf10ff7ad877908caf67d6ce79dbf49bb8e9c7de845a1"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-69",
+              "finding_fingerprint": "fb86ddf415cf74bb02d9a48603996d4ba00859388fbb90c68e4fd233201fdc18"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-70",
+              "finding_fingerprint": "3423ec8046c27fc9b495f238b9648d22a2f5b71cad23120af57febdc271b67c2"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-71",
+              "finding_fingerprint": "05735291cddae293c95711428fcabaca0f1e0d2839d3a769aedbafc237d23581"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-72",
+              "finding_fingerprint": "9979949b515ac6544cdd7365b63994ec11f0b54bcc0d16999aa63498691b54d0"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-73",
+              "finding_fingerprint": "714b0a0c1f702d7500b7d45610463bfe04ca5c1957248f7be399b6ef1c7391ec"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-74",
+              "finding_fingerprint": "105e1f4d16b440109dc9df45aa49668e59fc41bd81852ede12ea79c7fff0bd0b"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-75",
+              "finding_fingerprint": "e4f74e31eb3c25339430efd707ea8e00955d7b0258e1d99d39e82a7f67cd8435"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-76",
+              "finding_fingerprint": "feaaa427ab8f2b08a89ed5346da7973e18a42f64045efd9702cdb544a53c2939"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-77",
+              "finding_fingerprint": "0a79b60fbf8578f8fa317e36313173e8546767e69c7ecf0f182303e93177ad4a"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-78",
+              "finding_fingerprint": "fa5aba66ef2d6d4cb93ebec17b3c3ea89c90fff2dc5d13003492d3741f85f583"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-79",
+              "finding_fingerprint": "c03e482d810e85958e78ff344b3a7bfb321ca7dc2d1256e21305dec5f9f286d9"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-80",
+              "finding_fingerprint": "622364a908cd1e6f0dd8aeb2cd1ea7456dec9245d37ab9646267beab94e8493b"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-81",
+              "finding_fingerprint": "2a41b0dc1b15b6520bc43925d682a8dffd35c4edd505197ca2690f8d0e0c8094"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-82",
+              "finding_fingerprint": "b0233ae5d63bc2b9f27cb5918298a0c860b144e8e9bce760e5e68fac8a9a5581"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-83",
+              "finding_fingerprint": "58ae4ea5b19da6b41950736039fe2a4011d9005e4c08225ccb501fcf1722b8d6"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-84",
+              "finding_fingerprint": "cb99cd5d13e8679d533b2db6d90e8d34a307bc7be446dc61464d20b2fbc18d94"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-85",
+              "finding_fingerprint": "98416f70040412c2d9fe6fb6928fe2999f261917fb74b6ce39b95b30f628bfa5"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-86",
+              "finding_fingerprint": "64d0087601fbda4b3752f9e1161961d6b4387b56d1e02fffa97186c8d8e1b545"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-87",
+              "finding_fingerprint": "a8530b4f07cc5f88bad9f3e67b2d4d6c4afed9d1d5beb8778612e333b08e3b9b"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-88",
+              "finding_fingerprint": "a88cc7c38767a785ecd71c3a1d9ada2c4d9f53bc5d6822179dd90315d79e2eae"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-89",
+              "finding_fingerprint": "444a8c33e531e310351fee3a077f5699c15b64381fb3528f5ebcb3634a5e5f3e"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-90",
+              "finding_fingerprint": "e44f9baf75356e2ee9e061731883fecc0c2cc751d3ea13cc013caa1e9f12935a"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-91",
+              "finding_fingerprint": "cf6293172db34597b35a794d5335f70f4e396d454fa892dd673205b8c5e5bd3a"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-92",
+              "finding_fingerprint": "b2f7836c8687bfe34b02b649919c43afdf9a8d3725979bbf8b5a055e02912cce"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-93",
+              "finding_fingerprint": "7d6c9746504c9c715806e4f6780e4aff4a2baba50d7fe384e75ccf3272910cb5"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-94",
+              "finding_fingerprint": "18a1d22ffabb3ad8ca1a9334d95f26683bb37f178f84795dcea43bdefdfa61f6"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-95",
+              "finding_fingerprint": "26e2f20d7e385fa3a2f7565119b74adc76e89ba46a86ce1ac746e68452ce3423"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-96",
+              "finding_fingerprint": "eaa4464ba49b49310f518fcd0719171d057b6f224039e161adb9b2128c3bfc11"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-97",
+              "finding_fingerprint": "0ec7d580a95f152b26f2e6efb4840ab74a782b3a10014e3ae38faef14732c2e3"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-98",
+              "finding_fingerprint": "72a81d84a1959765f602011e35dd4c398527604bd2c479d8b023f7db24ce4a2d"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-99",
+              "finding_fingerprint": "723bb89c157e6701535f13b519a9346df73bfbd30aad8f5511865d18327d8926"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-100",
+              "finding_fingerprint": "2b1501138c07bb4aaf1919935cec70baa3581c8c0ca043d85fd76ee7b74c115f"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-101",
+              "finding_fingerprint": "835ca62b8d0906df04a481dd2ecce10d34646c0fc6ccd6d77531eb1090458b2d"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-102",
+              "finding_fingerprint": "f8ae69c47194a042fd8a9878ab4cc9376989db22f1122906718551874ae4cfda"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-103",
+              "finding_fingerprint": "ba79bcaa0383330e28b12d70075ab0dcc5910818a572296bc0428aa5f91e98c9"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-104",
+              "finding_fingerprint": "328a80280e2e7e89f86e28a054c9fc86e52bcb40cae18ce0475e7699982700af"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-105",
+              "finding_fingerprint": "fa0268c73e4ba8754651703e6f6502cb6d96311b3cf8c6a14236bdc0e9c42683"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-106",
+              "finding_fingerprint": "832b966b0524884ed82adcf017ca00ddaa4acdaafe108f62c6415d62982e963a"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-107",
+              "finding_fingerprint": "d25660d9d6687f10786e7f56dea49e7cb04552da7adf7ea6f9329aa10ef61253"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-108",
+              "finding_fingerprint": "97b609c5957ce64ea0114af61db5cd0a87aaecd14cfea60887158d36ec497eb2"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-109",
+              "finding_fingerprint": "568e0b059193c784378dbb98ae7c8fe8d93d718b6fc5f569c2665250dbd66d7a"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-110",
+              "finding_fingerprint": "51dc61448be53a5c1f41f461ed8395a090387aa5f056bcbf07a6010e45b033d1"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-111",
+              "finding_fingerprint": "3269c5c4993f3b0ed9edbc09df5a268053b3c4364ab9512cdf29cf0643cabb5e"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-112",
+              "finding_fingerprint": "0d030db81a3d4ffdb699cbe6431471e2a4ed1456319dfa159e7cf9a021f88b6a"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-113",
+              "finding_fingerprint": "67ffa1abda0e2e6aca1b1e49f10d9ed410ff9867137e2e07b31ba6218cd0b1bd"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-114",
+              "finding_fingerprint": "ad305e2350b0e52129435e8419366d71c772e343d3c579b9fd8de32d94840faf"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-115",
+              "finding_fingerprint": "d08f8418520cd77a3a2dd85411916457b0feb69c628375e14d8b3827629dca8c"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-116",
+              "finding_fingerprint": "0fa61daa3f160474802a1523bbbd9a6881c92d877a10135d90648772c38129d7"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-117",
+              "finding_fingerprint": "fdf1397823cb4c33d266faa47b846181156ffa5324dee189f1101d05d61be0c6"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-118",
+              "finding_fingerprint": "2b4decb2a9737a831e87b6604f3981314e0f05e3e6fe013db58eb75915a79fae"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-119",
+              "finding_fingerprint": "a97d9aadf3232bf5893f72863e2510402d901d80cc32680801896dccbdccd9a4"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-120",
+              "finding_fingerprint": "c55c9328175297a7de7b4b132304bd3fa20d0796ae294566f20ae016aa65a187"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-121",
+              "finding_fingerprint": "687e7290ad440936fb5209cdb7ded4507d6a3f0fd91955cb7219ce7c86f077cf"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-122",
+              "finding_fingerprint": "9c0ec288bcc91b9a9e69cd4e7be68ac7db8d287ac460ba5695fe2bd70496e560"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-123",
+              "finding_fingerprint": "30cefb87e2d11cfac30a6e9f1563142efe0c1aed7cd80d9a2e12878906fd6643"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-124",
+              "finding_fingerprint": "cacd0082da4151f0932c9dff491229564f66c5a238002a9a41cdbe2a199912fc"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-125",
+              "finding_fingerprint": "ab8f15ba5e462ce90fa39c9b4354b7c06dcee305d3f197cdf2feded5eeeadc41"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-126",
+              "finding_fingerprint": "cb1b89ffbafd20e5fff75cb34d464b9ec315a34723ebdc98b7cabbdd0d8f0ac2"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-127",
+              "finding_fingerprint": "897081417f128f4883e01267e8d9fca714e7d45eb000fe321bfe0fed7fa27845"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-128",
+              "finding_fingerprint": "235b0bbd30449ff8a1b13f8c41544da99fc2f44df68011839b983bfeb65ff7a1"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-129",
+              "finding_fingerprint": "c5096fe89cab4c2d2461b41b46f13e58081bb241084bddb317e2a854ab5cf3bc"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-130",
+              "finding_fingerprint": "e9aaec7d4bcafa05d8605d3440c5e07659a97d4a43a709aa5dc4bd204db42729"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-131",
+              "finding_fingerprint": "0d71d4ccce98fdd2a430a35192324fde133e032358fd28ee19959a855d953da2"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-132",
+              "finding_fingerprint": "64d5efb84b3a072caf75161237eacd19d274ca516c69a56a4ca30521791b2b97"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-133",
+              "finding_fingerprint": "c7e4c4f170cc6b8a5347ab37006c5d152435cf5df90d49e4fc6b12b3e6532f84"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-134",
+              "finding_fingerprint": "6cfd4e8b5a20fcb5b6db16ba6155dd83391dea012ab2314eb060ed065b7bb399"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-135",
+              "finding_fingerprint": "852a6865ab86d400ef221d1e2598b97cec869109fe7183f51e304070ef3acae3"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-136",
+              "finding_fingerprint": "a29c6cd551f58bc1a8cee58f246ca46b7c38ba373d5736f6c8daeeb517f46d58"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-137",
+              "finding_fingerprint": "560ca1f9778f37b1a45cc201e30afa21b0df90d2bc7cacfdde5dbc19501af754"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-138",
+              "finding_fingerprint": "d6fdca360b8baa91ef2b69f94014a6a58f7c7add64c11cb57162ecdce92aad59"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-139",
+              "finding_fingerprint": "605eac81dda317efc0083f1e3b1562a8f52498838df529536b6fb46ac7754ebe"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-140",
+              "finding_fingerprint": "f6cfcc936db5af6b207fdc01f4f031c7b445be28596475d3e1d056d8354245d8"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-141",
+              "finding_fingerprint": "847fd1861c7e207b304ed5dbf8d1f88c2a9273682d9301d4e176cc547153d560"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-142",
+              "finding_fingerprint": "d103a0a2e06cb1cd3fb3580bc1d63dc0ed3359ab181a2e5a6e57802bfa3d479b"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-143",
+              "finding_fingerprint": "72afc00ae6044c21f032f118ce1542a1a71f5d626d070e5d568494a5a5d0b3b8"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-144",
+              "finding_fingerprint": "2d3af2ef1d057c44d5c61ca5a34352c2a7540804f0c1dd0d74552c293010d2f5"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-145",
+              "finding_fingerprint": "a0b780ba609f2e9ed2dd4996d44de0aa22bda996d625ea5d8d9d34467a47f746"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-146",
+              "finding_fingerprint": "c78ba15914dab0a876144b1d887bb776696d36395a6398a088d4d0f19d711c12"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-147",
+              "finding_fingerprint": "15eb06e1d1edef187f3fbaf80a8fc68b9e042f82f88535cc450e7357e4619a88"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-148",
+              "finding_fingerprint": "02de56ae03edd671dae6444eefe29397caefcff811eb683239c6f69f561d446e"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-149",
+              "finding_fingerprint": "a1619478b0828d07b4e4a75026a1b01d425a7b93b345527d86509de50db68ae8"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-150",
+              "finding_fingerprint": "2a627540237ad90189ba8aafbeb214c37ed364b1f876e5cf8a82f8e11b9247b4"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-151",
+              "finding_fingerprint": "dc7f5210ca31fcc1774d44e4b1e52ef71bbfa44b07918ed7ae075b2917e16350"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-152",
+              "finding_fingerprint": "fd7d602d0a05e3a9e9422cfdbdc13d80f5536b98ea0cb31c46c98d3e27be97f9"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-153",
+              "finding_fingerprint": "3a6cc6c1b115a83a35fdc1140ef48611fbade166394b99136f53a9c235a5ab28"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-154",
+              "finding_fingerprint": "3517f1c8dec412c33e0bb4ad39de6d5763df3a0601a91efdb6d3fd1ab41ee766"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-155",
+              "finding_fingerprint": "7c5aab18b0f12110b676371f33ea12a6683706e13f19c8fe31c0d4018fa657f7"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-156",
+              "finding_fingerprint": "475e664d7b03e078d890bfea45a47137e27cbed586b02b0d619db93bb5f68048"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-157",
+              "finding_fingerprint": "5ce82521e6358f5c4dff45d219d0609df4b91acfe3e9339698470f9b08c1b4d4"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-158",
+              "finding_fingerprint": "c13dacb658a010a78237861243af57e92ae1afeaf99b963022c49ed1ad01c5dd"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-159",
+              "finding_fingerprint": "7295abde3ddf44e6cf1f63614a0a00e1c0cee3c080d52f227aa7c216b8264003"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-160",
+              "finding_fingerprint": "d9af4f34d695e5030e4e60521e2d27353ad2e70152d4f8eb805ae392823153de"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-161",
+              "finding_fingerprint": "4867a8b463e38ef34c1583b7d26d32f8a5bb5abf8c67536449bc73c4592d7dc4"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-162",
+              "finding_fingerprint": "444f2c9496b8b079309902a7f732b123e9f6f9803be90ee2e4076ef5e6b300c6"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-163",
+              "finding_fingerprint": "63a1436780bed36c455889b9c775bd741c339d03752991ed28f280477231d994"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-164",
+              "finding_fingerprint": "f4240f0cb47d5f8c8858c26e7d590e8d730d4b25779f84d72725ac11489bc1b8"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-165",
+              "finding_fingerprint": "e1462eea8f101a32c0eddae5772000df3dfb92873ba1baa10a9ee72ae43c7cec"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-166",
+              "finding_fingerprint": "ce51a7a3bacc6c72f2f4dc515a8205071271b52e62dd216e7963949ab57059cc"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-167",
+              "finding_fingerprint": "1a105dc632e4bbd41e4aac8dadcb31b2def07bb5965cc89964edac627e763c0c"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-168",
+              "finding_fingerprint": "d004fc3b4b30d35222234d46f63b9bafc062e1fe1e5cb7ec7537c93dd2c2aa28"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-169",
+              "finding_fingerprint": "4f319722696975316bb389620606e4f2f25668f0e9372d351074d07b7a28e735"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-170",
+              "finding_fingerprint": "9fda74c65b1aee2000b19271dd81ec27a9a68822baa614de01435b23cf737775"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-171",
+              "finding_fingerprint": "dbb0de4e4e706d19deeff40d32db9d9282c464139af90f620a0e6606e30b7e1a"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-172",
+              "finding_fingerprint": "2d7b82f241ca8e0ccc14959cb612e6e7b2b6339168fa6379bb1c65387bf0e570"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-173",
+              "finding_fingerprint": "eef8e00cbd8f9f535d103813387c497840bfdcc92a979686250f1a4250066a0e"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-174",
+              "finding_fingerprint": "2e9ecb544e2f4d92096c75dcb1736e6ccd98f65068af367a9389f4b27b3d9fac"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-175",
+              "finding_fingerprint": "4e531c6aa0d4db66bd7d001b5ce2cc8856590b786de0aeb7a41e25664840f279"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-176",
+              "finding_fingerprint": "fe1866d761b23ebd8ef30b9eb71e1e13af679c16d11749bf9eb7146f94b3be81"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-177",
+              "finding_fingerprint": "ca76f6a7f1d5fbdcab0e9b22dc76f7b4912061bafd637becc2aad41bf90ffbca"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-178",
+              "finding_fingerprint": "78029bd6cdef6133b6386569219ed8410c2569f4d83dbdec9e09728b08bdbaeb"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-179",
+              "finding_fingerprint": "09bd08a682ebab712ec3cd44d22a3d6ffde2b76178785aa46e037e5c9a9fbc3a"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-180",
+              "finding_fingerprint": "e350e3788b460d0bd9329441023dc3faa2e9d9d6213d42c968a950d2d9069fbc"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-181",
+              "finding_fingerprint": "c9c95c5d3861a52de94cce8dd015ce4cd1054ee1662913dc6c6f3e9ace4736f1"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-182",
+              "finding_fingerprint": "b9cb323a5d229290cc02d253663147fcb9b5c894d1bae6c444e13f7792ef653e"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-183",
+              "finding_fingerprint": "18f1155c6b1c02deeca264a1947492da625cdaf879292083d1537254f072d010"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-184",
+              "finding_fingerprint": "bd9ab36a4aee95ad920fac8beeadeac1995edaab91c7f1022f824e32db03b0b1"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-185",
+              "finding_fingerprint": "80d624bc441f929782406b9dacbae6cc82a5a8f9b4076c5eb11a02dfb60ad90e"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-186",
+              "finding_fingerprint": "5dab703f6026398c83cd1c21968a5c3182777270024386f9ff19f9602bada5cb"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-187",
+              "finding_fingerprint": "ddc050a5373dacd8b24d7f9944cfbab15c80b39ae699b5c671105a2688f32dee"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-188",
+              "finding_fingerprint": "f34bf7d6fc45e3bb0e7f647c371f94e2062f29e41560aba8f1065518d7e77224"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-189",
+              "finding_fingerprint": "27adc51839899ce72309aea4ef2876a8726e13a20657c8b6fa5908da9c82a564"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-190",
+              "finding_fingerprint": "d6611e7e0a4f4f6272e748aa25718646a4a037d50162ec16580f467efd4da80c"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-191",
+              "finding_fingerprint": "61023d17e9bdf99d0012a747bae72230b0d47c0acc8cd12517809fc630a24aca"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-192",
+              "finding_fingerprint": "a5e5fab735e8af2b63ceab6107af83b60cf16a10fbbd6bd117f96e5fd6373230"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-193",
+              "finding_fingerprint": "38c96be893a87675f83d61444a2bb9a41879a5d3009b6d3f50b64c8ce5fe78cd"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-194",
+              "finding_fingerprint": "52a8e42bcf1e24e8652c76a64ed8cf81193fdba70db2f345d8e95591bf31fc22"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-195",
+              "finding_fingerprint": "7a75a6fae1773dd84881a2356935e662c9f8b598ac1f997630e8df529cf7750f"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-196",
+              "finding_fingerprint": "fa848db2c19b23aef994b91417ef6b304ed7f4928bf3905a0b02438316a8f8aa"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-197",
+              "finding_fingerprint": "3219e12fb8da486327f513322ab58d00e4fbf91ddbc9030b1d2b3dcfc4f4c7ee"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-198",
+              "finding_fingerprint": "680f572afc8ffa97ac1977fe106c706e31c0e13a9fd01d75c9847b84662d9f72"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-199",
+              "finding_fingerprint": "17c83a0cb157e7e9f5c31e64798f9dc06a8588d59fe0a43f8f093ef6bcd89d1c"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-200",
+              "finding_fingerprint": "71e814c91382e73af0df2d2b5d3eb583cce3e25e76d6f136a5ab34973e99c6d4"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-201",
+              "finding_fingerprint": "548cdbed9dcb571fe0b11cdcff39160a838704bb301fa9b2ea6351c09a20aecc"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-202",
+              "finding_fingerprint": "2450198dd7ac85a06e8a07d5d2c643f366dfc8046ef0dd5eb9658e8d3ba272a4"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-203",
+              "finding_fingerprint": "16d343bbc01ef477a48eafc4189264f44b1003c8ae2fc4ee392ce052dfa10ac6"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-204",
+              "finding_fingerprint": "7336a00d0f4a4139ee49d5b71cc6db4400d5209fb2e4a833b6cb08327454d2db"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-205",
+              "finding_fingerprint": "352dea6d9c21ece5ce5e50cde6016a3eb0e71ace1f0c786f3055b38cd47488b1"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-206",
+              "finding_fingerprint": "d5e6bf0b1b13285e87de0f89e0365e833f9c04b39d5c931f4374126960da864e"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-207",
+              "finding_fingerprint": "f8f42323f407658aad314b7922710950691f9d847b0256bd903a9e522a50bcc0"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-208",
+              "finding_fingerprint": "cb0f2dcf181f2af9a6685d91ec06187e325c6e8fedcd6a520d4ffaed8b01eecb"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-209",
+              "finding_fingerprint": "29b949cfea0cd71a4cad2ad8d0753b384070dbc7d8089fb41294939d9d486b61"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-210",
+              "finding_fingerprint": "efaac1efcce210748549efa900adce794adf14415835415515d30af6c9776571"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-211",
+              "finding_fingerprint": "487a8c2be2281684f08ee89ae8f1f6dd4ac2d1f92079d5a0f00a446ac3d589c3"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-212",
+              "finding_fingerprint": "76e4a8a89c129ef75934eb335b6d3f342146d09b06a1fc443aeb4a46cbd84120"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-213",
+              "finding_fingerprint": "690b8688284418dcaaaba1c28f3b00c624eb3593c1aa1ae67e794c8bd960e269"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-214",
+              "finding_fingerprint": "6f1f298e5424ac5d262b22be35eb6609f3a1e07917ab2ec79394c5a2de904da7"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-215",
+              "finding_fingerprint": "7409fe037a556b5e011a4ef5fc3ba8d68f590c6583f79481d47f0060918c32e9"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-216",
+              "finding_fingerprint": "f8ffa24ae7624b3f1f9e452ba44a462996af4a63233e2ffa5d053aac119b7df6"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-217",
+              "finding_fingerprint": "4922125937af373422f422e4aecb1abfe467674a9d9836dd6bae96cf500614ce"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-218",
+              "finding_fingerprint": "a6cdb65aa00995e80c256cc26217731e8936810b45c1fac72d9e8c76fc80799c"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-219",
+              "finding_fingerprint": "b77543c1fbcb6b4175ce67d1a4c4be292944ce72ab411cb77f467869c2d0bca3"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-220",
+              "finding_fingerprint": "65867629864fc7abae9abdf2c0595c06312898d3c1314091e2c595ded7bbdd28"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-221",
+              "finding_fingerprint": "1d37803e2c9c7a43d4eb82d804e01355accb27cf871c23ea8e7f687d01b98b03"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-222",
+              "finding_fingerprint": "590c922e61b90bc294a6c7c0e29544320176430360716581837f9579abb03c7d"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-223",
+              "finding_fingerprint": "d8d4d6ede0b0ceab50afe4904c10d6376fe177644851df272ef31b71fab39c66"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-224",
+              "finding_fingerprint": "7e2cb95115ebcec6100e23b0d9ba1d7cc41d419fbdf690e7c8db7eaf067b1336"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-225",
+              "finding_fingerprint": "7cfa756df4c930a4fc93ac493412a52261a2e33611dda136587c2a91354a37fc"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-226",
+              "finding_fingerprint": "3b15806938b66059bcd4bc3593a41883a3b4990186153953e3cb5797944f5c5e"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-227",
+              "finding_fingerprint": "7a0d19e01caac36c456aa58a7e16148a01ac2195a51f0e865b9eae40e8f39b4c"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-228",
+              "finding_fingerprint": "c4ba218adbdb436f50932607fa7f1e135919b66547ac4e04fe896b0f3a54ddfd"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-229",
+              "finding_fingerprint": "d775b206de998b328b558bb43e866a5edb4dea6a6cd24da6b6adb8eff020bfc4"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-230",
+              "finding_fingerprint": "2cb4c88b6016ad82ad601f954b8695c86a2c09153532d4dfe5d0e6e0d7e7b933"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-231",
+              "finding_fingerprint": "78c1ef6522fa4443ed0aaa4e4dd5b8f71d1da88a0bd3da4c5abe9ce6aad3bb46"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-232",
+              "finding_fingerprint": "ed31d13fba43386bdb3626d5b223f8573cf4feaebbd474528bc03b03a31cbce0"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-233",
+              "finding_fingerprint": "e9fcaa3722c7814bc7883f30092e344b01396270bbd37b08d86faeb395469b34"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-234",
+              "finding_fingerprint": "627965b737d9ddac2057d965119056627e915f2a8315277464ded3dda677dc3f"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-235",
+              "finding_fingerprint": "e293ceb387a26d83dda95292d731639917382a5d6d1d904899e145dde09ce294"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-236",
+              "finding_fingerprint": "0597b56d35d3fa20cff691ff27c389912137a185af53072b71167122d3c3b9e8"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-237",
+              "finding_fingerprint": "35dbc0df0c7bf1854fa9a599e9126a46975050364b57ec318c979aee59a47b12"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-238",
+              "finding_fingerprint": "230cf7e0d3106a960cb613c90250330152457f8f5770aabd34ac130b24cdc326"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-239",
+              "finding_fingerprint": "26040acdecd839db61cdc4371c95c682809e270abe9eedeb2efff9d19e175230"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-240",
+              "finding_fingerprint": "e23b4b9d7c49c3803151edbd5d5afd7f663df5983cc97f4e4a809187d6742175"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-241",
+              "finding_fingerprint": "e0843fc8a0d5b7920b54ecf117fb89629f854e1392b55efa0dd103a2a5f573c5"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-242",
+              "finding_fingerprint": "f05c3845f1da10d0b00d2abbf134d7793975454f4308e7aca175a9fc390b49f6"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-243",
+              "finding_fingerprint": "e614978a7815a3ca93da8faeb5947fb5a51e4d61d699e98773f1b897790add84"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-244",
+              "finding_fingerprint": "af8e76699d67ea4197f15484911800e738ac93a639e25d8547292ee882e8aa6a"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-245",
+              "finding_fingerprint": "b76c7832f3181117bbe1ef735b80cbe56bd3027bd4b088b14f9453eb63925b1c"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-246",
+              "finding_fingerprint": "736b2dc4284b4f032d34601d882203f5031963cdb7d60f967b5f4e7ed9406cb3"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-247",
+              "finding_fingerprint": "f40274e98820dc47db743aa3c934f9b48990b65224eb8c09c3054057aa8e7d0b"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-248",
+              "finding_fingerprint": "6693df0dd03a14b0473b4e83f63f6f8849e0ea6fbc595a3e8c66ef1c9b19d4ef"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-249",
+              "finding_fingerprint": "ea0de241a628fe8e484de55060ae1adc8066438f82fcf1bf0bdf2e5239e6adda"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-250",
+              "finding_fingerprint": "fdbfe793fb06239677ec67f87b7e79648bad9f2aba560bc1b39f2aef9d8219c4"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-251",
+              "finding_fingerprint": "2881d1eec142fbbf0f933099d3fb69c10140bdb026a1a9de5d4ed939e8ad0e64"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-252",
+              "finding_fingerprint": "58afbf0acf3f12e5440c5008e9b14baf40e9edd79b1edb90c4e303d488cece65"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-253",
+              "finding_fingerprint": "97f0f111a409eeea9a72ed139fb2892d8bbdebcffd87ca0b2b9684877657b285"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-254",
+              "finding_fingerprint": "364bfff37853fd88978fa89dd57565588fd3265f53bd3dd5837c5e8b9f37b385"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-255",
+              "finding_fingerprint": "2be293eb59d0e12ea927f8f4738a51595129b035dcfd3c8bd5c952c65e1b0e33"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-256",
+              "finding_fingerprint": "73ca3932c07ee87d29f5887a420ad009d23cd20da9b3bd679604140fe811e9e1"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-257",
+              "finding_fingerprint": "935dcf0f88fe6d354e5ed5cc9fe22a179a4083c411a94e7b0039ed1dc75261e1"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-258",
+              "finding_fingerprint": "380e6240be18706c910baafbecda133d234bd7b169f7b7081c64c6c62cfda094"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-259",
+              "finding_fingerprint": "298791d73cc0dd3f3c1eb3fe2f2c36d9fc281d47c13db7684fc13ea61c723ec7"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-260",
+              "finding_fingerprint": "a59b7f133f6a5866ce90212174eeaa9a6ac0b256e16485c2a6fb6cbb52460d1f"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-261",
+              "finding_fingerprint": "b4a6722b1e5f05e108d7992724bc954c1dbc186c5ede553767cac597b412dfc1"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-262",
+              "finding_fingerprint": "a7e2151849c5b56428b48e103f3d7cabdbd72e770a326d94b997ed01923cf288"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-263",
+              "finding_fingerprint": "1594e82da2bf26a5a46657d36ec29f9ee78ddefc2d151a7139f8841263a3abd7"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-264",
+              "finding_fingerprint": "ff4bdfad3a789591b6f889a077a61aeaa32b42e320060222d058789476f7192a"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-265",
+              "finding_fingerprint": "c763d25156d926b1f34e207282949a575e2671b6ca411d4a0bfcb480e5e85348"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-266",
+              "finding_fingerprint": "f5d9e4dc1edbd3d7016f8789278e7cf325441e848b9af48e0d2e6bd51b90de46"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-267",
+              "finding_fingerprint": "9a2c892450255b6c99c141335c6789dda2cf44e9cbf46f151800665c3f1e9b5b"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-268",
+              "finding_fingerprint": "0bb942ff31060aeb85e14e8726c3d8bfec0fe6ae5de91a8e11390f757d674471"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-269",
+              "finding_fingerprint": "c6b18ecd539f495ef068753538802e861fe71b3a7678ca4cfb0325e4e9fc0d8c"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-270",
+              "finding_fingerprint": "85c0dcc80d92e2fa890b1d9062637db32e48acd75d72e4d9aec2e0a04daaf620"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-271",
+              "finding_fingerprint": "66cd0cc2c642286b8eadbab48b9a4d2b8af00c9798639e0abec7bcd81b61d8b9"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-272",
+              "finding_fingerprint": "2b622e6c98d584e5400ada19117249d4439f7cb5cfb7c15c779f0b28227c7d07"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-273",
+              "finding_fingerprint": "b9c849b3ae1d109b71f76c859155f9e798a4881b81e74876249cc1e9521bfd86"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-274",
+              "finding_fingerprint": "c06a4a69e18f44da37952b65cbdbf50951bedfc0fef13b9b2531d45dd8197b55"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-275",
+              "finding_fingerprint": "1fd676c6e3f6727ef4bd9b75f899a7205bdf4f97533f13c42895959c02d3d0f0"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-276",
+              "finding_fingerprint": "a7853d387b2dc9e3f9dbcbbea4f279136eb613bcde9620d410a193f2b706811f"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-277",
+              "finding_fingerprint": "5c6861252620afc305e6e19af97d2797217784b5a1538591b32719708f55fdce"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-278",
+              "finding_fingerprint": "0964044d987da1e59be35a612cc69087ef490a29a8b0e63faad7ff4d968036c8"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-279",
+              "finding_fingerprint": "8f64e10492a73fee77f3eb10cf76624de2a6f2af6d60d6f092d7fe80a6a2b8cd"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-280",
+              "finding_fingerprint": "a67df3017c9b4bb0d4dbb481604a6b41332d872768b025679bb47b9714724e18"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-281",
+              "finding_fingerprint": "f96f87638345ecd43ac5bc0cafc3f43ad8fd89f9955cbd346c07490fc0afc204"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-282",
+              "finding_fingerprint": "0a2aeb921b09ab4d4dfe531c0742ca36047548d100c477566ea89d564959b7af"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-283",
+              "finding_fingerprint": "11f3b20dae203e30e3613d973493f74eb801b9f10160e7caaf58c51eaa863ccf"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-284",
+              "finding_fingerprint": "966d6fc77c9f83ba5ce132e4bfcd1c26f6ee15552135623c9bbbdefc69c29a47"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-285",
+              "finding_fingerprint": "52e88eb564f16885c076418245b5a24f2e849ba16757feededc764b8b6266220"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-286",
+              "finding_fingerprint": "d1469d20fd50760acefbaf28ca76c64e26733c2d08711650035cb54e47b107c8"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-287",
+              "finding_fingerprint": "8bdc73b26767edf8b31a35cd2100217ce51251d9c1d9dc33c3861dec39f2fc86"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-288",
+              "finding_fingerprint": "0e9f36270f2273175bdc3433f204317215a8f9dc449d69d4f4fb81af9c635406"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-289",
+              "finding_fingerprint": "cefbc9bfb3bdf3d4a27efc6050cc48a656430fd8ef3e6d464f27ef12f6d71182"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-290",
+              "finding_fingerprint": "ed4791aa98007434e26386fb296ade2fba090ae04b9ff5b170974b74a16a101f"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-291",
+              "finding_fingerprint": "ab0397e4ca10dbef4ab0e3891d66a615ba1d45fc418b93ea2a1cd5ccc4027054"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-292",
+              "finding_fingerprint": "048288dee60aad16e975744030a2dbd84bae5ce7b29bb56bd9075efcf91b64f1"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-293",
+              "finding_fingerprint": "9681eff4900817097d4d609b1a6a16d811a6be440a2f7a00316664f9861ab3ce"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-294",
+              "finding_fingerprint": "08df474e9d811103e997a83ac9af083241dda107884ecf480fb9d76926c3b832"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-295",
+              "finding_fingerprint": "a6f06a0227552a5a2a263ea6ce9562b977baf3266bbbfdb42de7d6d6b085c9d1"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-296",
+              "finding_fingerprint": "89ec1d70bf38f6bff8ff01eb3b2e2f63a2f87246cc242978bb237cbfe6c772c2"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-297",
+              "finding_fingerprint": "3b8649113363eaf667aac34d9b6beb0637815f620892d16d1ee4c73042e4e4f7"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-298",
+              "finding_fingerprint": "cef516a5656f008153daf5cae8c846a5b3758ec6de15d58510f39c99d88efaf8"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-299",
+              "finding_fingerprint": "1dfebf3b49b9b6dbd683f2fc2dcea9fc3bd75ad8ac860b9d1b8d61af697f9c82"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-300",
+              "finding_fingerprint": "8cde0b160463ec02f5c9dd939f7799854f7883e36cc4af14f2725fde579110f6"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-301",
+              "finding_fingerprint": "9ca85c4cedd63dd53daa0e6a7a8dde96cabcaf055623eb89d6eeb7d371c88f78"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-302",
+              "finding_fingerprint": "c184f8974ce718e2f65ab546b414c3dbcf8df7006044d6fbad3d2a8fd05db542"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-303",
+              "finding_fingerprint": "2020ca7ba3a6a5198f2bd2091e06f2092d0249ff3a13e49057de7fda3b5ff78a"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-304",
+              "finding_fingerprint": "94b35f8ba78993db17459e8715078940aed3bf416d2ab5cb113a36c3efbdec2b"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-305",
+              "finding_fingerprint": "fa9d2cf7a2717aad8e4425cd6a50e745ed3030fae101bbe0d71b0e15f52b5c92"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-306",
+              "finding_fingerprint": "243944966106bdabe86f337e8ab56398808af1640bec2cfe64c740c63c4afa41"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-307",
+              "finding_fingerprint": "1b0ea4760b88d340a960059465b749a0d4cffa6d68355eb202b3be212b605f27"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-308",
+              "finding_fingerprint": "7b758224e5fcf4b113ba47ae98e9079bc27fea284eb9e5bb82e6af203a00088d"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-309",
+              "finding_fingerprint": "9fde8e5f19b8c2582bbfaf05921e115e65a221a3f5c9eb9188cdf3f9536b84a0"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-310",
+              "finding_fingerprint": "61db6df2a2695f3e23784a444d08f0396324aec7c0e5b8a474720c885f0ce186"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-311",
+              "finding_fingerprint": "10f83f7c0839ee5215f88fc5bb34e16566aff4d90f4c03c22002dd80ef86e922"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-312",
+              "finding_fingerprint": "4b28adc12c3d9f7b83239980749c66542c9049600edc615d704cd61a54f9dc20"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-313",
+              "finding_fingerprint": "9563608d466f93a49972c2d98300a8c28bc8300ae4690355b14dd75bde0f63c8"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-314",
+              "finding_fingerprint": "1e3eb707e6d430b3d6394aad105cb919fb2f4688447297adf808163c3646ab5d"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-315",
+              "finding_fingerprint": "219e9242ca8f3f9400e34fe2274d6b1608d7b66967c1f59a10d3a8b884721782"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-316",
+              "finding_fingerprint": "a44c2cc3a416f6904f17086c8ed4a27e6c308c536f8503ef9cd46af1bb5b4d0a"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-317",
+              "finding_fingerprint": "22e551c2ce4b7a8bb8ce48401480558a539211d6f3c0774dab578529cd005441"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-318",
+              "finding_fingerprint": "43b031e3b4b66cb283a1d7561a6fdab3a71ee2fd85e0ea5ff8ed51c152c1134d"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-319",
+              "finding_fingerprint": "be0ac56803318cdd65c76956dd595b0024faa4ddda8905a2bfbd99e71b1e3f0f"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-320",
+              "finding_fingerprint": "dea6db262ef2c560ec5ca379ff91369679bc8cbb3f961de0cf0ff88f9ece8733"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-321",
+              "finding_fingerprint": "2543c600681212bbaddad4591c87595030c2b1996e8ef1d800b2ece3eacfa68b"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-322",
+              "finding_fingerprint": "fdd38ae0250ddadf851bb1dc68ffe49c12c8d4f17d8d166fdfdade9adb726d47"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-323",
+              "finding_fingerprint": "d82b2502522c6902927f3ca0c1d0210e2171023dcf2be7831c83c7972ba6ad0e"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-324",
+              "finding_fingerprint": "8f1fc4d2609d37b40b4b85a49610d2c07c7fe7daa53f826b003e09319f2b533e"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-325",
+              "finding_fingerprint": "e0022b622fc4f68c4e069a5bdbc2f8027c4af8dee8bb8e544401b47b1c53dbf3"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-326",
+              "finding_fingerprint": "d76e427098e4f65e561c5854abb09ee9347cd257eeeda4b571a29f1e3655b80c"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-327",
+              "finding_fingerprint": "85b4be0d9cac4af2b2f51b56619c1944c70dd47ba78461d32501f54855e68d22"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-328",
+              "finding_fingerprint": "e4072e592902a331299a80e1a9f921203c235a57e6f16d66df1af2af94573c62"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-329",
+              "finding_fingerprint": "fbbdbb90e00ad68b9d54d0b4d88a3ac2a526f9ce2400e025485130510228a569"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-330",
+              "finding_fingerprint": "c22b77b556c7f3747eb3693d589007249164655e2c3ceae070456db5a52b5b7e"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-331",
+              "finding_fingerprint": "0a2786cca72ef7c57388d5581d10af929f0d77d6aee12bd45e096c00b3f0143b"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-332",
+              "finding_fingerprint": "7d803981b40333abecfa34020f8b33f8d14f48a689d358f973426378df3bce22"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-333",
+              "finding_fingerprint": "0bd3344d24ef84b14aaab4800cf7a74fa240e670cd5feec0d3ae0d2db7916cf3"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-334",
+              "finding_fingerprint": "ffbf43e656707a3d00c399391233c34ce4082ed40704e2e13e1f33312bca890e"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-335",
+              "finding_fingerprint": "a8e1b216cc35f7a368f225c3d87f369e820adb24868a6c81b5d409cd17134e25"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-336",
+              "finding_fingerprint": "047c00dbc55535e686a4952357b56c3c29c28c49e109bca10e73679a024a8508"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-337",
+              "finding_fingerprint": "88add4b3fe0fd2f6edd160aaaeae108927e7ebc83571ffdd72509664ee6b8bf9"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-338",
+              "finding_fingerprint": "649a4d5b2f015b7a3aa635cb28566388dfef503712294b899ab85988941236d3"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-339",
+              "finding_fingerprint": "aadb856322903ade50e61d31b4be89b787b78358b00234968990c3a029545376"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-340",
+              "finding_fingerprint": "d4d6f971f1aed695ec8d2cb3ef40babaab9383f352f9140f5fb98b37bf3624c8"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-341",
+              "finding_fingerprint": "7476ff41ad2ae6307bbdff28d018aa25c50ca37f3469ae2b3bd99386f0750147"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-342",
+              "finding_fingerprint": "68d200f00d83d920b87c0c92aa11f120e73439f645b331728e86bd87ef719225"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-343",
+              "finding_fingerprint": "6a97a6b2520fd0dc24a9115acdc8aa1d9648cadfc75244db9e992de4cfe37cdc"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-344",
+              "finding_fingerprint": "5e854498ddb701f6aff6d1a621400d0bbf9ce6de9fd29550609f6b6b6951538d"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-345",
+              "finding_fingerprint": "003867de0a346eb2925b139b01841a2a79ee9ce31f43e16208bd9525ab5b2460"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-346",
+              "finding_fingerprint": "a0e9e9e1e62609aeb5be427145071cafe240e79e46831fb03d357947d6906a33"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-347",
+              "finding_fingerprint": "7028e73ad9d5dc10e39ee747f64ffaeccb870ed7e4aca3376bb4c7b1ebc49528"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-348",
+              "finding_fingerprint": "acd26935f5b68ce53568ae8e2b0314de21d69b3aa6a3dcac9b9ed89f812309a5"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-349",
+              "finding_fingerprint": "d9e7eb83f635b3d1cd48922fb5daececc70a93d355dceda4fed86c3b879af1c5"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-350",
+              "finding_fingerprint": "cf432ecc9ce900eb83de874e65a22147c55aa6b647deb9422d0f3e50a2490a0d"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-351",
+              "finding_fingerprint": "33a3f0dd37eb2a8cd143d5504d7d00ac1dd98fa7269ccbcb49ac6f5cfd1357c8"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-352",
+              "finding_fingerprint": "764a82e0a239e78340278813868372e03f715d11f2635ee94b63218f800b3470"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-353",
+              "finding_fingerprint": "82492470434afab7a890311e19c16f5b77d947e5e04eb2ca0d2e72df6cbecaf5"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-354",
+              "finding_fingerprint": "84e5793e7032dcbafaaecc07ebde71019bf7165f7b564bf6fd88edfbaf18aef7"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-355",
+              "finding_fingerprint": "ff877eab3dca7e836e8a48cb2182c6dfbd06e0235d32acab4d38a4960c67fb70"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-356",
+              "finding_fingerprint": "69783d583743763fbe2704603e35ef0e28e07571bed17f4001dbee33015dad22"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-357",
+              "finding_fingerprint": "c46aa8eb08f8c2eb6952e16b19b5fd02da1bb03bfb8147de08d064cc47a07e03"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-358",
+              "finding_fingerprint": "0a55102a861654f82406749c331c1bcd486bac81aaef8eaaf93e9e74a83b607a"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-359",
+              "finding_fingerprint": "a20217c0e85da863568b4baf142eddc3ac1235166100b3f54d045998ee06d3cb"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-360",
+              "finding_fingerprint": "40a49f7e4ad76bb9c85acf09a43e4e3da490dd3ad1ac7377512b174886fa1513"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-361",
+              "finding_fingerprint": "aee78e40bec13e6ef057bddac05ab7a4e554f6410d9c80cef0c8bc666c0e3145"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-362",
+              "finding_fingerprint": "098d3cd35da11dffdbde218d3effdc46a4b3e2ecef9bd7c576936d5a0563c8da"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-363",
+              "finding_fingerprint": "bcdd4e5c98d7cf9af5ac18a5739e2d9d3a0a58e67a4c78bf695c96004fb59713"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-364",
+              "finding_fingerprint": "f138ae6ff389a4d36b29489bad576ef881fbeead3741de9218ed706b271a2cd3"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-365",
+              "finding_fingerprint": "c9b2997774479178a990f54f22aef7ef1280f71cb370659f7b23c6d17462e674"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-366",
+              "finding_fingerprint": "c14421f2bda4792d1a7c52e1076f8c2654f742ee4aab91e3aaf6ee5c8df3580a"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-367",
+              "finding_fingerprint": "3afd63f1e9cf446472762836a47fe90b1ad9c789b5d27a533fdac3f4f6f2e5cc"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-368",
+              "finding_fingerprint": "1ed27691e65cbc2f894667472449e91a8c534a081b0f3f0d3ecb82f34cf8c7ea"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-369",
+              "finding_fingerprint": "8543bec7bf69498d44b259b86c56a8d295b4990d9f38817aabe0b817b67d8d20"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-370",
+              "finding_fingerprint": "139931afb25b3cea900cee15f43cdfb577adcc5a16ab782a3a2ee8aa78431537"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-371",
+              "finding_fingerprint": "e73f89b2c5c4303409971aa5fef46061b1715f1018f0a21fb3a8511a8a6125f6"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-372",
+              "finding_fingerprint": "b02bc4582ea37b18641eb43bfcbbfd67aca06a1b2728202460e6c5bfb89d5675"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-373",
+              "finding_fingerprint": "aa44517bf43a76399791db3479defa61354366c6fbba6a930ba40e80a146a159"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-374",
+              "finding_fingerprint": "81b6ebf4859f2f12d45afe1e681cac92d039dde9ce0b98179736fd147c7f915d"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-375",
+              "finding_fingerprint": "e494aa621222cdbe84f8366aa52a218e923630a2dd969fdf8bb83a1db680f7ae"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-376",
+              "finding_fingerprint": "78be867886d248004f157e0d570dfaee0e475b00dab883eb0fec30a4abc88b18"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-377",
+              "finding_fingerprint": "a4daa6c2ab210321153330c6ead894a549e1351ecf38b9f00be085fd9385b485"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-378",
+              "finding_fingerprint": "c9fbdec5518dbdb7ae61990fadd1765c2333fb19580ed3603d6e2607f89e9942"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-379",
+              "finding_fingerprint": "3a6907a191b270d8c314a2b882a2e39a5901cd8d674834a3b6bce0fb62c8206f"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-380",
+              "finding_fingerprint": "78d2c395c9870891a687c89ac036ccca25a73ac5dd295c06368b45bf5157c02a"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-381",
+              "finding_fingerprint": "af09ec227d04845317bf1da590582fd0fc042ac3a8ee976c75bb2014fdc8875d"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-382",
+              "finding_fingerprint": "7cc4d5d3690363a353d451bf2544b67273537a59fb171bb1ac2ed5309983bc8d"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-383",
+              "finding_fingerprint": "6354ca911a67a388292a249b08e08e8c2d8a471499bf168362bbafa2186d7eeb"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-384",
+              "finding_fingerprint": "6ee55f85978be5b034d5980563f632dab6975ebb591ff36b871828375f1584e6"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-385",
+              "finding_fingerprint": "17de8959c9158cab81b440966f290344f70a2849ca8f1aa6c0e31c65b3369e1c"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-386",
+              "finding_fingerprint": "eba09143c2c28b425a8aaf06d22240cbf29537c2ac280c6352870fc21a316b0e"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-387",
+              "finding_fingerprint": "d4684a8a9067e80b24749f3af6a3f5d1537bd3595236842d0898a9e1d63f80ff"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-388",
+              "finding_fingerprint": "a59b4bd58e41a4c559bbbcb9cd00882f88d19c7dc54113f7b84f95fb5aee3752"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-389",
+              "finding_fingerprint": "b65ae3434a1cd13e9317b141ba804480f195567702bc1fa9f1fbc7886c29f867"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-390",
+              "finding_fingerprint": "25b8c1e731888c70d17b5c53e550a20768dc3cfac7df15316ee32391693075d3"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-391",
+              "finding_fingerprint": "798c0e0ac35bff822b1826a462448945c5c2422da6a071b2e9d3265a8aad7ecf"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-392",
+              "finding_fingerprint": "dd09b892dfda4befd881cb96fe428890d1bb6a14df02c0f22b98499aa722651a"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-393",
+              "finding_fingerprint": "b304b9d80e812af343e21f21ed0ab6950d3cdfddedfcac5c2b5aa761b7f7ae62"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-394",
+              "finding_fingerprint": "101ea0b30ea3f8b5866c33a2cdc89805692381755de7c81217a1d79626e66e0f"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-395",
+              "finding_fingerprint": "22e090cea040e8f9a0addeaba51a51c9c20f99e8ea21dc87614b26ceca3f1a14"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-396",
+              "finding_fingerprint": "1c53c53c5d6e64d955017e07e09a1defe037dc268a74a867457463249885bb73"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-397",
+              "finding_fingerprint": "753af6f3bd35e7af97aed32c22573670ac89f7e8c2e4f8be364f6e2a599adc23"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-398",
+              "finding_fingerprint": "5c5b7f476778447b792a4bf80fb9d2016f71742d8c757d69b133a94593f2b8b1"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-399",
+              "finding_fingerprint": "98ab18021a039bd3a0d83bc43e8ce3ea205c456b0b4e4f0eebd92f1089a4addb"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-400",
+              "finding_fingerprint": "e57ca288bdeb225bd85389016f7e20c0b3f1c77b0a7e08d1315149d9c713de5d"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-401",
+              "finding_fingerprint": "39e880855f9a223178e936ecb3353356e83ad11af92819e16aa2696216a41dbb"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-402",
+              "finding_fingerprint": "01442875a1660da51cd2651523f2df82d5ab709a8f9f93b55d1251d38654f8ba"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-403",
+              "finding_fingerprint": "8e85d6b541676fe37ebac2f6018f2b62701272977a49e8b2dd0b128c821f1cfb"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-404",
+              "finding_fingerprint": "6913c5aaa63f3990e637da5413b7fb5b5677d01a2c60baa7e3732420db9c6596"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-405",
+              "finding_fingerprint": "0a49fad3475d94adc0420895e2b48ecaf290dbd42ea0cff29d2567d56d62d7b9"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-406",
+              "finding_fingerprint": "aa8a65f1406ab47c83cf45c4b9dc55c6eb22f995e16c98c585cfb295f50ff4cc"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-407",
+              "finding_fingerprint": "bf6e0e2fc1c540c2f2d280c3248052465ba0679e7624257ae055b9c0381e01db"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-408",
+              "finding_fingerprint": "7cad6d16a268d80c77ff60187c05b82b36c648876da72360c810707cf4791384"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-409",
+              "finding_fingerprint": "34642364bf36892f3db5383e99ff6e4a1087d764c574a419857a10508af6e501"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-410",
+              "finding_fingerprint": "5bcaad8521878c26421e03154caebf4f6e1ee1d65dd98dccdb21e398d2da6300"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-411",
+              "finding_fingerprint": "b16155ac8812298de92735c60f5a14175d032e47dac6cf9888ae20c604083cce"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-412",
+              "finding_fingerprint": "9ab76890db88852ad2ff89d5938908bab9c0e9670be43b839408de3ff27d5c62"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-413",
+              "finding_fingerprint": "f5a44b32456e86068fa110c6b4ac2514f3033c4987a833f11d325b671fe9717c"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-414",
+              "finding_fingerprint": "6d10fcd8418c92d8845330167bedd80b074b4a7062d9a2c9840ab44dda527b2a"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-415",
+              "finding_fingerprint": "0088591294ef52cecc6bbfbbea33d3153cacac30dd3feb348ff4b5dba752bb13"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-416",
+              "finding_fingerprint": "23835400be85ea925b13f13992059bbdb2d4154d99bcb511c663d2ee41d29243"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-417",
+              "finding_fingerprint": "d645003fcb6dd15da0efe1c4858de17454c898b34523caee7d8db55aeec14146"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-418",
+              "finding_fingerprint": "82bc25c73c235647c91d120fb8e53d442359bbd953b7cc086b6f4c4a81ca8af7"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-419",
+              "finding_fingerprint": "056b1c4fb7486f8b1cee6410591a7aa3ca2763b47aaf11dd466fa6a3095e44b6"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-420",
+              "finding_fingerprint": "b3b5a7a293b2690d1b432b1a393ede94581f3b5e201ac47abe6844e5fcaa4e92"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-421",
+              "finding_fingerprint": "def82730a76fc7cf8591f767c17ab3932368b642d8c59f53c3decd6d1bd7a58f"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-422",
+              "finding_fingerprint": "31edd20bb30d70b6c1caf002dea51077c58979758b05657d05247eb3214ccdbc"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-423",
+              "finding_fingerprint": "d9a964327c176e05d6866a83d42428c35e348b9eea13406238da4593d4376d24"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-424",
+              "finding_fingerprint": "4269d88b1ada85627fde72ce94f8b29ed071f6cd67872a167bdf42597700fc9d"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-425",
+              "finding_fingerprint": "cb3952a253bba1da05ce342e350a0ee6b2df12e33a08818791a873c50a5027d2"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-426",
+              "finding_fingerprint": "3f8f82f2411f0a3771afb34db7a46bb83803e9e7f865292a47ec25ee5ccaba92"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-427",
+              "finding_fingerprint": "8b9485b0f9e8ce9d206e49226e89ddaf46056ad053144f0bb22466c8024dd456"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-428",
+              "finding_fingerprint": "2d2d18d18b7ac2e7c92d74d71399edc654c86ad9895d842076563637d8008552"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-429",
+              "finding_fingerprint": "95f898bb4a9d95f198ce7104541b1a2a9306d33bd76b834dcd84be908540fb1c"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-430",
+              "finding_fingerprint": "b70cf81551d592bdcb4eb5053ec46507edb2bee65891b6771c0e3f598319bcd8"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-431",
+              "finding_fingerprint": "5c6d0ef708806528fbf8099f2bc59548e354d05c8db4edeb98dcc5c196327f87"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-432",
+              "finding_fingerprint": "28d9102519390c25b81529aa2dd393177361eb4550574ba17a6efc66fce5d8dc"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-433",
+              "finding_fingerprint": "04b97c1a41b72e5b951097105d51c29d2531cbd7316e929908fc90bd15e268aa"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-434",
+              "finding_fingerprint": "35ab852a3671987ffd732442d64c2d98142468a5b55865112655a0f240b3c661"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-435",
+              "finding_fingerprint": "b2ed201d826fd32235d40a0862ab2f0de02117debc9b553b81fe3e743e3c2d67"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-436",
+              "finding_fingerprint": "6f25ce5330532aee173431abf3438365aeec98d0f5aaf8f9f34283703bf94fff"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-437",
+              "finding_fingerprint": "4f23aad6bdae3d9830b4e0adc6f37501d1dd0d44691ffa8ed9aa0d76c5466e38"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-438",
+              "finding_fingerprint": "18d19d95e4213756a920982c33857b4069cd9c488e2156ab93fbc78868024fc6"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-439",
+              "finding_fingerprint": "159c9ef902decaac2f3603469321a41539ce3e85dcc16777edb49c116d47df76"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-440",
+              "finding_fingerprint": "815b8fe7761ead54f8f20286faa602c080d6e31ae6e210c9dfb4a317e8e1b779"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-441",
+              "finding_fingerprint": "dbb3cd0ed542d6f1cd617ab949f2d249c70669118392a8536f5e010bd12139eb"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-442",
+              "finding_fingerprint": "825783996aa724eeebdca10df3b37b03cd20dce7b517f1f15d019dd5b5bcd5a8"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-443",
+              "finding_fingerprint": "7accbcc431ef64546c59bc8ec259085e5672f06a445fa16600ef1e3e40461296"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-444",
+              "finding_fingerprint": "b86e964af921ddd3a24aadf1ba9fdfa564cf120e06966cec1dd59c88d1e5229a"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-445",
+              "finding_fingerprint": "ec11adc18c584872aa3f430daf356e19fc77579279933e2329668eb3b879b334"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-446",
+              "finding_fingerprint": "a26c3c722d58e53a6c8e4d63ab20adb943f0943d2860de9a84cae526dc40592e"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-447",
+              "finding_fingerprint": "c30e0395f24c0966400d8a69cce4b140f54735ae642b2fa208a3761349027061"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-448",
+              "finding_fingerprint": "5d55cdb29cf74742ea629edfd4fd785e72944590dafe8c11ab5334440f81f57b"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-449",
+              "finding_fingerprint": "d7ddbb562ac44e16d75158b4da0d2c57a8b1b9af71642c4f50ff58d7c41158f6"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-450",
+              "finding_fingerprint": "4947fbb7343c96a321c57bd4a628e88ec273c46fbbbb4566f2f6cb9f61ec5248"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-451",
+              "finding_fingerprint": "69f5f0f6ecbf046a8c47ba21e6202900e7f929f83cd902ce88fecce5d3592d84"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-452",
+              "finding_fingerprint": "0cc02dc0708e6662b8595cbed5379ee1b7a378d2363a7f48e2bef247158b25b5"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-453",
+              "finding_fingerprint": "0d727834d3519e6635b37a8a08f4aecd518a1e5c78e1ee62f15d3da2d45842d7"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-454",
+              "finding_fingerprint": "584d124837449eb34bb12c9ba02e8ef050d37dbb3f3e7305c5c2d970e6cc31eb"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-455",
+              "finding_fingerprint": "f35efa2762cbb0eb53853b40fc5cdf49980048262a3f819ac3389e2ca338a888"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-456",
+              "finding_fingerprint": "33d4c1a9b66fea5f2ca073ab662a62676412a294ab02bd23de138c883177b707"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-457",
+              "finding_fingerprint": "275ad790fe5008f737b6a7c23bde6b29cec5a5dbef7b95892c3cf47c016eacae"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-458",
+              "finding_fingerprint": "b9190b61eca819e2560480b7c36da9260069646fa907063ba192f4ec22e52a8c"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-459",
+              "finding_fingerprint": "dbdb51aa07acbfbb996583c79a8d1cee1132efc29153777f30e39e95338c88dc"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-460",
+              "finding_fingerprint": "46a7144cc4a497d4328f5a8b478e2b98a176f90665e7a9775cfbc74f55f347f0"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-461",
+              "finding_fingerprint": "9ff85f38ab51ab8d14a61423d6f8d4602dd6edb09cb367c7fa11aaed10d79fdc"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-462",
+              "finding_fingerprint": "8bc1e33463b88fedcba048402f5feaa99e29ccf66b3d39cf0cf45a72f14219ce"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-463",
+              "finding_fingerprint": "8777fbca87593b19265d121c6719b96b7df255525067579ef66b57e9d27d3ade"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-464",
+              "finding_fingerprint": "eff1cd63873132fbdf3bcacd32196d611f3353d7f732bcbf93403e078a203b50"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-465",
+              "finding_fingerprint": "7468f7ba89b136640473cf698b12535d23378c42b0a5263cc9d34d6e717375f0"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-466",
+              "finding_fingerprint": "1b30a0f527600c2a3bd19effe69e22cf1fbd246f6e57e5c005153b0d195edf94"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-467",
+              "finding_fingerprint": "71dc1638e9ba20e56635f3c5cb6b6d84a0867c8cb4f62408f2d8ce3621dcb208"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-468",
+              "finding_fingerprint": "223db9194710f5074d7d9231db4e252d537ad6a9370e9ad3703e9a9e447f4e62"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-469",
+              "finding_fingerprint": "8bca9cb3dc89aa8978cbce02c020df95d59c999da6a9b9d779948d275144c857"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-470",
+              "finding_fingerprint": "d725a172912f32b807d85be3e4b7b7e414763ad6388b5b2b1886646c23033995"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-471",
+              "finding_fingerprint": "b51c48b5d6393a4d815d7c989c80d7720f953c9f028a3807f22174f0c47c8864"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-472",
+              "finding_fingerprint": "88a77b8f33680e82473d124cabfca828c51b34ba72b03c057620ea02d7556152"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-473",
+              "finding_fingerprint": "dae13364d9684ba2aa468fccfd35fdcc219e078d7565226b5ba7c9f5c77f9eb7"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-474",
+              "finding_fingerprint": "29839c928f248f872c5899a35e360ec42e406d0847b043e4552e09d4e196d881"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-475",
+              "finding_fingerprint": "a213640b45cf77c450e4d7b9bd50fc3f14807c6c056698004cc78fe464630d03"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-476",
+              "finding_fingerprint": "2600ac9e2c439c15ed252358c7b6b88b705e206b319dfd135ac499083c14df8d"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-477",
+              "finding_fingerprint": "d5dc379c551b4f79de29e9657ad8c5b5ac1fdda8779afe37eeff9381a94f325f"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-478",
+              "finding_fingerprint": "5d71cd0716d3d6aac9caa947b33e4831598e74e7f3e1b30e6a94150bf260f0c3"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-479",
+              "finding_fingerprint": "93ad5c4c4badafa3605f953afd6bc5a0fb9cc06ff469d630afba4c8d2f287656"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-480",
+              "finding_fingerprint": "435d19f4ff9fc01c681aaed3f74295d6f5ae1424c9f80fa3b0729577062f0b22"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-481",
+              "finding_fingerprint": "36cef44ddb6590e36823505ce7753e19d8d048fee3a277b1892353ea77cb0743"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-482",
+              "finding_fingerprint": "f3c6465c44586e46e9d3524aa93b7db20fc43c072298ac3932aca256b30015a9"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-483",
+              "finding_fingerprint": "a9a454b71cfb93fd817bfc29317782721c9783ae2c08b3a539d38acb6e6409bf"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-484",
+              "finding_fingerprint": "f1579749fa4efe39c68b0752188ef83c943581557144a6eef1a979acc30d624d"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-485",
+              "finding_fingerprint": "f40b0c3b6057147fd6cbcdc02bf54185fe30693039e973fe795cffefb2404b24"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-486",
+              "finding_fingerprint": "defdd7fc4d60341928dd7b8ca67cccf467d39f16b30b2e650b5912797f240c82"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-487",
+              "finding_fingerprint": "7fb483b6f9ce9f7798886b3a604e65397e8fc8d3cbe0c6dc9738897144b9b8e5"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-488",
+              "finding_fingerprint": "7649a2b6a4cc2df4ce90c7ce08e2332a1755cc1515b32e8ece983bd943c9ceec"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-489",
+              "finding_fingerprint": "8b1dfb82a141cde8406da39130f2e2ca80af9b0d7b26f033a5f0c720ec76f53b"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-490",
+              "finding_fingerprint": "a2f44b0fab68c4d68342960f740f4b3bfc1fa1489c82513be2864e81bc4e1602"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-491",
+              "finding_fingerprint": "9e36f7b6b9de18bba65f2d5eb6d7d7ed33a0a461b6b76dd190404a3e4e3216b1"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-492",
+              "finding_fingerprint": "85288be77fa224318b7dcd4e08dc65451dd8da5d9bd03acf78c30b22d0d35ede"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-493",
+              "finding_fingerprint": "ceedf4959643769e856c0477d732064d55bfe63cc106c7829dde3caca29e2d2d"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-494",
+              "finding_fingerprint": "5106682b3984c2a86667e0901a19982304ced6455575b683977b2a35634c1c1c"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-495",
+              "finding_fingerprint": "71a6e7ff0bd880fbf275c1029318838f04e8db29ab2dde43475576711c60d726"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-496",
+              "finding_fingerprint": "a2032a8b607365ed6f1f3841465247e2d7bbcb62af8a92eb8693de4424b496ae"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-497",
+              "finding_fingerprint": "ac52289553e666a7579c93831655975308ca90b9f24ef691d5d472620930d021"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-498",
+              "finding_fingerprint": "e3af1983faec280dc7237c45eec75177be3073efe49e50cf79df3e52a3c919a1"
+            },
+            {
+              "id": "color-contrast",
+              "impact": "serious",
+              "source": "automated",
+              "target": "#synthetic-499",
+              "finding_fingerprint": "00cfc542b066de1c2e2331db8d2b05bfa43c0d3ee593cad92be959f25e12d60e"
+            }
+          ]
+        }
+      }
+    ],
+    "store_after": {
+      "items": 1,
+      "bytes": 384186
+    },
+    "http_bundle": [
+      200,
+      {
+        "length": 56989
+      }
+    ]
+  },
+  "download_control": {
+    "generate_status": 201,
+    "unauthenticated_downloads": {
+      "download_url": 200,
+      "html_companion_url": 200,
+      "receipt_url": 200
+    }
+  },
+  "boundary_controls": {
+    "traversal_self_hosted": 404,
+    "invalid_scanner_self_hosted": [
+      422,
+      {
+        "error": {
+          "code": "INVALID_INPUT",
+          "message": "Invalid input",
+          "requestId": "3a378e4918d049d9a62aecdcc7d1c782"
+        }
+      }
+    ],
+    "active_generation_count_after_requests": 0,
+    "cleanup_completed_within_2s": true,
+    "active_generation_count_after_cleanup": 0
+  },
+  "idle_ttl": {
+    "ttl_seconds": 1,
+    "age_seconds": 2.2,
+    "retained_before_touch": false,
+    "backing_bytes_before_touch": 0,
+    "payload_present_before_touch": false,
+    "get_after_ttl": null,
+    "backing_bytes_after_touch": 0
+  }
+}
+READINESS {"self_hosted_ready": {"http_status": 503, "status": "not_ready", "error": null}, "self_hosted_core": {"http_status": 503, "status": null, "error": {"code": "AUTH_NOT_CONFIGURED", "message": "API access denied", "requestId": "ab04115b1f645b10b94a0ebdc6c811a6"}}, "hosted_ready": {"http_status": 503, "status": "not_ready", "error": null}, "hosted_core": {"http_status": 503, "status": null, "error": "AUTH_NOT_CONFIGURED"}}

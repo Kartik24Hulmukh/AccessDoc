@@ -1,0 +1,108 @@
+name: Named release signoff
+description: Request or record actual scoped assent for an exact artifact; missing approvals remain pending.
+title: 'Release signoff: '
+body:
+- type: markdown
+  attributes:
+    value: Follow docs/PILOT_TRIAL_OPERATIONS.md and RELEASE_CHECKLIST.md. Opening, assignment or closing this issue
+      is not approval. Actual reviewers respond through authenticated accounts or verified private correspondence.
+      Public records must not expose secrets, deployment bypass tokens, client data or privileged advice. Conditional
+      approval remains blocked until conditions are evidenced closed.
+- type: dropdown
+  id: role
+  attributes:
+    label: Approval or ownership responsibility
+    options:
+    - Release owner
+    - Copyright owner
+    - Security owner or reviewer
+    - Independent accessibility reviewer
+    - Qualified legal and editorial reviewer
+  validations:
+    required: true
+- type: dropdown
+  id: scope
+  attributes:
+    label: Requested release scope
+    options:
+    - Source-only supervised local beta
+    - Protected exact-target validation
+    - Hosted service release
+  validations:
+    required: true
+- type: dropdown
+  id: disposition
+  attributes:
+    label: Actual reviewer disposition
+    options:
+    - Pending; no assent recorded
+    - Rejected
+    - Conditional approval; closure pending
+    - Approved with verified scope and assent
+  validations:
+    required: true
+- type: textarea
+  id: identity
+  attributes:
+    label: Actual identity and responsibility acceptance
+    description: Actual reviewer name/handle if publication is consented, or controlled-access identity receipt
+      ID. Record qualifications, explicit role acceptance and conflicts/independence. If not accepted, state pending.
+      Do not assign or invent a person.
+  validations:
+    required: true
+- type: textarea
+  id: candidate
+  attributes:
+    label: Exact source and artifact identity
+    description: Full forty-character Git SHA, release archive/container digest, evidence manifest digest and candidate
+      identifier. Review of a historical commit does not approve a successor.
+  validations:
+    required: true
+- type: textarea
+  id: deployment
+  attributes:
+    label: Exact deployment evidence or local-only boundary
+    description: 'For hosted scope: deployment ID, timestamp, observed SHA before/after smoke, sanitized target
+      reference and auth/negative-contract, quota/log/alert/rollback evidence IDs. If inaccessible or mismatched,
+      state blocked. For source-only scope state deployment not applicable; no hosted approval.'
+  validations:
+    required: true
+- type: textarea
+  id: evidence
+  attributes:
+    label: Evidence actually reviewed
+    description: Reference immutable build/CI/security/SBOM receipts, ten-person and five-practitioner subgroup
+      results, independent accessibility report, claims/privacy/name clearance and ownership/security route as appropriate.
+      Name missing items explicitly pending.
+  validations:
+    required: true
+- type: textarea
+  id: assent
+  attributes:
+    label: Authenticated assent evidence and timestamp
+    description: Actual reviewer supplies dated disposition with scope, exact SHA/digests and reviewed evidence
+      IDs. Reference their authenticated comment, verified private correspondence or signature-verification receipt.
+      Coordinator summaries alone are not assent. State pending if absent.
+  validations:
+    required: true
+- type: textarea
+  id: conditions
+  attributes:
+    label: Conditions, limitations and closure
+    description: Record unresolved failures and required actions, evidence of closure and reviewer reconfirmation.
+      State none only if the actual reviewer says so. Changed artifacts/deployment require renewed affected approval.
+  validations:
+    required: true
+- type: checkboxes
+  id: checks
+  attributes:
+    label: Record integrity
+    options:
+    - label: This issue contains no sensitive evidence, private contact details, credentials, capability URLs or
+        privileged advice.
+      required: true
+    - label: I understand missing or conditional assent is not a passed gate; an agent or coordinator cannot sign
+        for a reviewer.
+      required: true
+    - label: I understand this is not a certification of audited targets or a guarantee of legal sufficiency.
+      required: true

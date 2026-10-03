@@ -1,0 +1,48 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___ GatewayEpochTests.test_stale_success_cannot_clear_newer_rate_limit_trip ____
+
+self = <tests.test_gateway_breaker_epochs.GatewayEpochTests testMethod=test_stale_success_cannot_clear_newer_rate_limit_trip>
+
+    def test_stale_success_cannot_clear_newer_rate_limit_trip(self):
+        entered = threading.Event()
+        release = threading.Event()
+        calls = []
+        clock = [0.0]
+
+        def transport(model, messages):
+            calls.append(model)
+            if len(calls) == 1:
+                entered.set()
+                if not release.wait(2):
+                    raise AssertionError("test did not release the older request")
+            elif len(calls) == 2:
+                return 429, {}, {}
+            return 200, {}, {"choices": [{"message": {"content": "ok"}}]}
+
+        gw = ModelGateway(transport=transport, chain=(CANONICAL_CHAIN[0],))
+        self.addCleanup(gw._session.close)
+        breaker = gw.breakers[CANONICAL_CHAIN[0]]
+        breaker._clock = lambda: clock[0]
+        results = []
+        older = threading.Thread(target=lambda: results.append(gw.chat("older")))
+        with patch.object(gw, "_log"):
+            older.start()
+            try:
+                self.assertTrue(entered.wait(1))
+                self.assertTrue(gw.chat("rate-limited").fallback)
+                self.assertEqual(breaker.snapshot()["state"], "open")
+            finally:
+                release.set()
+                older.join(2)
+            self.assertFalse(older.is_alive())
+            self.assertEqual(results[0].text, "ok")
+>           self.assertEqual(breaker.snapshot()["state"], "open")
+E           AssertionError: 'closed' != 'open'
+E           - closed
+E           + open
+
+tests/test_gateway_breaker_epochs.py:43: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_gateway_breaker_epochs.py::GatewayEpochTests::test_stale_success_cannot_clear_newer_rate_limit_trip
+1 failed in 0.11s

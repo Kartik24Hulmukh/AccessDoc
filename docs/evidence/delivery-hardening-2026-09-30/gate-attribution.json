@@ -1,0 +1,70 @@
+[
+  {
+    "commit": "1f21edeb064e0d01b8932f707c80eedaa8c9f00f",
+    "state": "failure",
+    "statuses": [
+      {
+        "context": "accessdoc/exact-target-smoke",
+        "state": "pending",
+        "description": "Protected preview requires automation access; exact-target gate not passed."
+      },
+      {
+        "context": "accessdoc/live-gateway",
+        "state": "success",
+        "description": "Historical 1f21ede live run: 12/12 passed; later candidate failed."
+      },
+      {
+        "context": "accessdoc/local-release-verifier",
+        "state": "error",
+        "description": "Superseded receipt: 900-test result belongs to 4270da8, not this commit."
+      }
+    ]
+  },
+  {
+    "commit": "4270da84dc8f89a99b2e354a62c92543fe639edb",
+    "state": "failure",
+    "statuses": [
+      {
+        "context": "accessdoc/local-release-verifier",
+        "state": "success",
+        "description": "10/10 local gates; 900 tests passed, 1 protected-target skip."
+      },
+      {
+        "context": "accessdoc/live-gateway",
+        "state": "failure",
+        "description": "Final run: 11/12 passed; Kimi 504 at 40s deadline. Gate failed."
+      },
+      {
+        "context": "accessdoc/exact-target-smoke",
+        "state": "pending",
+        "description": "Preview protected (401); exact-target verification not passed."
+      }
+    ]
+  },
+  {
+    "commit": "42758c9c0c0706dc263283e3adf74f93bd705594",
+    "state": "failure",
+    "statuses": [
+      {
+        "context": "accessdoc/live-gateway",
+        "state": "failure",
+        "description": "Latest live run 11/12 on 4270da8; gateway code unchanged; launch hold."
+      },
+      {
+        "context": "accessdoc/exact-target-smoke",
+        "state": "pending",
+        "description": "Protected deployment; authorized exact-target validation unavailable."
+      },
+      {
+        "context": "accessdoc/local-release-verifier",
+        "state": "success",
+        "description": "10/10 local gates; 906 passed, 1 protected-target skip; 201 subtests."
+      },
+      {
+        "context": "accessdoc/human-release-approvals",
+        "state": "pending",
+        "description": "Practitioner, independent accessibility, ownership and legal approvals absent."
+      }
+    ]
+  }
+]

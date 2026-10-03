@@ -163,7 +163,9 @@ class Journey2PublicAPI(unittest.TestCase):
                      "Content-Length": str(MAX_HTTP_BODY_BYTES + 1)},
             method="POST",
         )
-        with self.assertRaises((HTTPError, ConnectionAbortedError, ConnectionResetError, OSError)) as ctx:
+        from unittest.mock import patch
+        with patch.dict("os.environ", {"BODY_TIMEOUT_SECONDS": "0.1"}), \
+             self.assertRaises((HTTPError, ConnectionAbortedError, ConnectionResetError, OSError)) as ctx:
             urlopen(req)
         if isinstance(ctx.exception, HTTPError):
             self.addCleanup(ctx.exception.close)

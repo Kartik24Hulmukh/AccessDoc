@@ -1,0 +1,34 @@
+[
+  {
+    "findings": 100,
+    "input_bytes": 9596,
+    "pdf_bytes": 8599,
+    "html_bytes": 48833,
+    "receipt_bytes": 26688,
+    "result": "stored"
+  },
+  {
+    "findings": 250,
+    "input_bytes": 24296,
+    "pdf_bytes": 17347,
+    "html_bytes": 120683,
+    "receipt_bytes": 66288,
+    "result": "stored"
+  },
+  {
+    "findings": 500,
+    "input_bytes": 48796,
+    "pdf_bytes": 32146,
+    "html_bytes": 240433,
+    "receipt_bytes": 132288,
+    "result": "Generated output exceeds storage limit"
+  },
+  {
+    "findings": 1000,
+    "input_bytes": 97796,
+    "pdf_bytes": 61014,
+    "html_bytes": 479935,
+    "receipt_bytes": 264290,
+    "result": "Generated output exceeds storage limit"
+  }
+]

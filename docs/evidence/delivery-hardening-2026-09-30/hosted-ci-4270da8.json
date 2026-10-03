@@ -1,0 +1,108 @@
+{
+  "head": "4270da84dc8f89a99b2e354a62c92543fe639edb",
+  "draft": true,
+  "combined_status": "failure",
+  "statuses": [
+    {
+      "context": "Vercel",
+      "state": "success",
+      "target_url": "https://vercel.com/atlas16/access-doc/7MhqpDbM5sPi3Dd8kiezAMnBag8L"
+    },
+    {
+      "context": "accessdoc/local-release-verifier",
+      "state": "success",
+      "target_url": "https://github.com/Kartik24Hulmukh/AccessDoc/pull/95"
+    },
+    {
+      "context": "accessdoc/live-gateway",
+      "state": "failure",
+      "target_url": "https://github.com/Kartik24Hulmukh/AccessDoc/pull/95"
+    },
+    {
+      "context": "accessdoc/exact-target-smoke",
+      "state": "pending",
+      "target_url": "https://github.com/Kartik24Hulmukh/AccessDoc/pull/95"
+    }
+  ],
+  "checks": [
+    {
+      "name": "Vercel Preview Comments",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "accessdoc-evidence",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "dependency-security",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "test",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "portability (windows-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "GitGuardian Security Checks",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "portability (macos-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "lint",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "portability (windows-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "portability (macos-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "test",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "lint",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "dependency-security",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "deployments": [
+    {
+      "id": 6747176270,
+      "sha": "4270da84dc8f89a99b2e354a62c92543fe639edb",
+      "environment": "Preview",
+      "statuses": [
+        {
+          "state": "success",
+          "environment_url": "https://access-r54bu998p-atlas16.vercel.app",
+          "target_url": "https://access-r54bu998p-atlas16.vercel.app"
+        }
+      ]
+    }
+  ]
+}

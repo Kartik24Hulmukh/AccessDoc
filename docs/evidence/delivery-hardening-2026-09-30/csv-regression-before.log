@@ -1,0 +1,189 @@
+....                                                            [100%]
+=================================== FAILURES ===================================
+_ ManualCSVBoundaryTests.test_both_adapters_reject_then_recover (adapter='api.handler') _
+
+self = <tests.test_manual_csv_boundary.ManualCSVBoundaryTests testMethod=test_both_adapters_reject_then_recover>
+
+    def test_both_adapters_reject_then_recover(self):
+        from api.handler import handler
+        from app.main import Handler, Server
+        for server_type, handler_type in ((HTTPServer, handler), (Server, Handler)):
+            with self.subTest(adapter=handler_type.__module__):
+                server = server_type(("127.0.0.1", 0), handler_type)
+                runner = threading.Thread(
+                    target=lambda: server.serve_forever(poll_interval=0.01))
+                runner.start()
+                base = "http://127.0.0.1:%d" % server.server_port
+                env = {"ACCESSDOC_REQUIRE_AUTH": "false", "ACCESSDOC_API_KEY": "",
+                       "ACCESSDOC_API_KEYS": "", "RATE_LIMIT_PER_MINUTE": "100000",
+                       "ALLOWED_HOSTS": "127.0.0.1:%d" % server.server_port}
+                try:
+                    with patch.dict(os.environ, env), patch(
+                            "app.service.generate_pdf_report") as renderer:
+                        for text, expected in (
+                                ("id,description\nx," + "a" * (csv.field_size_limit() + 1), 413),
+                                ('id,description\nx,"private-unterminated', 422)):
+                            request = Request(base + "/api/bundle",
+                                data=json.dumps({"scanner_input": {"violations": []},
+                                    "manual_findings": text}).encode(),
+                                headers={"Content-Type": "application/json"})
+                            with self.assertRaises(HTTPError) as error:
+                                urlopen(request, timeout=5)
+                            with error.exception:
+>                               self.assertEqual(error.exception.code, expected)
+E                               AssertionError: 500 != 413
+
+tests/test_manual_csv_boundary.py:63: AssertionError
+_ ManualCSVBoundaryTests.test_both_adapters_reject_then_recover (adapter='app.main') _
+
+self = <tests.test_manual_csv_boundary.ManualCSVBoundaryTests testMethod=test_both_adapters_reject_then_recover>
+
+    def test_both_adapters_reject_then_recover(self):
+        from api.handler import handler
+        from app.main import Handler, Server
+        for server_type, handler_type in ((HTTPServer, handler), (Server, Handler)):
+            with self.subTest(adapter=handler_type.__module__):
+                server = server_type(("127.0.0.1", 0), handler_type)
+                runner = threading.Thread(
+                    target=lambda: server.serve_forever(poll_interval=0.01))
+                runner.start()
+                base = "http://127.0.0.1:%d" % server.server_port
+                env = {"ACCESSDOC_REQUIRE_AUTH": "false", "ACCESSDOC_API_KEY": "",
+                       "ACCESSDOC_API_KEYS": "", "RATE_LIMIT_PER_MINUTE": "100000",
+                       "ALLOWED_HOSTS": "127.0.0.1:%d" % server.server_port}
+                try:
+                    with patch.dict(os.environ, env), patch(
+                            "app.service.generate_pdf_report") as renderer:
+                        for text, expected in (
+                                ("id,description\nx," + "a" * (csv.field_size_limit() + 1), 413),
+                                ('id,description\nx,"private-unterminated', 422)):
+                            request = Request(base + "/api/bundle",
+                                data=json.dumps({"scanner_input": {"violations": []},
+                                    "manual_findings": text}).encode(),
+                                headers={"Content-Type": "application/json"})
+                            with self.assertRaises(HTTPError) as error:
+                                urlopen(request, timeout=5)
+                            with error.exception:
+>                               self.assertEqual(error.exception.code, expected)
+E                               AssertionError: 500 != 413
+
+tests/test_manual_csv_boundary.py:63: AssertionError
+_ ManualCSVBoundaryTests.test_field_limit_applies_to_header_recognized_and_ignored_columns (shape='xxxxxxxxxxxxxxxxxxxxxxxxx') _
+
+self = <tests.test_manual_csv_boundary.ManualCSVBoundaryTests testMethod=test_field_limit_applies_to_header_recognized_and_ignored_columns>
+
+    def test_field_limit_applies_to_header_recognized_and_ignored_columns(self):
+        size = csv.field_size_limit()
+        for text in ("x" * (size + 1) + "\nx", "id,description\nx," + "x" * (size + 1),
+                     "id,ignored\nx," + "x" * (size + 1)):
+            with self.subTest(shape=text[:25]), self.assertRaises(LimitExceeded):
+>               parse_manual_findings(text)
+
+tests/test_manual_csv_boundary.py:22:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+app/manual.py:118: in parse_manual_findings
+    return _bounded_findings(_parse_csv(stripped))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/manual.py:94: in _bounded_findings
+    for index, row in enumerate(rows):
+                      ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _parse_csv(text):
+        reader = csv.reader(io.StringIO(text, newline=None))
+>       indexes = _column_indexes(next(reader, []))
+                                  ^^^^^^^^^^^^^^^^
+E       _csv.Error: field larger than field limit (131072)
+
+app/manual.py:86: Error
+_ ManualCSVBoundaryTests.test_field_limit_applies_to_header_recognized_and_ignored_columns (shape='id,description\nx,xxxxxxxx') _
+
+self = <tests.test_manual_csv_boundary.ManualCSVBoundaryTests testMethod=test_field_limit_applies_to_header_recognized_and_ignored_columns>
+
+    def test_field_limit_applies_to_header_recognized_and_ignored_columns(self):
+        size = csv.field_size_limit()
+        for text in ("x" * (size + 1) + "\nx", "id,description\nx," + "x" * (size + 1),
+                     "id,ignored\nx," + "x" * (size + 1)):
+            with self.subTest(shape=text[:25]), self.assertRaises(LimitExceeded):
+>               parse_manual_findings(text)
+
+tests/test_manual_csv_boundary.py:22:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+app/manual.py:118: in parse_manual_findings
+    return _bounded_findings(_parse_csv(stripped))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/manual.py:94: in _bounded_findings
+    for index, row in enumerate(rows):
+                      ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _parse_csv(text):
+        reader = csv.reader(io.StringIO(text, newline=None))
+        indexes = _column_indexes(next(reader, []))
+>       for cells in reader:
+                     ^^^^^^
+E       _csv.Error: field larger than field limit (131072)
+
+app/manual.py:87: Error
+_ ManualCSVBoundaryTests.test_field_limit_applies_to_header_recognized_and_ignored_columns (shape='id,ignored\nx,xxxxxxxxxxxx') _
+
+self = <tests.test_manual_csv_boundary.ManualCSVBoundaryTests testMethod=test_field_limit_applies_to_header_recognized_and_ignored_columns>
+
+    def test_field_limit_applies_to_header_recognized_and_ignored_columns(self):
+        size = csv.field_size_limit()
+        for text in ("x" * (size + 1) + "\nx", "id,description\nx," + "x" * (size + 1),
+                     "id,ignored\nx," + "x" * (size + 1)):
+            with self.subTest(shape=text[:25]), self.assertRaises(LimitExceeded):
+>               parse_manual_findings(text)
+
+tests/test_manual_csv_boundary.py:22:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+app/manual.py:118: in parse_manual_findings
+    return _bounded_findings(_parse_csv(stripped))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app/manual.py:94: in _bounded_findings
+    for index, row in enumerate(rows):
+                      ^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def _parse_csv(text):
+        reader = csv.reader(io.StringIO(text, newline=None))
+        indexes = _column_indexes(next(reader, []))
+>       for cells in reader:
+                     ^^^^^^
+E       _csv.Error: field larger than field limit (131072)
+
+app/manual.py:87: Error
+_ ManualCSVBoundaryTests.test_unterminated_or_invalid_quoted_cells_fail_closed (shape='id,description\nx,"private-unterminated') _
+
+self = <tests.test_manual_csv_boundary.ManualCSVBoundaryTests testMethod=test_unterminated_or_invalid_quoted_cells_fail_closed>
+
+    def test_unterminated_or_invalid_quoted_cells_fail_closed(self):
+        for text in ('id,description\nx,"private-unterminated',
+                     'id,description\nx,"closed"junk'):
+>           with self.subTest(shape=text), self.assertRaises(ValueError):
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AssertionError: ValueError not raised
+
+tests/test_manual_csv_boundary.py:34: AssertionError
+_ ManualCSVBoundaryTests.test_unterminated_or_invalid_quoted_cells_fail_closed (shape='id,description\nx,"closed"junk') _
+
+self = <tests.test_manual_csv_boundary.ManualCSVBoundaryTests testMethod=test_unterminated_or_invalid_quoted_cells_fail_closed>
+
+    def test_unterminated_or_invalid_quoted_cells_fail_closed(self):
+        for text in ('id,description\nx,"private-unterminated',
+                     'id,description\nx,"closed"junk'):
+>           with self.subTest(shape=text), self.assertRaises(ValueError):
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AssertionError: ValueError not raised
+
+tests/test_manual_csv_boundary.py:34: AssertionError
+=========================== short test summary info ============================
+SUBFAILED(adapter='api.handler') tests/test_manual_csv_boundary.py::ManualCSVBoundaryTests::test_both_adapters_reject_then_recover
+SUBFAILED(adapter='app.main') tests/test_manual_csv_boundary.py::ManualCSVBoundaryTests::test_both_adapters_reject_then_recover
+SUBFAILED(shape='xxxxxxxxxxxxxxxxxxxxxxxxx') tests/test_manual_csv_boundary.py::ManualCSVBoundaryTests::test_field_limit_applies_to_header_recognized_and_ignored_columns
+SUBFAILED(shape='id,description\nx,xxxxxxxx') tests/test_manual_csv_boundary.py::ManualCSVBoundaryTests::test_field_limit_applies_to_header_recognized_and_ignored_columns
+SUBFAILED(shape='id,ignored\nx,xxxxxxxxxxxx') tests/test_manual_csv_boundary.py::ManualCSVBoundaryTests::test_field_limit_applies_to_header_recognized_and_ignored_columns
+SUBFAILED(shape='id,description\nx,"private-unterminated') tests/test_manual_csv_boundary.py::ManualCSVBoundaryTests::test_unterminated_or_invalid_quoted_cells_fail_closed
+SUBFAILED(shape='id,description\nx,"closed"junk') tests/test_manual_csv_boundary.py::ManualCSVBoundaryTests::test_unterminated_or_invalid_quoted_cells_fail_closed
+7 failed, 4 passed, 2 subtests passed in 0.27s

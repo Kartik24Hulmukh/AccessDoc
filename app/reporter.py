@@ -20,9 +20,74 @@ from reportlab.lib.units import cm
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
 )
-from .models import DISCLAIMER_COMPACT, VERSION
+from .models import DISCLAIMER_COMPACT, VERSION, SOURCE_AUTOMATED, SOURCE_MANUAL
 from .catalog import CATALOG_VERSION
 from .safe_text import safe_text
+
+
+# PDF is a bounded display of supplied checks, not the canonical evidence store.
+_PENDING_DISPLAY_LIMIT = 50
+_PENDING_FIELD_LIMIT = 1000
+
+
+def _pending_display(value, fallback):
+    raw = str(value or fallback)
+    shortened = len(raw) > _PENDING_FIELD_LIMIT
+    # Trim before escaping, so the bound cannot split an XML entity. Escaped
+    # expansion is bounded by the raw 1000-character limit as well.
+    rendered = safe_text(raw[:_PENDING_FIELD_LIMIT], max_len=None)
+    if shortened:
+        rendered += "... [Display shortened; see receipt.json for supplied detail]"
+    return rendered
+
+
+def _append_pending_checks(story, summary, styles, heading_style):
+    pending = getattr(summary, "pending_checks", []) or []
+    unresolved_count = getattr(summary, "total_incomplete", 0) or 0
+    if not pending and not unresolved_count:
+        return
+    story.append(Spacer(1, 0.4*cm))
+    story.append(Paragraph("Unresolved checks (needs-review)", heading_style))
+    story.append(Paragraph(
+        "Supplied unresolved checks are neither violations nor passes. "
+        "They require review; source labels do not establish independent verification.",
+        styles["Normal"],
+    ))
+    story.append(Paragraph(
+        f"Scanner-reported unresolved rule count: {unresolved_count}", styles["Normal"],
+    ))
+    if not pending:
+        story.append(Paragraph(
+            "No structured details supplied. Refer to the supplied scanner evidence "
+            "and receipt.json; this count is not a pass or a failure.", styles["Normal"],
+        ))
+        return
+    shown = min(len(pending), _PENDING_DISPLAY_LIMIT)
+    story.append(Paragraph(
+        f"Showing {shown} of {len(pending)} supplied unresolved checks. "
+        "Canonical supplied details are retained in receipt.json when bundled.",
+        styles["Normal"],
+    ))
+    for check in pending[:shown]:
+        row = check if isinstance(check, dict) else {}
+        label = _pending_display(row.get("id"), "Unidentified check")
+        description = _pending_display(row.get("description"), "Description not supplied")
+        target = _pending_display(row.get("target"), "Target not supplied")
+        source = _pending_display(row.get("source"), "Source not supplied")
+        help_url = _pending_display(row.get("help_url"), "Help URL not supplied")
+        story.append(Paragraph(
+            f"<b>{label}</b> [needs-review; {source}]<br/>"
+            f"{description}<br/>Target: {target}<br/>Help: {help_url}", styles["Normal"],
+        ))
+        story.append(Spacer(1, 0.15*cm))
+    if len(pending) > shown:
+        extra = len(pending) - shown
+        noun = "check" if extra == 1 else "checks"
+        story.append(Paragraph(
+            f"{extra} additional {noun} not displayed in this bounded PDF. "
+            "See receipt.json for all supplied unresolved details; omitted display "
+            "does not resolve these checks.", styles["Normal"],
+        ))
 
 
 def build_pdf_title(client_name="", audit_date=""):
@@ -66,15 +131,15 @@ def generate_pdf_report(summary, violations, client_name="Client", agency_name="
                             title=build_pdf_title(s_client, s_date),
                             author=safe_text(f"AccessDoc {VERSION}"),
                             subject=safe_text(
-                                "Automated WCAG 2.2 accessibility audit evidence "
-                                "(DRAFT - automated coverage only)"
+                                "Supplied accessibility evidence "
+                                "(DRAFT - UNREVIEWED; no reviewer approval recorded)"
                             ),
                             lang="en")
     styles = getSampleStyleSheet()
     story = []
 
     title_style = ParagraphStyle("T", parent=styles["Title"], fontSize=22, spaceAfter=12)
-    story.append(Paragraph("WCAG 2.2 Automated Audit Report", title_style))
+    story.append(Paragraph("Supplied Accessibility Evidence Report", title_style))
     story.append(Paragraph(
         f"Client: <b>{s_client}</b> | Agency: {s_agency} | Date: {s_date}",
         styles["Normal"],
@@ -91,6 +156,21 @@ def generate_pdf_report(summary, violations, client_name="Client", agency_name="
     story.append(HRFlowable(width="100%"))
 
     disc_style = ParagraphStyle("D", parent=styles["Normal"], fontSize=8, textColor=colors.grey)
+    story.append(Paragraph(
+        "<b>DRAFT - UNREVIEWED.</b> No reviewer approval is recorded. "
+        "Supplied scanner evidence and manual or other observations are not independently verified. "
+        "Source labels do not authenticate testing or identity; absence of supplied findings "
+        "is not evidence of conformance.", styles["Normal"],
+    ))
+    automated_count = sum(v.source == SOURCE_AUTOMATED for v in violations)
+    manual_count = sum(v.source == SOURCE_MANUAL for v in violations)
+    other_count = len(violations) - automated_count - manual_count
+    story.append(Paragraph(
+        f"Total supplied findings: {len(violations)}<br/>"
+        f"Automated findings: {automated_count}<br/>"
+        f"Supplied manual findings: {manual_count}<br/>"
+        f"Other supplied findings: {other_count}", styles["Normal"],
+    ))
     story.append(Paragraph(DISCLAIMER_COMPACT, disc_style))
     story.append(Spacer(1, 0.4*cm))
 
@@ -121,14 +201,15 @@ def generate_pdf_report(summary, violations, client_name="Client", agency_name="
     story.append(Paragraph("Coverage & Methodology", h2))
     story.append(Paragraph(
         "Automated scanning with axe-core detects approximately <b>30-57%</b> of WCAG issues "
-        "(Deque Systems 2022; GDS 2017). Manual testing is required for full compliance.",
+        "(Deque Systems 2022; GDS 2017). Supplied manual observations are unreviewed, "
+        "not a substitute for qualified manual and assistive-technology evaluation.",
         styles["Normal"]
     ))
     story.append(Spacer(1, 0.4*cm))
     story.append(Paragraph("Violation Detail", h2))
 
     if not violations:
-        story.append(Paragraph("No violations detected.", styles["Normal"]))
+        story.append(Paragraph("No supplied findings; not evaluated for conformance.", styles["Normal"]))
     else:
         vd = [["Rule ID", "Impact", "Nodes", "WCAG SC", "Description"]]
         order = {"critical":0,"serious":1,"moderate":2,"minor":3}
@@ -153,6 +234,8 @@ def generate_pdf_report(summary, violations, client_name="Client", agency_name="
             ("ROWBACKGROUNDS", (0,1), (-1,-1), [colors.white, colors.HexColor("#F5F5F5")]),
         ]))
         story.append(vt)
+
+    _append_pending_checks(story, summary, styles, h2)
 
     doc.build(story)
     return buf.getvalue()

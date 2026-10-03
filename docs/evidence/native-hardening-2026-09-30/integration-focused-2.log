@@ -1,0 +1,152 @@
+..................................................................F.F........................................................ [ 96%]
+....                                                                   [100%]
+=================================== FAILURES ===================================
+_ NativeGatewayOwnershipTests.test_cancelled_dns_cannot_transmit_late_primary_request _
+
+self = <tests.test_gateway_native_ownership.NativeGatewayOwnershipTests testMethod=test_cancelled_dns_cannot_transmit_late_primary_request>
+
+    def test_cancelled_dns_cannot_transmit_late_primary_request(self):
+        server, received = self.server()
+        cancelled = threading.Event()
+        class Resolver:
+            calls = 0
+            future = None
+            async def resolve(self, host, port=0, family=socket.AF_INET):
+                Resolver.calls += 1
+                if Resolver.calls == 1:
+                    Resolver.future = asyncio.get_running_loop().create_future()
+                    try:
+                        await Resolver.future
+                    except asyncio.CancelledError:
+                        cancelled.set()
+                        raise
+                return [{"hostname": host, "host": "127.0.0.1", "port": port,
+                         "family": socket.AF_INET, "proto": 0, "flags": 0}]
+            async def close(self):
+                pass
+        gw = ModelGateway(api_key="synthetic", chain=CANONICAL_CHAIN[:2],
+                          budget_seconds=0.3, max_retries=0)
+        gw._session.resolver_factory = lambda loop: Resolver()
+        try:
+            with patch.dict(os.environ, {"GATEWAY_HEDGE_DELAY_MS": "30",
+                    "NO_PROXY": "native-test.invalid", "HTTP_PROXY": "", "HTTPS_PROXY": ""}), patch(
+                    "app.gateway.MELIOUS_BASE_URL",
+                    "http://native-test.invalid:%d" % server.server_port), patch.object(gw, "_log"):
+                result = gw.chat("fix contrast")
+                self.assertEqual(result.model, CANONICAL_CHAIN[1])
+                self.assertTrue(cancelled.wait(0.2))
+                self.assertTrue(Resolver.future.cancelled())
+                self.assertEqual(gw._session.snapshot()["active_calls"], 0)
+                self.assertEqual([r["model"] for r in received], [CANONICAL_CHAIN[1]])
+                self.assertFalse(any(t.name == "gateway-hedge" for t in threading.enumerate()))
+                self.assertFalse(result.token_usage_known)
+                self.assertLessEqual(result.token_budget["peak_reserved_tokens"], gw.token_budget)
+        finally:
+            gw._session.close()
+>       self.assertFalse(gw._session.snapshot()["loop_alive"])
+E       AssertionError: True is not false
+
+tests/test_gateway_native_ownership.py:114: AssertionError
+_ NativeGatewayOwnershipTests.test_process_wide_admission_is_retained_until_actual_io_terminates _
+
+self = <tests.test_gateway_native_ownership.NativeGatewayOwnershipTests testMethod=test_process_wide_admission_is_retained_until_actual_io_terminates>
+
+    def test_process_wide_admission_is_retained_until_actual_io_terminates(self):
+        server, received = self.server(drip=True)
+        gw = ModelGateway(api_key="synthetic", chain=(CANONICAL_CHAIN[0],),
+                          budget_seconds=0.2, max_retries=0)
+        try:
+            with patch.dict(os.environ, {"GATEWAY_MAX_UPSTREAM_REQUESTS": "2",
+                        "GATEWAY_HEDGE_DELAY_MS": "-1"}), patch(
+                    "app.gateway.MELIOUS_BASE_URL",
+                    "http://127.0.0.1:%d" % server.server_port), patch.object(gw, "_log"):
+                with ThreadPoolExecutor(max_workers=12) as pool:
+                    results = list(pool.map(lambda _: gw.chat("fix contrast"), range(12)))
+                self.assertTrue(all(r.fallback for r in results))
+                stats = gw._session.snapshot()
+>               self.assertEqual(stats["capacity"], 2)
+E               AssertionError: 8 != 2
+
+tests/test_gateway_native_ownership.py:129: AssertionError
+_ RemediationAdapterParityTests.test_both_adapters_reject_invalid_evidence_before_model_dispatch (adapter='HTTPServer') _
+
+self = <tests.test_remediation_adapter_parity.RemediationAdapterParityTests testMethod=test_both_adapters_reject_invalid_evidence_before_model_dispatch>
+
+    def test_both_adapters_reject_invalid_evidence_before_model_dispatch(self):
+        invalid_cases = (
+            ({"scanner_input": {"violations": [{"id": 123, "nodes": []}]}}, 422),
+            ({"scanner_input": {"violations": [{"id": "image-alt",
+                                                "nodes": [{"target": [{"selector": "img"}]}]}]}}, 422),
+            ({"scanner_input": {"violations": [{"id": "x" * 10001}]}}, 413),
+            ({"violations": [{"id": 123, "nodes": []}]}, 422),
+            ({"scanner_input": {"violations": [{"id": "image-alt"}]},
+              "violations": [{"id": 123}]}, 422),
+        )
+        for server_type, handler_type in ((HTTPServer, HostedHandler),
+                                          (Server, SelfHostedHandler)):
+            with self.subTest(adapter=server_type.__name__):
+                server = server_type(("127.0.0.1", 0), handler_type)
+                thread = threading.Thread(target=server.serve_forever)
+                thread.start()
+                gateway = SpyGateway()
+                remediate.reset_gateway(gateway)
+                env = {"MELIOUS_API_KEY": "local-test-only",
+                       "ACCESSDOC_REQUIRE_AUTH": "false",
+                       "RATE_LIMIT_PER_MINUTE": "100000",
+                       "ALLOWED_HOSTS": f"127.0.0.1:{server.server_port}",
+                       "ALLOWED_ORIGINS": f"http://127.0.0.1:{server.server_port}"}
+                try:
+                    with patch.dict(os.environ, env):
+                        for payload, expected in invalid_cases:
+                            self.assertEqual(self._request(server, payload), expected)
+                        valid = {"violations": [{"id": "image-alt",
+                                                  "nodes": [{"target": ["img"]}]}],
+                                 "untrusted_extra": "must not enter prompt"}
+>                       self.assertEqual(self._request(server, valid), 200)
+E                       AssertionError: 500 != 200
+
+tests/test_remediation_adapter_parity.py:73: AssertionError
+_ RemediationAdapterParityTests.test_both_adapters_reject_invalid_evidence_before_model_dispatch (adapter='Server') _
+
+self = <tests.test_remediation_adapter_parity.RemediationAdapterParityTests testMethod=test_both_adapters_reject_invalid_evidence_before_model_dispatch>
+
+    def test_both_adapters_reject_invalid_evidence_before_model_dispatch(self):
+        invalid_cases = (
+            ({"scanner_input": {"violations": [{"id": 123, "nodes": []}]}}, 422),
+            ({"scanner_input": {"violations": [{"id": "image-alt",
+                                                "nodes": [{"target": [{"selector": "img"}]}]}]}}, 422),
+            ({"scanner_input": {"violations": [{"id": "x" * 10001}]}}, 413),
+            ({"violations": [{"id": 123, "nodes": []}]}, 422),
+            ({"scanner_input": {"violations": [{"id": "image-alt"}]},
+              "violations": [{"id": 123}]}, 422),
+        )
+        for server_type, handler_type in ((HTTPServer, HostedHandler),
+                                          (Server, SelfHostedHandler)):
+            with self.subTest(adapter=server_type.__name__):
+                server = server_type(("127.0.0.1", 0), handler_type)
+                thread = threading.Thread(target=server.serve_forever)
+                thread.start()
+                gateway = SpyGateway()
+                remediate.reset_gateway(gateway)
+                env = {"MELIOUS_API_KEY": "local-test-only",
+                       "ACCESSDOC_REQUIRE_AUTH": "false",
+                       "RATE_LIMIT_PER_MINUTE": "100000",
+                       "ALLOWED_HOSTS": f"127.0.0.1:{server.server_port}",
+                       "ALLOWED_ORIGINS": f"http://127.0.0.1:{server.server_port}"}
+                try:
+                    with patch.dict(os.environ, env):
+                        for payload, expected in invalid_cases:
+                            self.assertEqual(self._request(server, payload), expected)
+                        valid = {"violations": [{"id": "image-alt",
+                                                  "nodes": [{"target": ["img"]}]}],
+                                 "untrusted_extra": "must not enter prompt"}
+>                       self.assertEqual(self._request(server, valid), 200)
+E                       AssertionError: 500 != 200
+
+tests/test_remediation_adapter_parity.py:73: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_gateway_native_ownership.py::NativeGatewayOwnershipTests::test_cancelled_dns_cannot_transmit_late_primary_request
+FAILED tests/test_gateway_native_ownership.py::NativeGatewayOwnershipTests::test_process_wide_admission_is_retained_until_actual_io_terminates
+SUBFAILED(adapter='HTTPServer') tests/test_remediation_adapter_parity.py::RemediationAdapterParityTests::test_both_adapters_reject_invalid_evidence_before_model_dispatch
+SUBFAILED(adapter='Server') tests/test_remediation_adapter_parity.py::RemediationAdapterParityTests::test_both_adapters_reject_invalid_evidence_before_model_dispatch
+4 failed, 127 passed, 19 subtests passed in 11.47s

@@ -7,7 +7,7 @@
 - [x] Bounded memory lifecycle, security headers, Host/origin checks, rate/concurrency/time limits
 - [x] Health/readiness/metrics/version, structured logs, graceful shutdown
 - [x] Versioned v1 API and compatibility alias
-- [x] Apache-2.0 community/security/release package
+- [x] MIT-licensed community/security/release assets (see LICENSE)
 - [x] Docker/provider/CI/Gumloop handoff assets
 
 ## External launch gates

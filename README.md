@@ -21,14 +21,21 @@ verified fixes, local load results, compatibility changes and deployment gates.
 - **Serverless AI remediation parity.** `POST /api/remediate` is now served by
   the Vercel adapter with the same bounded contract as the self-hosted server
   (Content-Length ceiling, JSON-only errors, `X-Request-ID`, security headers).
-- **Bounded admission queue.** A dedicated `MAX_CONCURRENT_REMEDIATIONS` pool
-  with `REMEDIATION_QUEUE_TIMEOUT_SECONDS` queueing: a 20-request burst on an
-  8-slot pool now serves 200 x 20 with zero shed instead of rejecting 60%.
-- **Vercel function `maxDuration` raised to 60 s** so queued remediation calls
-  (21 s worst-case observed under 2.5x load) are never cut off by the platform.
-- **Gateway snapshot on health endpoints.** `GET /`, `/healthz`, `/readyz`
-  expose circuit-breaker state; missing `MELIOUS_API_KEY` degrades to
-  503 + `Retry-After`, never a 500, and never affects `/api/bundle`.
+- **Bounded remediation admission.** Each HTTP adapter has a dedicated
+  `MAX_CONCURRENT_REMEDIATIONS` pool. The local service uses
+  `GENERATION_QUEUE_TIMEOUT_SECONDS` (default 0.05 s) for admission;
+  the Vercel adapter uses `REMEDIATION_QUEUE_TIMEOUT_SECONDS` (default 10 s).
+  Overload and timeout may shed work; historical burst observations are not a
+  current-target capacity guarantee.
+- **Platform duration requires operator verification.** A function duration is
+  not declared by `vercel.json`. Verify the actual deployment ceiling and fit
+  the application budget within it; queued calls may still be interrupted by
+  the platform.
+- **Passive gateway snapshots.** Health/readiness expose gateway state without
+  probing a paid model. Missing `MELIOUS_API_KEY` can yield labelled degraded
+  static guidance by default; `ACCESSDOC_STRICT_GATEWAY=true` instead returns
+  `503 GATEWAY_UNAVAILABLE` with `Retry-After`. Bundle generation is independent
+  of provider credential availability.
 - **UI**: "Get AI remediation plan" button; static-KB fallbacks are labelled;
   every plan is labelled advisory (no conformance claim).
 
@@ -110,21 +117,32 @@ limits as `/api/generate`) or a bare `violations` list is accepted; at most 25
 violations, 300 chars per field, control characters stripped, and the prompt
 instructs the model to treat scanner text as untrusted data.
 
-Operations: `/readyz` reports per-model breaker state and whether the
-credential is configured; `/metrics` exposes
-Serverless (Vercel) parity since PR #41: same request/response contract, its own
-`MAX_CONCURRENT_REMEDIATIONS` admission pool with a `REMEDIATION_QUEUE_TIMEOUT_SECONDS`
-queue, gateway snapshot on `GET /readyz`, and `503 GATEWAY_UNAVAILABLE` + `Retry-After`
-when `MELIOUS_API_KEY` is absent. Plans are advisory drafting aid: AccessDoc still
-never claims or verifies conformance, and `fallback: true` responses are static
-knowledge-base text, labelled as such in the UI.
-
+Operations: `/readyz` reports passive gateway state and whether a provider
+credential is configured; a reachable route or readiness response does not prove
+that a live model request succeeded. `/metrics` exposes
 `accessdoc_gateway_remediate_{requests,fallbacks,errors}_total` and
-`accessdoc_gateway_circuit_open{model=...}`. Remediation has its own
-concurrency pool (`MAX_CONCURRENT_REMEDIATIONS`, default 8) so slow model calls
-can never starve PDF generation. Without `MELIOUS_API_KEY` the route answers
-`503 GATEWAY_UNAVAILABLE` with `Retry-After`; every other product path is
-unaffected. Not yet exposed on the Vercel serverless adapter.
+`accessdoc_gateway_circuit_open{model=...}`.
+
+Both the local HTTP service and Vercel adapter implement `POST /api/remediate`.
+Each has a separate `MAX_CONCURRENT_REMEDIATIONS` admission pool. Queue timeout
+is `GENERATION_QUEUE_TIMEOUT_SECONDS` in the local service and
+`REMEDIATION_QUEUE_TIMEOUT_SECONDS` in the Vercel adapter. This is route/schema
+parity, not a
+claim that the current hosted deployment has funded or validated live models.
+By default, missing/unavailable upstream models may return labelled static
+knowledge-base guidance (`fallback: true`). Set `ACCESSDOC_STRICT_GATEWAY=true`
+to return `503 GATEWAY_UNAVAILABLE` with `Retry-After` instead of degraded
+fallback when the provider is unavailable.
+
+For a zero-model-spend HTTP pilot, set `ACCESSDOC_REMEDIATION_ENABLED=false`
+and do not configure an upstream provider credential. This rejects new
+remediation work, including offline remediation, while deterministic bundle
+generation can remain enabled. It does not govern direct CLI/MCP/custom gateway
+calls, cancel previously accepted work, or cap account/fleet spending. Configure
+required private pilot authentication separately. See
+[Zero-spend pilot boundaries](docs/ZERO_SPEND_PILOT.md) before applying any
+hosting example. No paid provider, hosting upgrade, production approval or
+accessibility-conformance claim follows from these controls.
 
 ## Install
 ```bash

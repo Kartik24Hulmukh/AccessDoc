@@ -28,6 +28,7 @@ jobs:
           name: axe-self-audit
           path: axe-self-audit.json
       - name: Validate generated OpenACR against GSA CLI validator
+        shell: bash
         run: |
           git clone --depth 1 https://github.com/GSA/openacr.git /tmp/openacr-upstream
           cd /tmp/openacr-upstream && npm ci && cd $GITHUB_WORKSPACE
@@ -88,6 +89,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.13'
@@ -97,7 +100,17 @@ jobs:
       - name: Application imports cleanly on this platform
         run: python -c "import app.main, api.handler, app.procstats; print(app.procstats.process_stats())"
       - name: Full test suite
-        run: python -m pytest tests -q
+        run: python -m pytest tests -q --junitxml=portability-results.xml
+      - name: Publish bounded failed-test diagnostics
+        if: failure()
+        run: python scripts/report_test_failures.py portability-results.xml
+      # Temporary observation only; never re-use this marker or rerun until green.
+      # Original suite/failed-test verdict above is preserved. No added artifact upload.
+      - name: One bounded modern wait and positive-export diagnosis
+        if: ${{ !cancelled() && github.event_name == 'push' && matrix.os == 'macos-latest' && github.run_attempt == 1 && contains(github.event.head_commit.message, '[native-modern-once-oct03]') }}
+        timeout-minutes: 2
+        shell: bash
+        run: python scripts/run_one_native_diagnostic.py
       - name: Bounded local concurrency and malformed-input contract gate
         run: python scripts/hardening_load.py --output hardening-load-${{ matrix.os }}.json
       - name: Archive portability load metrics
@@ -106,3 +119,69 @@ jobs:
         with:
           name: hardening-load-${{ matrix.os }}
           path: hardening-load-${{ matrix.os }}.json
+
+  dependency-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        dependency-scope: [runtime, dev]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+      - name: Install and freeze the selected candidate scope
+        env:
+          DEPENDENCY_SCOPE: ${{ matrix.dependency-scope }}
+        run: |
+          python -m venv .candidate-venv
+          .candidate-venv/bin/python -m pip install --index-url https://pypi.org/simple --require-hashes --only-binary=:all: --no-deps --requirement requirements-installer.txt
+          case "$DEPENDENCY_SCOPE" in
+            runtime) requirement=requirements.txt ;;
+            dev) requirement=requirements-dev.txt ;;
+            *) echo "Unknown dependency scope"; exit 1 ;;
+          esac
+          .candidate-venv/bin/python -m pip install --requirement "$requirement"
+          .candidate-venv/bin/python -m pip check
+          .candidate-venv/bin/python -m pip freeze > dependency-snapshot.txt
+          .candidate-venv/bin/python -m pip freeze --all > installed-environment-snapshot.txt
+          .candidate-venv/bin/python -c "import importlib.metadata; print('pip==' + importlib.metadata.version('pip'))" > installer-snapshot.txt
+      - name: Install audit tooling outside the candidate environment
+        run: |
+          python -m venv .audit-venv
+          .audit-venv/bin/python -m pip install --index-url https://pypi.org/simple --require-hashes --only-binary=:all: --no-deps --requirement requirements-installer.txt
+          .audit-venv/bin/python -m pip install pip-audit==2.10.1
+      - name: Fail closed on selected-scope advisories and emit dependency SBOM
+        run: |
+          .audit-venv/bin/python -m pip_audit --disable-pip --no-deps -r dependency-snapshot.txt --format cyclonedx-json --output dependency-audit.cdx.json
+      - name: Reject skipped, unqueryable or incomplete scope audit coverage
+        if: ${{ !cancelled() }}
+        run: |
+          .audit-venv/bin/python -m pip_audit --disable-pip --no-deps -r dependency-snapshot.txt --format json --output dependency-audit.json
+          .audit-venv/bin/python scripts/audit_dependency_snapshot.py --snapshot dependency-snapshot.txt --audit-json dependency-audit.json
+      - name: Audit installer tooling separately from application dependencies
+        if: ${{ !cancelled() }}
+        run: |
+          .audit-venv/bin/python -m pip_audit --disable-pip --no-deps -r installer-snapshot.txt --format cyclonedx-json --output installer-audit.cdx.json
+      - name: Reject skipped, unqueryable or incomplete installer audit coverage
+        if: ${{ !cancelled() }}
+        run: |
+          .audit-venv/bin/python -m pip_audit --disable-pip --no-deps -r installer-snapshot.txt --format json --output installer-audit.json
+          .audit-venv/bin/python scripts/audit_dependency_snapshot.py --snapshot installer-snapshot.txt --audit-json installer-audit.json
+      - name: Archive scope snapshots and SBOMs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: dependency-security-${{ matrix.dependency-scope }}-${{ github.sha }}
+          path: |
+            dependency-snapshot.txt
+            installed-environment-snapshot.txt
+            installer-snapshot.txt
+            dependency-audit.cdx.json
+            dependency-audit.json
+            installer-audit.cdx.json
+            installer-audit.json

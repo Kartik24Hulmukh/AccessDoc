@@ -1,0 +1,52 @@
+........................F.............................................................................................{"ts":1790796046.3365102,"level":"info","event":"http_request","trace_id":"ae1b8e66ea26dfcdfb4e5b08a7fd1198","span_id":"4a530d37cb2ba601","request_id":"1ca2f410def22e2483c71ba35f334224","ip":"127.0.0.1","method":"POST","route":"/api/remediate","status":503,"duration_ms":1.35}
+....... [ 96%]
+....                                                                   [100%]
+=================================== FAILURES ===================================
+____ LiveHttpBillingTests.test_billing_429_holds_whole_chain_after_one_call ____
+
+self = <tests.test_gateway_billing_exhaustion.LiveHttpBillingTests testMethod=test_billing_429_holds_whole_chain_after_one_call>
+
+    def test_billing_429_holds_whole_chain_after_one_call(self):
+        g = self._gw()
+        r = g.chat("fix alt text")
+        self.assertTrue(r.fallback)
+        self.assertEqual(r.model, "static-kb")
+        self.assertEqual(len(_H.hits), 1, "only one probe may hit a credit-exhausted account: %r" % _H.hits)
+        self.assertTrue(g.health()["billing_exhausted"])
+        t0 = time.monotonic()
+        for _ in range(50):
+>           self.assertEqual(g.chat("again").model, "static-kb")
+                             ^^^^^^^^^^^^^^^
+
+tests/test_gateway_billing_exhaustion.py:78: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/gateway.py:539: in chat
+    return self._chat_hedged(prompt, model, static_fallback, budget_seconds, hedge)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <app.gateway.ModelGateway object at 0x7fc47e9ce030>, prompt = 'again'
+model = None, static_fallback = True, budget_seconds = None, hedge = 0.1
+
+    def _chat_hedged(self, prompt, model, static_fallback, budget_seconds, hedge):
+        if self.billing_exhausted():
+            # Credits are account-wide: no lane can succeed, dispatch nothing.
+            self._log(event="gateway_skip", model=None, reason="billing_exhausted")
+            if static_fallback:
+                self._log(event="gateway_static_fallback", reason="billing_exhausted")
+                return GatewayResult("static-kb", static_answer(prompt), 0, 0.0,
+>                                    ledger.snapshot()["authorized_attempts"], True, "static-kb")
+                                     ^^^^^^
+E               UnboundLocalError: cannot access local variable 'ledger' where it is not associated with a value
+
+app/gateway.py:548: UnboundLocalError
+----------------------------- Captured stdout call -----------------------------
+{"ts":1790796036.7295046,"level":"info","event":"gateway_dispatch","trace_id":"285aa2a9efd37b4325a88cb83831a4c7","span_id":"cd5d6233b246d1c3","model":"glm-5.3","reason":"primary","lane":1,"since_start_ms":0.467}
+{"ts":1790796036.7330246,"level":"info","event":"gateway_billing_exhausted","trace_id":"285aa2a9efd37b4325a88cb83831a4c7","span_id":"c13dd4a5c3a0f6b0","model":"glm-5.3","cooldown_s":300.0}
+{"ts":1790796036.7330632,"level":"info","event":"gateway_call","trace_id":"285aa2a9efd37b4325a88cb83831a4c7","span_id":"c13dd4a5c3a0f6b0","model":"glm-5.3","status":429,"latency_ms":3.8,"reason":"billing_exhausted"}
+{"ts":1790796036.7331526,"level":"info","event":"gateway_static_fallback","trace_id":"285aa2a9efd37b4325a88cb83831a4c7","span_id":"cd5d6233b246d1c3","reason":"chain_exhausted"}
+{"ts":1790796036.7332587,"level":"info","event":"gateway_skip","trace_id":"285aa2a9efd37b4325a88cb83831a4c7","span_id":"cd5d6233b246d1c3","model":null,"reason":"billing_exhausted"}
+{"ts":1790796036.7332761,"level":"info","event":"gateway_static_fallback","trace_id":"285aa2a9efd37b4325a88cb83831a4c7","span_id":"cd5d6233b246d1c3","reason":"billing_exhausted"}
+=========================== short test summary info ============================
+FAILED tests/test_gateway_billing_exhaustion.py::LiveHttpBillingTests::test_billing_429_holds_whole_chain_after_one_call
+1 failed, 128 passed, 21 subtests passed in 12.08s

@@ -1,0 +1,23 @@
+# Native gateway ownership and authorization
+
+This replaces the legacy Requests/urllib3 socket-reader workaround. Real optional gateway I/O uses aiohttp's pooled async client on one lifecycle-owned selector loop, with aiodns/c-ares rather than a blocking libc resolver. These dependencies close reproduced deadline and cancellation gaps; unrelated OCR/RAG connectors were not added to the scanner-evidence product.
+
+## Resource contract
+
+- `GATEWAY_MAX_UPSTREAM_REQUESTS` defaults to 8 and is configured when the process engine starts. It is a process-wide admission cap, not merely a connection-cache size. Slots remain owned until the native task completes. With the default `GATEWAY_HEDGE_MAX_INFLIGHT=2`, a delayed primary can authorize up to two speculative lanes before an account billing failure is known; a known billing hold cancels siblings and permits no further dispatch. A one-call-before-knowledge claim is not valid under hedging.
+- DNS, connection, TLS, response headers and bounded decoded body share an absolute request deadline. At most 50 ms (and no more than one third of remaining time) is reserved **inside** the existing budget for cancellation drain. Cancellation checks precede admission and native request start; sibling winners wake retry waits. All lane joins are bounded by the original deadline, with no added 250 ms grace.
+- Responses have decoded/wire byte bounds; gzip/deflate decoding is bounded, redirects and cookies are disabled. Unsupported/truncated compression fails closed. Socket pools and resolver resources close when their last owner closes; process shutdown also drains them.
+- Ambient proxy/netrc discovery is disabled (`trust_env=False`). If your deployment requires managed egress, set `GATEWAY_PROXY_URL` explicitly to a clean HTTP(S) proxy origin in the operator environment. Do not put proxy credentials in repository files. This removes aiohttp's executor-backed ambient discovery path; it does not claim all dependency internals can never start threads.
+- The former 10 ms reserve failed the actual Windows completion boundary; a frozen 30 ms delayed-completion regression reproduces that failure. The cancellation sub-budget now covers that observed dispatch lag without adding time to the caller deadline. These are measured/tested boundaries, not mathematical guarantees under arbitrary OS scheduling, cancellation-resistant callbacks, process fork or external infrastructure failures. Hosted Windows/macOS checks and exact-target smoke must run for the candidate.
+
+## Token authorization, not a billing guarantee
+
+A shared thread-safe ledger reserves prompt **and** maximum completion cost across every model, retry and losing hedge. The text-content bound uses UTF-8 byte length plus conservative role/framing allowance. Missing, malformed or zero usage never refunds that reservation. Valid reported usage can reconcile unused authorization; reported overspend fails the response and stops further dispatch.
+
+`tokens` is conservative committed authorization when usage is unknown, not a fabricated bill. `token_usage_known`, `token_budget.observed_tokens`, `peak_reserved_tokens`, `contract_violation` and `authorized_attempts` expose that distinction. Provider-hidden prompts, tokenization and actual billing cannot be certified by this client. Configure a provider-side spend cap and validate provider billing independently.
+
+Optional remediation prioritizes bounded scanner findings within the existing budget, leaving room for two default completion lanes rather than silently increasing spending. `violations_received` is the locally bounded usable set (maximum 25), `violations_considered` is the guidance's covered set, and `external_violations_authorized` is the selected external subset for attempted dispatch, not proof of provider receipt. Full scanner/client input reaches the same-origin server; client names/selectors do not enter the outgoing prompt. Scanner help text can still contain private content. Too-small budgets fall back locally without authorizing an external call; strict gateway mode fails closed instead.
+
+## Verification scope
+
+Local tests cover synthetic cancelled DNS, real loopback slow headers, admission saturation, missing/overspent usage, circuit-open deadline skips, 408 retry cancellation, trace propagation and ambient-proxy bypass. Synthetic DNS tests establish cancellation of the resolver await and no late loopback POST, not exhaustive real c-ares/OS fault teardown. AI council reviews are not practitioner or legal approvals. Live model samples do not prove sustained throughput or sub-200 ms provider completion; the routing timer and final-response latency are separate measures.

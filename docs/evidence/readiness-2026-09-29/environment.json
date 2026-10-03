@@ -1,0 +1,11 @@
+{
+  "python": "3.14.6",
+  "baseline_sha": "7ab1817",
+  "feature_commit": "fc35a3cc2f842be4ed67665c5b8f947bc66cd34f",
+  "notes": [
+    "Load runs overlapped other validation workloads; descriptive results only, no speedup claim.",
+    "Memory sources disagree in this container: reported peak is below current RSS. Retained raw evidence; not a certified RAM ceiling.",
+    "Initial post-edit suite had a failing test expectation for self-hosted liveness; corrected before final expanded suite.",
+    "Live benchmark ran baseline gateway code with the new supplied credential; 11/12 completions, K3 504; gate stays closed."
+  ]
+}

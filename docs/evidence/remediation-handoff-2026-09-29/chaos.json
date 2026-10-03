@@ -1,0 +1,680 @@
+{
+  "scope": "100 synthetic socket workflows; 40 disconnects; no humans; loopback only",
+  "workflows": [
+    {
+      "profile": 0,
+      "case": "close-headers",
+      "pass": true
+    },
+    {
+      "profile": 1,
+      "case": "cancel-body",
+      "status": 422,
+      "body_read_interrupted": true,
+      "pass": true
+    },
+    {
+      "profile": 2,
+      "case": "application/pdf",
+      "status": 422,
+      "pass": true,
+      "ms": 4.97
+    },
+    {
+      "profile": 3,
+      "case": "application/json",
+      "status": 422,
+      "pass": true,
+      "ms": 5.04
+    },
+    {
+      "profile": 4,
+      "case": "application/zip",
+      "status": 422,
+      "pass": true,
+      "ms": 7.71
+    },
+    {
+      "profile": 5,
+      "case": "close-headers",
+      "pass": true
+    },
+    {
+      "profile": 6,
+      "case": "cancel-body",
+      "status": 422,
+      "body_read_interrupted": true,
+      "pass": true
+    },
+    {
+      "profile": 7,
+      "case": "application/pdf",
+      "status": 422,
+      "pass": true,
+      "ms": 7.26
+    },
+    {
+      "profile": 8,
+      "case": "application/json",
+      "status": 422,
+      "pass": true,
+      "ms": 10.67
+    },
+    {
+      "profile": 9,
+      "case": "application/zip",
+      "status": 422,
+      "pass": true,
+      "ms": 7.65
+    },
+    {
+      "profile": 10,
+      "case": "close-headers",
+      "pass": true
+    },
+    {
+      "profile": 11,
+      "case": "cancel-body",
+      "status": 422,
+      "body_read_interrupted": true,
+      "pass": true
+    },
+    {
+      "profile": 12,
+      "case": "application/pdf",
+      "status": 422,
+      "pass": true,
+      "ms": 8.99
+    },
+    {
+      "profile": 13,
+      "case": "application/json",
+      "status": 422,
+      "pass": true,
+      "ms": 12.73
+    },
+    {
+      "profile": 14,
+      "case": "application/zip",
+      "status": 422,
+      "pass": true,
+      "ms": 10.05
+    },
+    {
+      "profile": 15,
+      "case": "close-headers",
+      "pass": true
+    },
+    {
+      "profile": 16,
+      "case": "cancel-body",
+      "status": 422,
+      "body_read_interrupted": true,
+      "pass": true
+    },
+    {
+      "profile": 17,
+      "case": "application/pdf",
+      "status": 422,
+      "pass": true,
+      "ms": 13.02
+    },
+    {
+      "profile": 18,
+      "case": "application/json",
+      "status": 422,
+      "pass": true,
+      "ms": 13.48
+    },
+    {
+      "profile": 19,
+      "case": "application/zip",
+      "status": 422,
+      "pass": true,
+      "ms": 15.98
+    },
+    {
+      "profile": 20,
+      "case": "close-headers",
+      "pass": true
+    },
+    {
+      "profile": 21,
+      "case": "cancel-body",
+      "status": 422,
+      "body_read_interrupted": true,
+      "pass": true
+    },
+    {
+      "profile": 22,
+      "case": "application/pdf",
+      "status": 422,
+      "pass": true,
+      "ms": 14.93
+    },
+    {
+      "profile": 23,
+      "case": "application/json",
+      "status": 422,
+      "pass": true,
+      "ms": 15.5
+    },
+    {
+      "profile": 24,
+      "case": "application/zip",
+      "status": 422,
+      "pass": true,
+      "ms": 16.64
+    },
+    {
+      "profile": 25,
+      "case": "close-headers",
+      "pass": true
+    },
+    {
+      "profile": 26,
+      "case": "cancel-body",
+      "status": 422,
+      "body_read_interrupted": true,
+      "pass": true
+    },
+    {
+      "profile": 27,
+      "case": "application/pdf",
+      "status": 422,
+      "pass": true,
+      "ms": 19.61
+    },
+    {
+      "profile": 28,
+      "case": "application/json",
+      "status": 422,
+      "pass": true,
+      "ms": 23.31
+    },
+    {
+      "profile": 29,
+      "case": "application/zip",
+      "status": 422,
+      "pass": true,
+      "ms": 21.68
+    },
+    {
+      "profile": 30,
+      "case": "close-headers",
+      "pass": true
+    },
+    {
+      "profile": 31,
+      "case": "cancel-body",
+      "status": 422,
+      "body_read_interrupted": true,
+      "pass": true
+    },
+    {
+      "profile": 32,
+      "case": "application/pdf",
+      "status": 422,
+      "pass": true,
+      "ms": 22.16
+    },
+    {
+      "profile": 33,
+      "case": "application/json",
+      "status": 422,
+      "pass": true,
+      "ms": 26.27
+    },
+    {
+      "profile": 34,
+      "case": "application/zip",
+      "status": 422,
+      "pass": true,
+      "ms": 21.58
+    },
+    {
+      "profile": 35,
+      "case": "close-headers",
+      "pass": true
+    },
+    {
+      "profile": 36,
+      "case": "cancel-body",
+      "status": 422,
+      "body_read_interrupted": true,
+      "pass": true
+    },
+    {
+      "profile": 37,
+      "case": "application/pdf",
+      "status": 422,
+      "pass": true,
+      "ms": 24.13
+    },
+    {
+      "profile": 38,
+      "case": "application/json",
+      "status": 422,
+      "pass": true,
+      "ms": 25.98
+    },
+    {
+      "profile": 39,
+      "case": "application/zip",
+      "status": 422,
+      "pass": true,
+      "ms": 24.25
+    },
+    {
+      "profile": 40,
+      "case": "close-headers",
+      "pass": true
+    },
+    {
+      "profile": 41,
+      "case": "cancel-body",
+      "status": 422,
+      "body_read_interrupted": true,
+      "pass": true
+    },
+    {
+      "profile": 42,
+      "case": "application/pdf",
+      "status": 422,
+      "pass": true,
+      "ms": 26.17
+    },
+    {
+      "profile": 43,
+      "case": "application/json",
+      "status": 422,
+      "pass": true,
+      "ms": 27.64
+    },
+    {
+      "profile": 44,
+      "case": "application/zip",
+      "status": 422,
+      "pass": true,
+      "ms": 26.87
+    },
+    {
+      "profile": 45,
+      "case": "close-headers",
+      "pass": true
+    },
+    {
+      "profile": 46,
+      "case": "cancel-body",
+      "status": 422,
+      "body_read_interrupted": true,
+      "pass": true
+    },
+    {
+      "profile": 47,
+      "case": "application/pdf",
+      "status": 422,
+      "pass": true,
+      "ms": 28.3
+    },
+    {
+      "profile": 48,
+      "case": "application/json",
+      "status": 422,
+      "pass": true,
+      "ms": 27.58
+    },
+    {
+      "profile": 49,
+      "case": "application/zip",
+      "status": 422,
+      "pass": true,
+      "ms": 30.35
+    },
+    {
+      "profile": 50,
+      "case": "close-headers",
+      "pass": true
+    },
+    {
+      "profile": 51,
+      "case": "cancel-body",
+      "status": 422,
+      "body_read_interrupted": true,
+      "pass": true
+    },
+    {
+      "profile": 52,
+      "case": "application/pdf",
+      "status": 422,
+      "pass": true,
+      "ms": 28.21
+    },
+    {
+      "profile": 53,
+      "case": "application/json",
+      "status": 422,
+      "pass": true,
+      "ms": 27.87
+    },
+    {
+      "profile": 54,
+      "case": "application/zip",
+      "status": 422,
+      "pass": true,
+      "ms": 30.11
+    },
+    {
+      "profile": 55,
+      "case": "close-headers",
+      "pass": true
+    },
+    {
+      "profile": 56,
+      "case": "cancel-body",
+      "status": 422,
+      "body_read_interrupted": true,
+      "pass": true
+    },
+    {
+      "profile": 57,
+      "case": "application/pdf",
+      "status": 422,
+      "pass": true,
+      "ms": 29.51
+    },
+    {
+      "profile": 58,
+      "case": "application/json",
+      "status": 422,
+      "pass": true,
+      "ms": 29.74
+    },
+    {
+      "profile": 59,
+      "case": "application/zip",
+      "status": 422,
+      "pass": true,
+      "ms": 31.27
+    },
+    {
+      "profile": 60,
+      "case": "close-headers",
+      "pass": true
+    },
+    {
+      "profile": 61,
+      "case": "cancel-body",
+      "status": 422,
+      "body_read_interrupted": true,
+      "pass": true
+    },
+    {
+      "profile": 62,
+      "case": "application/pdf",
+      "status": 422,
+      "pass": true,
+      "ms": 30.51
+    },
+    {
+      "profile": 63,
+      "case": "application/json",
+      "status": 422,
+      "pass": true,
+      "ms": 31.11
+    },
+    {
+      "profile": 64,
+      "case": "application/zip",
+      "status": 422,
+      "pass": true,
+      "ms": 32.68
+    },
+    {
+      "profile": 65,
+      "case": "close-headers",
+      "pass": true
+    },
+    {
+      "profile": 66,
+      "case": "cancel-body",
+      "status": 422,
+      "body_read_interrupted": true,
+      "pass": true
+    },
+    {
+      "profile": 67,
+      "case": "application/pdf",
+      "status": 422,
+      "pass": true,
+      "ms": 33.92
+    },
+    {
+      "profile": 68,
+      "case": "application/json",
+      "status": 422,
+      "pass": true,
+      "ms": 30.85
+    },
+    {
+      "profile": 69,
+      "case": "application/zip",
+      "status": 422,
+      "pass": true,
+      "ms": 34.21
+    },
+    {
+      "profile": 70,
+      "case": "close-headers",
+      "pass": true
+    },
+    {
+      "profile": 71,
+      "case": "cancel-body",
+      "status": 422,
+      "body_read_interrupted": true,
+      "pass": true
+    },
+    {
+      "profile": 72,
+      "case": "application/pdf",
+      "status": 422,
+      "pass": true,
+      "ms": 33.2
+    },
+    {
+      "profile": 73,
+      "case": "application/json",
+      "status": 422,
+      "pass": true,
+      "ms": 31.96
+    },
+    {
+      "profile": 74,
+      "case": "application/zip",
+      "status": 422,
+      "pass": true,
+      "ms": 34.96
+    },
+    {
+      "profile": 75,
+      "case": "close-headers",
+      "pass": true
+    },
+    {
+      "profile": 76,
+      "case": "cancel-body",
+      "status": 422,
+      "body_read_interrupted": true,
+      "pass": true
+    },
+    {
+      "profile": 77,
+      "case": "application/pdf",
+      "status": 422,
+      "pass": true,
+      "ms": 33.9
+    },
+    {
+      "profile": 78,
+      "case": "application/json",
+      "status": 422,
+      "pass": true,
+      "ms": 35.54
+    },
+    {
+      "profile": 79,
+      "case": "application/zip",
+      "status": 422,
+      "pass": true,
+      "ms": 35.63
+    },
+    {
+      "profile": 80,
+      "case": "close-headers",
+      "pass": true
+    },
+    {
+      "profile": 81,
+      "case": "cancel-body",
+      "status": 422,
+      "body_read_interrupted": true,
+      "pass": true
+    },
+    {
+      "profile": 82,
+      "case": "application/pdf",
+      "status": 422,
+      "pass": true,
+      "ms": 34.87
+    },
+    {
+      "profile": 83,
+      "case": "application/json",
+      "status": 422,
+      "pass": true,
+      "ms": 35.12
+    },
+    {
+      "profile": 84,
+      "case": "application/zip",
+      "status": 422,
+      "pass": true,
+      "ms": 36.62
+    },
+    {
+      "profile": 85,
+      "case": "close-headers",
+      "pass": true
+    },
+    {
+      "profile": 86,
+      "case": "cancel-body",
+      "status": 422,
+      "body_read_interrupted": true,
+      "pass": true
+    },
+    {
+      "profile": 87,
+      "case": "application/pdf",
+      "status": 422,
+      "pass": true,
+      "ms": 36.78
+    },
+    {
+      "profile": 88,
+      "case": "application/json",
+      "status": 422,
+      "pass": true,
+      "ms": 37.1
+    },
+    {
+      "profile": 89,
+      "case": "application/zip",
+      "status": 422,
+      "pass": true,
+      "ms": 35.03
+    },
+    {
+      "profile": 90,
+      "case": "close-headers",
+      "pass": true
+    },
+    {
+      "profile": 91,
+      "case": "cancel-body",
+      "status": 422,
+      "body_read_interrupted": true,
+      "pass": true
+    },
+    {
+      "profile": 92,
+      "case": "application/pdf",
+      "status": 422,
+      "pass": true,
+      "ms": 34.21
+    },
+    {
+      "profile": 93,
+      "case": "application/json",
+      "status": 422,
+      "pass": true,
+      "ms": 36.47
+    },
+    {
+      "profile": 94,
+      "case": "application/zip",
+      "status": 422,
+      "pass": true,
+      "ms": 37.6
+    },
+    {
+      "profile": 95,
+      "case": "close-headers",
+      "pass": true
+    },
+    {
+      "profile": 96,
+      "case": "cancel-body",
+      "status": 422,
+      "body_read_interrupted": true,
+      "pass": true
+    },
+    {
+      "profile": 97,
+      "case": "application/pdf",
+      "status": 422,
+      "pass": true,
+      "ms": 36.52
+    },
+    {
+      "profile": 98,
+      "case": "application/json",
+      "status": 422,
+      "pass": true,
+      "ms": 37.39
+    },
+    {
+      "profile": 99,
+      "case": "application/zip",
+      "status": 422,
+      "pass": true,
+      "ms": 36.53
+    }
+  ],
+  "recovery": {
+    "/healthz": {
+      "status": 200,
+      "ms": 1.22
+    },
+    "/readyz": {
+      "status": 200,
+      "ms": 0.73
+    }
+  },
+  "unhandled_thread_exceptions": [],
+  "new_threads_after_shutdown": [],
+  "server_errors": [],
+  "server_runner_alive": false,
+  "pass": true
+}

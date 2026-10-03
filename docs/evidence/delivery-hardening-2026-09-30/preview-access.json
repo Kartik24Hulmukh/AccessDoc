@@ -1,0 +1,27 @@
+{
+  "target": "https://access-r54bu998p-atlas16.vercel.app",
+  "commit": "4270da84dc8f89a99b2e354a62c92543fe639edb",
+  "authorized": false,
+  "rows": [
+    {
+      "path": "/",
+      "status": 302,
+      "redirect_host": "vercel.com"
+    },
+    {
+      "path": "/healthz",
+      "status": 302,
+      "redirect_host": "vercel.com"
+    },
+    {
+      "path": "/readyz",
+      "status": 302,
+      "redirect_host": "vercel.com"
+    },
+    {
+      "path": "/api/version",
+      "status": 302,
+      "redirect_host": "vercel.com"
+    }
+  ]
+}

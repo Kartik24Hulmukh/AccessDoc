@@ -4,6 +4,9 @@ import unittest
 from contextlib import redirect_stdout
 from unittest.mock import patch
 from app.gateway import ModelGateway, CANONICAL_CHAIN, extract_text
+from app.gateway_budget import prompt_token_bound
+
+PROMPT_BOUND = prompt_token_bound([{"role": "system", "content": "You are an accessibility remediation engineer."}, {"role": "user", "content": "fix contrast"}])
 
 
 class BudgetBoundaryTests(unittest.TestCase):
@@ -15,8 +18,8 @@ class BudgetBoundaryTests(unittest.TestCase):
         calls = []
         def transport(model, messages):
             calls.append(model)
-            return 503, {}, {"usage": {"total_tokens": 100}}
-        result = self.run_quiet(ModelGateway(transport=transport, token_budget=100,
+            return 503, {}, {"usage": {"total_tokens": PROMPT_BOUND + 100}}
+        result = self.run_quiet(ModelGateway(transport=transport, token_budget=PROMPT_BOUND + 100,
                                              base_backoff=0, max_sleep=0))
         self.assertTrue(result.fallback)
         self.assertEqual(len(calls), 1)
@@ -53,24 +56,31 @@ class BudgetBoundaryTests(unittest.TestCase):
         self.assertLessEqual(gw.read_timeout_for(CANONICAL_CHAIN[0], remaining=0.2), 0.2)
 
     def test_completion_budget_has_no_minimum_64_overshoot(self):
-        gw = ModelGateway(token_budget=100, max_retries=0)
+        gw = ModelGateway(token_budget=2 * PROMPT_BOUND + 100, max_retries=0)
         limits = []
         def post(model, messages, max_tokens=None, remaining=None):
             limits.append(max_tokens)
-            return 200, {}, {"choices": [{"message": {"content": ""}}], "usage": {"total_tokens": 90}}
-        with patch.object(gw, "_post", side_effect=post):
+            return 200, {}, {"choices": [{"message": {"content": ""}}], "usage": {"total_tokens": PROMPT_BOUND + 90}}
+        with patch.object(gw, "_post", side_effect=post), patch.dict("os.environ", {"GATEWAY_MAX_TOKENS": "100"}):
             self.run_quiet(gw)
         self.assertEqual(limits, [100, 10])
 
     def test_negative_usage_does_not_refund_budget(self):
-        gw = ModelGateway(token_budget=100, max_retries=0)
+        gw = ModelGateway(token_budget=PROMPT_BOUND + 100, max_retries=0)
         limits = []
         def post(model, messages, max_tokens=None, remaining=None):
             limits.append(max_tokens)
             return 503, {}, {"usage": {"total_tokens": -900}}
         with patch.object(gw, "_post", side_effect=post):
             self.run_quiet(gw)
-        self.assertTrue(all(n <= 100 for n in limits))
+        self.assertEqual(limits, [100])
+
+    def test_prompt_alone_exhausts_budget_without_dispatch(self):
+        calls = []
+        gw = ModelGateway(transport=lambda m, msgs: calls.append(m), token_budget=PROMPT_BOUND)
+        result = self.run_quiet(gw)
+        self.assertTrue(result.fallback)
+        self.assertEqual(calls, [])
 
     def test_multipart_non_string_provider_text_is_ignored(self):
         payload = {"choices": [{"message": {"content": [{"text": None}, {"text": "safe"}, {"text": 1}]}}]}

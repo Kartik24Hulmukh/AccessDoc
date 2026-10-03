@@ -1,0 +1,7 @@
+=== Waiting for Vercel deployment at https://access-r54bu998p-atlas16.vercel.app ===
+    Expected version: 0.7.0-beta.7
+    Target commit: 4270da8
+    Poll interval: 15.0s, max wait: 30.0s, req timeout: 30s
+  Attempt 1: status=302
+  Attempt 2: status=302
+FAIL: Vercel deployment not ready after 30.0s (2 attempts). Last observed commit: None

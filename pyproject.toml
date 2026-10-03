@@ -23,12 +23,14 @@ classifiers = [
 dependencies = [
     "reportlab>=4.0.0",
     "requests>=2.32.0",
+    "aiohttp>=3.14.3,<4",
+    "aiodns>=3.6.1,<4",
 ]
 
 [project.optional-dependencies]
 scan = ["playwright>=1.40.0"]
-test = ["PyYAML>=6.0"]
-dev = ["PyYAML>=6.0", "playwright>=1.40.0"]
+test = ["PyYAML>=6.0", "pytest>=9.1.1,<10"]
+dev = ["PyYAML>=6.0", "playwright>=1.40.0", "pytest>=9.1.1,<10"]
 
 [project.scripts]
 accessdoc = "cli:main"
@@ -45,3 +47,8 @@ include = ["app*", "mcp*", "api*"]
 # sys.exit() aborts collection with INTERNALERROR and runs zero tests.
 testpaths = ["tests"]
 minversion = "9.1"
+filterwarnings = [
+    "error::ResourceWarning",
+    "error::pytest.PytestUnraisableExceptionWarning",
+    "error::pytest.PytestUnhandledThreadExceptionWarning",
+]

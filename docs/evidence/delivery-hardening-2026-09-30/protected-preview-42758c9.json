@@ -1,0 +1,23 @@
+{
+  "target": "https://access-7skcw76j9-atlas16.vercel.app",
+  "commit": "42758c9c0c0706dc263283e3adf74f93bd705594",
+  "authorization_available": false,
+  "functional_checks_run": 0,
+  "rows": [
+    {
+      "path": "/",
+      "status": 302,
+      "redirect_host": "vercel.com"
+    },
+    {
+      "path": "/healthz",
+      "status": 302,
+      "redirect_host": "vercel.com"
+    },
+    {
+      "path": "/readyz",
+      "status": 302,
+      "redirect_host": "vercel.com"
+    }
+  ]
+}

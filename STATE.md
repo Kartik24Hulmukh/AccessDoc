@@ -1,3 +1,12 @@
+# Current resume — 2 October 2026
+
+- Base: launch branch `cccdef72b93fd37c2c3b5b220c2f1301449f84c0`, newer than the supplied operator archive.
+- Local changes restore lost native retirement/deadline, source-fidelity, pending-check and scope-safe history repairs; integrated local verdicts are recorded separately in the delivery evidence; hosted/target acceptance is not inferred.
+- Public launch remains HOLD. Hosted portability, exact deployment acceptance, operator configuration and genuine independent/human gates are unresolved.
+- Connected GitHub MCP reports re-authentication required; no Vercel connection is available in this session. Public clone access is read-only evidence, not push or deployment authorization.
+- Synthetic load is not real-human evaluation or a successful-capacity multiplier. Real-provider calls were not made in this resume.
+- The remainder of this file is historical evidence, not current acceptance.
+
 # AccessDoc state
 
 - Release candidate: `0.7.0-beta.7`.
@@ -22,3 +31,7 @@ See [hardening receipt](docs/HARDENING-2026-09-26.md): fresh-clone baseline 795 
 ## September 29 hardening turn (evidence-only)
 
 See [hardening receipt](docs/HARDENING-2026-09-29.md): fresh-clone baseline re-verified 834 passed / 13 skipped / 0 failed (no regressions). Fresh live Melious 4-model bench attempted with the real key: the provider returned HTTP 429 on all four canonical models this turn (external rate limit, not an AccessDoc defect); the circuit breaker opened correctly after 1 failure per model and fail-fast on repeat attempts measured ~100ms (well inside the <200ms auto-recovery bar), and the offline 429-storm/outage/static-KB resilience probes all still pass. No new successful live latency sample exists to replace the last-known-good P50/P95/P99 in `gateway_bench.json`, so that file is unchanged; the fabricated alternative was rejected on integrity grounds. `repos.md` remains unsupplied in every session to date, so no external connector was integrated on a guessed catalog. Human sign-off, security/legal review, and practitioner acceptance remain the only launch blockers.
+
+## September 29 continuation: passive gateway readiness
+
+See [continuation receipt](docs/HARDENING-READINESS-2026-09-29.md). Baseline frozen at 842 passed / 14 skipped on this environment. Optional AI readiness now reports known billing degradation and remaining hold time without active probes or changes to core availability. Fresh live provider evidence: 11/12 completions; one K3 504, so the live gate failed and automatic merge remains prohibited. Local 100-workflow disconnect chaos and 15-case stress checks passed. No broad launch approval is implied. Missing integration catalog, independent reviews, named approvals and practitioner evidence remain outstanding.

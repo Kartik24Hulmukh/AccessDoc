@@ -1,0 +1,165 @@
+{
+  "storage": {
+    "request_bytes": 16137,
+    "artifact_bytes": {
+      "pdf": 28652,
+      "html": 240473,
+      "receipt": 115061
+    },
+    "store_before": {
+      "items": 0,
+      "bytes": 0
+    },
+    "direct_put": {
+      "type": "ValueError",
+      "message": "Generated output exceeds storage limit"
+    },
+    "http_generate": [
+      422,
+      {
+        "error": {
+          "code": "INVALID_INPUT",
+          "message": "Invalid input",
+          "requestId": "2f4d2586850f5fef2222a12e59ea5977"
+        }
+      }
+    ],
+    "store_after": {
+      "items": 0,
+      "bytes": 0
+    },
+    "http_bundle": [
+      200,
+      {
+        "length": 56989
+      }
+    ]
+  },
+  "download_control": {
+    "generate_status": 201,
+    "unauthenticated_downloads": {
+      "download_url": 200,
+      "html_companion_url": 200,
+      "receipt_url": 200
+    }
+  },
+  "boundary_controls": {
+    "traversal_self_hosted": 404,
+    "invalid_scanner_self_hosted": [
+      422,
+      {
+        "error": {
+          "code": "INVALID_INPUT",
+          "message": "Invalid input",
+          "requestId": "c19825c146910b3c68c73f4b444eafbf"
+        }
+      }
+    ],
+    "active_generation_count_after_requests": 0,
+    "cleanup_completed_within_2s": true,
+    "active_generation_count_after_cleanup": 0
+  },
+  "readiness": {
+    "self_hosted_ready": [
+      200,
+      {
+        "status": "ready",
+        "commit": "78736f2ef9d10e4b37243a52be27b999e2c0c26e",
+        "gateway": {
+          "chain": [
+            "glm-5.3",
+            "glm-5.3-flash",
+            "qwen3.8-27b",
+            "kimi-k3"
+          ],
+          "models": {},
+          "configured": false,
+          "billing_exhausted": false,
+          "billing_retry_after_seconds": 0,
+          "status": "degraded",
+          "degraded_reasons": [
+            "not_configured"
+          ]
+        },
+        "tracing": {
+          "enabled": false,
+          "exported": 0,
+          "dropped": 0,
+          "failed_batches": 0,
+          "queued": 0,
+          "last_error": null,
+          "sdk": false
+        }
+      }
+    ],
+    "self_hosted_core": [
+      503,
+      {
+        "error": {
+          "code": "AUTH_NOT_CONFIGURED",
+          "message": "API access denied",
+          "requestId": "55da365ecc3a3e560fadb4b76ad22524"
+        }
+      }
+    ],
+    "hosted_ready": [
+      200,
+      {
+        "service": "AccessDoc",
+        "adapter_version": "0.7.0-beta.7",
+        "status": "ok",
+        "commit": "unknown",
+        "api_note": "Bounded ReportLab demo API. See docs for limitations.",
+        "endpoints": [
+          "/api/bundle",
+          "/api/remediate",
+          "/limits",
+          "/docs",
+          "/openapi.json"
+        ],
+        "ui": "/index.html",
+        "gateway": {
+          "configured": false,
+          "chain": [
+            "glm-5.3",
+            "glm-5.3-flash",
+            "qwen3.8-27b",
+            "kimi-k3"
+          ],
+          "models": {},
+          "billing_exhausted": false,
+          "billing_retry_after_seconds": 0,
+          "status": "degraded",
+          "degraded_reasons": [
+            "not_configured"
+          ]
+        },
+        "process": {
+          "max_rss_kib": 44544,
+          "rss_kib": 44088,
+          "threads": 3
+        },
+        "runtime": {
+          "python": "3.13.14",
+          "uptime_seconds": 0.3
+        }
+      }
+    ],
+    "hosted_core": [
+      503,
+      {
+        "error": "AUTH_NOT_CONFIGURED",
+        "request_id": "6c9196a69110"
+      }
+    ]
+  },
+  "idle_ttl": {
+    "ttl_seconds": 1,
+    "age_seconds": 2.2,
+    "retained_before_touch": true,
+    "backing_bytes_before_touch": 44,
+    "payload_present_before_touch": true,
+    "get_after_ttl": null,
+    "backing_bytes_after_touch": 0
+  }
+}

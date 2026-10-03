@@ -5,9 +5,10 @@ from http.server import ThreadingHTTPServer,BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse
 from .models import VERSION
-from .http_policy import auth_error, public_body, auth_required, remediation_body
+from .http_policy import auth_error, public_body, auth_required, remediation_body, readiness_reasons, operation_state, operation_error
 from .limits import LimitExceeded, MAX_HTTP_BODY_BYTES, limits_summary
 from . import telemetry
+from .http_body import BodyDeadlineExceeded, TruncatedBodyError, body_deadline, read_body
 READ_CHUNK_BYTES=64*1024
 # Bounded drain on the oversize path: read at most this much of an over-limit
 # body before answering 413, so the client receives the status instead of a
@@ -17,17 +18,7 @@ DRAIN_MAX_BYTES=16*1024*1024
 from .service import build_artifacts
 from .bundle import build_bundle
 from . import remediate as remediation
-try:
-    from .store import TTLReportStore
-    _STORE_AVAILABLE = True
-except Exception:
-    _STORE_AVAILABLE = False
-    class TTLReportStore:
-        def __init__(self,*a,**kw):pass
-        def put(self,*a,**kw):return 'disabled'
-        def get(self,*a,**kw):return None
-        @property
-        def stats(self):return {'items':0,'bytes':0}
+from .store import TTLReportStore
 
 ROOT=Path(__file__).resolve().parent.parent
 STORE=TTLReportStore(ttl_seconds=int(os.getenv('REPORT_TTL_SECONDS','1800')),max_items=int(os.getenv('REPORT_MAX_ITEMS','100')),max_bytes=int(os.getenv('REPORT_MAX_BYTES','50000000')))
@@ -121,7 +112,8 @@ class Handler(BaseHTTPRequestHandler):
   if not getattr(self,'_trace_ctx',None):self._trace_ctx=telemetry.start_trace(self.headers.get('traceparent') if getattr(self,'headers',None) else None,request_id=self.request_id)
   return self._trace_ctx
  def _log(self,status,start):
-  print(json.dumps({'ts':time.time(),'level':'info','event':'http_request','trace_id':self._trace()['trace_id'],'span_id':self._trace()['span_id'],'request_id':self.request_id,'ip':safe_external(self.client_address[0]),'method':self.command,'route':('/download/[token]' if urlparse(self.path).path.startswith(('/download/','/download-html/','/download-receipt/')) else safe_external(urlparse(self.path).path)),'status':status,'duration_ms':round((time.monotonic()-start)*1000,2)},separators=(',',':')),flush=True)
+  self._trace()
+  telemetry.log_event('http_request',request_id=self.request_id,method=telemetry.http_method(self.command),route=telemetry.http_route(self.path),status=status,duration_ms=round((time.monotonic()-start)*1000,2))
  def _security(self,ctype):
   self.send_header('Content-Type',ctype);self.send_header('X-Content-Type-Options','nosniff');self.send_header('X-Frame-Options','DENY');self.send_header('Referrer-Policy','no-referrer');self.send_header('Permissions-Policy','camera=(), microphone=(), geolocation=()');self.send_header('Cross-Origin-Resource-Policy','same-origin');self.send_header('Cross-Origin-Opener-Policy','same-origin');self.send_header('Cache-Control','no-store');self.send_header('Pragma','no-cache');self.send_header('X-Request-ID',self.request_id);self.send_header('traceparent',telemetry.traceparent_header(self._trace()));self.send_header('Content-Security-Policy',"default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
  def _send(self,status,body=b'',ctype='application/json; charset=utf-8',extra=None):
@@ -144,15 +136,13 @@ class Handler(BaseHTTPRequestHandler):
   if origin and origin.rstrip('/') not in allowed_origins():return False
   if fetch and fetch not in ('same-origin','same-site','none'):return False
   return True
- def _drain(self,n):
+ def _drain(self,n,deadline=None):
   '''Consume up to DRAIN_MAX_BYTES of an over-limit body so the 413 is delivered.
   Returns early on a short read (client already gone). Past the cap the socket is
   closed without reading further, which bounds memory at O(READ_CHUNK_BYTES).'''
-  remaining=min(n,DRAIN_MAX_BYTES)
-  while remaining>0:
-   chunk=self.rfile.read(min(remaining,READ_CHUNK_BYTES))
-   if not chunk:break
-   remaining-=len(chunk)
+  read_body(self.rfile,getattr(self,'connection',None),min(n,DRAIN_MAX_BYTES),
+            READ_CHUNK_BYTES,body_deadline() if deadline is None else deadline,
+            collect=False)
   if n>DRAIN_MAX_BYTES:self.close_connection=True
  def _read(self,limit):
   if self.headers.get('Transfer-Encoding'):raise ValueError('Transfer-Encoding is not supported')
@@ -161,17 +151,16 @@ class Handler(BaseHTTPRequestHandler):
   if len(vals)!=1:raise ValueError('A single Content-Length is required')
   try:n=int(vals[0])
   except:raise ValueError('Invalid Content-Length')
+  deadline=body_deadline()
   if n>limit:
-   self._drain(n)
+   try:self._drain(n,deadline)
+   except BodyDeadlineExceeded:pass
    raise LimitExceeded('Request body exceeds limit',limit_name='MAX_HTTP_BODY_BYTES',limit=limit,actual=n)
   if n<=0:raise ValueError('Invalid Content-Length')
   # Chunked streaming read: bounded 64 KiB slices, abort on short read, never a single oversized allocation.
-  raw=bytearray();remaining=n
-  while remaining>0:
-   chunk=self.rfile.read(min(remaining,READ_CHUNK_BYTES))
-   if not chunk:break
-   raw+=chunk;remaining-=len(chunk)
-  if remaining:raise ValueError('Truncated request body')
+  raw,remaining=read_body(self.rfile,getattr(self,'connection',None),n,
+                          READ_CHUNK_BYTES,deadline)
+  if remaining:raise TruncatedBodyError('Truncated request body')
   return bytes(raw)
  def _read_json(self):
   if self.headers.get_content_type()!='application/json':raise ValueError('Content-Type must be application/json')
@@ -180,7 +169,7 @@ class Handler(BaseHTTPRequestHandler):
   except json.JSONDecodeError:raise ValueError('Invalid JSON request')
  def handle_one_request(self):
   # Reset per-request state first: on a keep-alive socket an idle timeout raises before a new request line is read, and stale values from the previous request would otherwise be logged as a phantom HTTP 500 on that old route.
-  self.raw_requestline=b'';self.command=None;self.path='';self.request_id=secrets.token_hex(16);self._status=500;start=time.monotonic();start_ns=time.time_ns();telemetry.clear();self._trace_ctx=None
+  self.raw_requestline=b'';self.command=None;self.path='';self.headers=None;self.request_id=secrets.token_hex(16);self._status=500;start=time.monotonic();start_ns=time.time_ns();telemetry.clear();self._trace_ctx=None
   try:
    super().handle_one_request()
   except (TimeoutError,ConnectionError,BrokenPipeError,OSError):self.close_connection=True;metric('client_disconnects_total')
@@ -193,7 +182,7 @@ class Handler(BaseHTTPRequestHandler):
     metric('requests_total')
     try:self._log(self._status,start)
     except:pass
-    try:telemetry.record_server_span(self._trace(),self.command,('/download/[token]' if urlparse(self.path).path.startswith(('/download/','/download-html/','/download-receipt/')) else safe_external(urlparse(self.path).path)),self._status,start_ns,time.time_ns())
+    try:telemetry.record_server_span(self._trace(),telemetry.http_method(self.command),telemetry.http_route(self.path),self._status,start_ns,time.time_ns())
     except:pass
    telemetry.clear()
  def _preflight(self):
@@ -204,7 +193,12 @@ class Handler(BaseHTTPRequestHandler):
   p=urlparse(self.path);path=p.path
   if path in ('/health','/healthz','/livez','/health/live'):return self._json(200,{'status':'ok','service':'accessdoc','version':os.getenv('ACCESSDOC_VERSION',VERSION),'commit':_commit_sha(),'process':process_stats(),'runtime':{'python':platform.python_version(),'uptime_seconds':round(time.monotonic()-STARTED_MONO,1)}})
   if path=='/version':return self._json(200,{'service':'accessdoc','version':os.getenv('ACCESSDOC_VERSION',VERSION),'catalog':'wcag-2.2-accessdoc-2026-01','commit':_commit_sha()})
-  if path in ('/readyz','/health/ready'):return self._json(200 if READY else 503,{'status':'ready' if READY else 'not_ready','commit':_commit_sha(),'gateway':remediation.health(),'tracing':telemetry.export_status()})
+  if path in ('/readyz','/health/ready'):
+   reasons=readiness_reasons()
+   if getattr(STORE,'closed',False):reasons.append('STORE_CLOSED')
+   if not READY:reasons.append('DRAINING')
+   ready=not reasons
+   return self._json(200 if ready else 503,{'status':'ready' if ready else 'not_ready','readiness_reasons':reasons,'commit':_commit_sha(),'gateway':remediation.health(),'tracing':telemetry.export_status(),'operations':operation_state()})
   if path=='/metrics':
    lines=[]
    with METRICS_LOCK:
@@ -213,7 +207,7 @@ class Handler(BaseHTTPRequestHandler):
    for k,v in remediation.STATS.items():lines.append(f'accessdoc_gateway_{k} {v}')
    for m,b in remediation.health().get('models',{}).items():lines.append(f'accessdoc_gateway_circuit_open{{model="{m}"}} {1 if b.get("state")=="open" else 0}')
    return self._send(200,('\n'.join(lines)+'\n').encode(),'text/plain; version=0.0.4; charset=utf-8')
-  if path=='/limits':return self._json(200,dict(limits_summary(),api_key_required=auth_required(),rate_limit_per_minute=int(os.getenv('RATE_LIMIT_PER_MINUTE','30'))))
+  if path=='/limits':return self._json(200,dict(limits_summary(),api_key_required=auth_required(),rate_limit_per_minute=int(os.getenv('RATE_LIMIT_PER_MINUTE','30')),operations=operation_state()))
   if path=='/api/sample':return self._send(200,(ROOT/'public/sample/axe-sample.json').read_bytes(),'application/json; charset=utf-8')
   match=re.fullmatch(r'/(download|download-html|download-receipt)/([A-Za-z0-9_-]{32})',path)
   if match:
@@ -233,9 +227,13 @@ class Handler(BaseHTTPRequestHandler):
    if ctype.startswith('text/') or ctype in ('application/javascript','application/json'):ctype+='; charset=utf-8'
    return self._send(200,data,ctype)
   self._json(404,{'error':{'code':'NOT_FOUND','message':'Not found'}})
+ def do_HEAD(self):
+  self.do_GET()
  def do_POST(self):
   # Every POST closes: unread rejected bodies must never become another request.
   self.close_connection=True
+  # Adopt parsed inbound context before native serial/hedged work starts.
+  self._trace()
   if not self._preflight():return
   path=urlparse(self.path).path
   if path not in ('/api/generate','/api/v1/generate','/api/bundle','/api/remediate'):return self._json(404,{'error':{'code':'NOT_FOUND','message':'Not found'}})
@@ -243,6 +241,9 @@ class Handler(BaseHTTPRequestHandler):
   if denied:
    status,code=denied;return self._json(status,{'error':{'code':code,'message':'API access denied'}})
   if not self._validate_origin():return self._json(403,{'error':{'code':'CROSS_SITE_REQUEST','message':'Cross-site requests are not allowed'}})
+  disabled=operation_error(path=='/api/remediate')
+  if disabled:
+   status,code=disabled;return self._json(status,{'error':{'code':code,'message':'This operation is disabled by the operator'}},{'Retry-After':'30'})
   if not READY:return self._json(503,{'error':{'code':'DRAINING','message':'Server is shutting down. Try again shortly.'}})
   _ok,_retry=rate_limit_state(self.client_address[0])
   if not _ok:
@@ -271,9 +272,10 @@ class Handler(BaseHTTPRequestHandler):
     bundle=build_bundle(artifacts);metric('reports_total')
     _s=receipt['summary'];c={k:int(_s.get(k,0)) for k in ('critical','serious','moderate','minor','unknown')}
     return self._send(200,bundle,'application/zip',{'Content-Disposition':'attachment; filename="accessdoc-report-bundle.zip"',
-      'X-AccessDoc-Finding-Count':str(c['critical']+c['serious']+c['moderate']+c['minor']+c['unknown']),
+      'X-AccessDoc-Finding-Count':str(_s.get('finding_groups',sum(c.values()))),
       'X-AccessDoc-Instance-Count':str(_s.get('total_violations',0)),
-      'X-AccessDoc-Unmapped-Count':str(c['unknown']),
+      'X-AccessDoc-Unmapped-Count':str(_s.get('unmapped_findings',c['unknown'])),
+      'X-AccessDoc-Pending-Count':str(_s.get('pending_instances',0)),
       'CDN-Cache-Control':'no-store','Vercel-CDN-Cache-Control':'no-store'})
    if not READY:return self._json(503,{'error':{'code':'DRAINING','message':'Server is shutting down; report was not stored'}})
    filename=slug(body.get('client_name','Client'))+'-accessibility-evidence-report.pdf'
@@ -282,9 +284,12 @@ class Handler(BaseHTTPRequestHandler):
    counts={k:summary.get(k,0) for k in ('critical','serious','moderate','minor','unknown')}
    metric('reports_total');self._json(201,{'report_token':token,'download_url':f'/download/{token}','html_companion_url':f'/download-html/{token}','receipt_url':f'/download-receipt/{token}','detected_format':'axe','finding_count':summary['total_violations'],'instance_count':summary['total_violations'],'severity_counts':counts,'catalog_review_required':summary.get('unknown',0),'expires_in_seconds':STORE.ttl_seconds,'input_evidence_receipt':receipt})
   except LimitExceeded:self._json(413,{'error':{'code':'INPUT_TOO_LARGE','message':'Input exceeds resource limits'}})
+  except TruncatedBodyError:self._json(422,{'error':{'code':'INVALID_INPUT','message':'Truncated request body'}})
   except (RecursionError,UnicodeDecodeError):self._json(422,{'error':{'code':'INVALID_INPUT','message':'Invalid JSON request'}})
-  except ValueError as e:self._json(422,{'error':{'code':'INVALID_INPUT','message':str(e)}})
+  except ValueError:self._json(422,{'error':{'code':'INVALID_INPUT','message':'Invalid input'}})
   except remediation.GatewayError as e:self._send(503,json.dumps({'error':{'code':'GATEWAY_UNAVAILABLE','message':'AI remediation is temporarily unavailable','requestId':self.request_id}}).encode(),'application/json; charset=utf-8',{'Retry-After':'5'})
+  except BodyDeadlineExceeded:
+   self.close_connection=True;self._json(408,{'error':{'code':'REQUEST_TIMEOUT','message':'Request body deadline exceeded'}})
   except (TimeoutError,ConnectionError,BrokenPipeError,OSError):
    self.close_connection=True;metric('client_disconnects_total')
   except Exception:
@@ -309,5 +314,5 @@ def run(host='127.0.0.1',port=8000):
   READY=False;deadline=time.monotonic()+float(os.getenv('SHUTDOWN_GRACE_SECONDS','15'))
   with ACTIVE_CONDITION:
    while ACTIVE_GENERATIONS and time.monotonic()<deadline:ACTIVE_CONDITION.wait(timeout=min(.2,max(0,deadline-time.monotonic())))
-  server.server_close();print(json.dumps({'event':'shutdown','status':'complete'}),flush=True)
+  server.server_close();STORE.close();remediation.shutdown_gateway();print(json.dumps({'event':'shutdown','status':'complete'}),flush=True)
 if __name__=='__main__':run(os.getenv('HOST','127.0.0.1'),int(os.getenv('PORT','8000')))

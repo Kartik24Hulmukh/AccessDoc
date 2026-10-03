@@ -1,4 +1,5 @@
 -r requirements.txt
+# Required portable PDF text/metadata extraction for fidelity tests (no Poppler).
 pypdf==6.19.0
 PyYAML>=6.0
 jsonschema>=4.26.0

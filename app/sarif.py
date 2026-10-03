@@ -36,7 +36,11 @@ def _level_for(impact):
 
 def generate_sarif(summary, violations):
     """Return a SARIF 2.1.0 log as a JSON string."""
-    # Deduplicate rules by id, preserving first-seen metadata.
+    # Preserve interchange rule IDs. Mixed-source rule metadata must not
+    # misclassify either observation; result-level evidence is authoritative.
+    grouped = {}
+    for v in violations:
+        grouped.setdefault(v.id, []).append(v)
     rules = {}
     for v in violations:
         if v.id in rules:
@@ -49,7 +53,6 @@ def generate_sarif(summary, violations):
             "name": v.id.replace("-", "_"),
             "shortDescription": {"text": (v.description or v.id)[:120]},
             "fullDescription": {"text": v.description or v.id},
-            "helpUri": v.help_url or "https://dequeuniversity.com/rules/axe/",
             "defaultConfiguration": {"level": _level_for(v.impact)},
             "properties": {
                 "tags": tags,
@@ -58,6 +61,41 @@ def generate_sarif(summary, violations):
                 "source": v.source,
             },
         }
+
+        if v.help_url:
+            rules[v.id]["helpUri"] = v.help_url
+        elif v.source == "automated":
+            rules[v.id]["helpUri"] = "https://dequeuniversity.com/rules/axe/"
+
+    for rid, observations in grouped.items():
+        sources = sorted({v.source for v in observations})
+        if len(sources) < 2:
+            continue
+        criteria = sorted({sc for v in observations for sc in v.wcag_scs})
+        tags = ["accessibility", "wcag"] + [f"wcag-{sc}" for sc in criteria]
+        if "manual" in sources:
+            tags.append("manual-finding")
+        rules[rid] = {
+            "id": rid,
+            "name": rid.replace("-", "_"),
+            "shortDescription": {"text": f"Mixed-source supplied findings: {rid}"[:120]},
+            "fullDescription": {"text": (
+                "This identifier is shared by supplied findings from multiple sources. "
+                "Each result's source, description and severity are authoritative; "
+                "rule metadata does not establish independent verification or approval."
+            )},
+            "properties": {
+                "tags": tags,
+                "wcag_success_criteria": criteria,
+                "source": "mixed",
+                "sources": sources,
+            },
+        }
+        # A mixed rule has no inferred scanner guidance. Retain a URI only
+        # when every observation explicitly supplies the same nonempty one.
+        help_uris = {v.help_url for v in observations}
+        if len(help_uris) == 1 and "" not in help_uris:
+            rules[rid]["helpUri"] = next(iter(help_uris))
 
     rule_index = {rid: i for i, rid in enumerate(rules)}
     artifact_uri = summary.url or "unknown://audited-target"
@@ -118,6 +156,8 @@ def generate_sarif(summary, violations):
             "properties": {
                 "total_violations": summary.total_violations,
                 "manual_findings": summary.manual_findings,
+                "review_status": "draft-unreviewed",
+                "review_note": "No reviewer approval is recorded. Source labels do not authenticate supplied evidence.",
             },
         }],
     }

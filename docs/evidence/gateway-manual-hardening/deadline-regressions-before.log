@@ -1,0 +1,28 @@
+test_402_does_not_wait_for_optional_slow_body (error_deadline_regression.ErrorDeadlineTests.test_402_does_not_wait_for_optional_slow_body) ... FAIL
+test_fast_billing_429_still_classifies (error_deadline_regression.ErrorDeadlineTests.test_fast_billing_429_still_classifies) ... ok
+test_oversized_error_prefix_does_not_raise_size_error (error_deadline_regression.ErrorDeadlineTests.test_oversized_error_prefix_does_not_raise_size_error) ... ok
+test_plain_rate_limit_still_classifies (error_deadline_regression.ErrorDeadlineTests.test_plain_rate_limit_still_classifies) ... ok
+test_slow_drip_429_obeys_deadline_and_pool_recovers (error_deadline_regression.ErrorDeadlineTests.test_slow_drip_429_obeys_deadline_and_pool_recovers) ... FAIL
+
+======================================================================
+FAIL: test_402_does_not_wait_for_optional_slow_body (error_deadline_regression.ErrorDeadlineTests.test_402_does_not_wait_for_optional_slow_body)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/AccessDoc/tests/test_gateway_error_deadlines.py", line 81, in test_402_does_not_wait_for_optional_slow_body
+    self.assertLess(time.monotonic() - started, 0.2)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2.003351533 not less than 0.2
+
+======================================================================
+FAIL: test_slow_drip_429_obeys_deadline_and_pool_recovers (error_deadline_regression.ErrorDeadlineTests.test_slow_drip_429_obeys_deadline_and_pool_recovers)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/AccessDoc/tests/test_gateway_error_deadlines.py", line 68, in test_slow_drip_429_obeys_deadline_and_pool_recovers
+    with self.assertRaises((GatewayError, requests.Timeout)):
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (<class 'app.gateway.GatewayError'>, <class 'requests.exceptions.Timeout'>) not raised
+
+----------------------------------------------------------------------
+Ran 5 tests in 2.873s
+
+FAILED (failures=2)

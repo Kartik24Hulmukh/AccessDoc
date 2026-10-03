@@ -1,0 +1,18 @@
+============================================================
+[+] [PASS] empty scanner_input string -> ValueError
+[+] [PASS] missing scanner_input -> ValueError
+[+] [PASS] garbage json -> raises cleanly
+[+] [PASS] non-object json (list) -> ValueError
+[+] [PASS] violations=null -> tolerated (no crash)
+[+] [PASS] XSS in client_name -> HTML escaped
+[+] [PASS] XSS in url field -> HTML escaped
+[+] [PASS] XSS in violation id/description -> HTML escaped
+[+] [PASS] YAML injection in client_name -> OpenACR safe
+[+] [PASS] 5000 violations -> builds without crash
+[+] [PASS] unicode/emoji client + description -> builds
+[+] [PASS] tamper report.pdf -> validate_bundle fails
+[+] [PASS] unknown impact 'catastrophic' -> no crash
+[+] [PASS] missing impact field -> no crash
+[+] [PASS] determinism: receipt/openacr/html identical across runs
+============================================================
+15 checks run, 0 failures
