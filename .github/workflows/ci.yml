@@ -89,6 +89,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.13'
@@ -102,40 +104,13 @@ jobs:
       - name: Publish bounded failed-test diagnostics
         if: failure()
         run: python scripts/report_test_failures.py portability-results.xml
-      - name: Fixed serial native wait primitive diagnosis
-        if: ${{ !cancelled() }}
-        run: python scripts/diagnose_native_primitives.py --output native-primitives.json
-      - name: Single instrumented native failure-case diagnosis
-        if: ${{ !cancelled() }}
-        run: python scripts/diagnose_native_cases.py --repo . --output native-cases.json
-      - name: Archive bounded native diagnostic receipts
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: native-diagnosis-${{ matrix.os }}-${{ github.sha }}
-          path: |
-            native-primitives.json
-            native-cases.json
-      - name: One legacy native wait phase experiment
-        if: ${{ !cancelled() && github.event_name == 'push' && matrix.os == 'macos-latest' && github.run_attempt == 1 && contains(github.event.head_commit.message, '[native-phase-buildfix-oct02]') }}
+      # Temporary observation only; never re-use this marker or rerun until green.
+      # Original suite/failed-test verdict above is preserved. No added artifact upload.
+      - name: One bounded modern wait and positive-export diagnosis
+        if: ${{ !cancelled() && github.event_name == 'push' && matrix.os == 'macos-latest' && github.run_attempt == 1 && contains(github.event.head_commit.message, '[native-modern-once-oct03]') }}
         timeout-minutes: 2
         shell: bash
-        run: |
-          mkdir -p "$RUNNER_TEMP/native-phase-artifact"
-          cp diagnostics/native-phase-probe/probe.c diagnostics/native-phase-probe/runner.py "$RUNNER_TEMP/native-phase-artifact/"
-          cd "$RUNNER_TEMP/native-phase-artifact"
-          printf '%s\n' '7d220fc5e0c953275888f750ada02b173f555ea117862643c47fba1e09909952  probe.c' '0ef3b8c7372fd1c946b8158732cece648c302348717da64bbe8812ec9eb94789  runner.py' > SHA256SUMS.inputs
-          shasum -a 256 -c SHA256SUMS.inputs
-          python runner.py --output results.json
-      - name: Archive one native phase experiment
-        if: ${{ always() && github.event_name == 'push' && matrix.os == 'macos-latest' && github.run_attempt == 1 && contains(github.event.head_commit.message, '[native-phase-buildfix-oct02]') }}
-        timeout-minutes: 2
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: native-phase-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/native-phase-artifact/
-          if-no-files-found: error
-          retention-days: 7
+        run: python scripts/run_one_native_diagnostic.py
       - name: Bounded local concurrency and malformed-input contract gate
         run: python scripts/hardening_load.py --output hardening-load-${{ matrix.os }}.json
       - name: Archive portability load metrics

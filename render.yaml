@@ -1,7 +1,11 @@
+# Experimental synthetic pilot only; not production approval.
+# Confirm a $0 workspace, no payment method and exhaustion behavior first.
+# See docs/ZERO_SPEND_PILOT.md. Do not apply to an unreviewed existing account.
 services:
   - type: web
     name: accessdoc
     runtime: docker
+    plan: free
     dockerfilePath: ./Dockerfile
     healthCheckPath: /readyz
     autoDeploy: false
@@ -14,6 +18,13 @@ services:
         sync: false
       - key: ALLOWED_ORIGINS
         sync: false
-        value: free
       - key: REPORT_TTL_SECONDS
         value: "1800"
+      - key: ACCESSDOC_REQUIRE_AUTH
+        value: "true"
+      - key: ACCESSDOC_API_KEY
+        sync: false
+      - key: ACCESSDOC_GENERATION_ENABLED
+        value: "true"
+      - key: ACCESSDOC_REMEDIATION_ENABLED
+        value: "false"

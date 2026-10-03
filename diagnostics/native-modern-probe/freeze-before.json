@@ -1,0 +1,8 @@
+{
+  "frozen_at": "2026-10-03T20:43:57.870145+00:00",
+  "harness_sha256": "c4f33ae49b240390ffe7eb2528a9e090331be67574f5e67c9004224a7f557ad0",
+  "scope": "outside-repo failure-artifact repair only",
+  "original_source_sha256": "ad00052e12eac413eab0ab10dae1094de2adee4dc9a0f3d6c337f1984bdefb00",
+  "new_timing_validation_runs": 0,
+  "acceptance_verdict": "none"
+}
