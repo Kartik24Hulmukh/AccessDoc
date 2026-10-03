@@ -1,4 +1,5 @@
 """Launch-control unit contracts, not actual native timing acceptance."""
+import hashlib
 import importlib.util
 import io
 import json
@@ -26,8 +27,64 @@ class NativeDiagnosticLaunchContracts(unittest.TestCase):
             self.assertNotIn(key, env)
         self.assertEqual(env['PYTHONPATH'], str(ROOT))
         self.assertEqual(env['PYTHONDONTWRITEBYTECODE'], '1')
+    def _committed_frozen_bytes(self):
+        # Read immutable Git objects, not autocrlf-translated working-tree text.
+        commit = subprocess.check_output(
+            ['git', 'rev-parse', 'HEAD'], cwd=ROOT, timeout=10).decode('ascii').strip()
+        committed = {}
+        for name, digest in launch.EXPECTED.items():
+            data = subprocess.check_output(
+                ['git', 'show', f'{commit}:{name}'], cwd=ROOT, timeout=10)
+            self.assertEqual(hashlib.sha256(data).hexdigest(), digest, name)
+            committed[name] = data
+        return committed
+
     def test_source_guards_match_the_frozen_inputs(self):
-        self.assertEqual(launch.verify_sources(ROOT), launch.EXPECTED)
+        committed = self._committed_frozen_bytes()
+        with tempfile.TemporaryDirectory() as raw:
+            canonical = Path(raw)
+            for name, data in committed.items():
+                target = canonical / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(data)
+            self.assertEqual(launch.verify_sources(canonical), launch.EXPECTED)
+        if os.name == 'nt':
+            # Windows checkout may translate LF, but executable byte guards must
+            # not normalize it. Reject anything beyond the exact Git/autocrlf forms.
+            translated = False
+            for name, data in committed.items():
+                checkout = (ROOT / name).read_bytes()
+                self.assertIn(checkout, (data, data.replace(b'\n', b'\r\n')), name)
+                translated |= checkout != data
+            if translated:
+                with self.assertRaisesRegex(ValueError, 'no experiment admitted'):
+                    launch.verify_sources(ROOT)
+            else:
+                self.assertEqual(launch.verify_sources(ROOT), launch.EXPECTED)
+        else:
+            self.assertEqual(launch.verify_sources(ROOT), launch.EXPECTED)
+
+    def test_crlf_executable_bytes_are_rejected_without_normalization(self):
+        committed = self._committed_frozen_bytes()
+        with tempfile.TemporaryDirectory() as raw:
+            checkout = Path(raw)
+            staged_expected = {}
+            for name, data in committed.items():
+                self.assertNotIn(b'\r\n', data, name)
+                self.assertIn(b'\n', data, name)
+                target = checkout / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(data.replace(b'\n', b'\r\n'))
+                staged_expected[target] = launch.EXPECTED[name]
+            with self.assertRaisesRegex(ValueError, 'no experiment admitted'):
+                launch.verify_sources(checkout)
+            with self.assertRaisesRegex(ValueError, 'staged'):
+                launch.verify_staged(staged_expected)
+            for name, data in committed.items():
+                (checkout / name).write_bytes(data)
+            self.assertEqual(launch.verify_sources(checkout), launch.EXPECTED)
+            self.assertEqual(launch.verify_staged(staged_expected),
+                             {str(path): digest for path, digest in staged_expected.items()})
     def test_changed_source_is_not_admitted(self):
         with patch.object(launch, 'EXPECTED', {'diagnostics/native-modern-probe/harness.py':'wrong'}):
             with self.assertRaisesRegex(ValueError, 'no experiment admitted'):
