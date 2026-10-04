@@ -299,7 +299,7 @@ class OTLPExporter:
     def _work_cutoff(deadline):
         # Reserve once, across all batches, inside the original caller budget.
         remaining = max(0.0, deadline - time.monotonic())
-        return deadline - min(0.05, remaining / 3)
+        return deadline - min(0.035, remaining / 3)
 
     def _flush_until(self, deadline, baseline):
         if not _take(self._sender, deadline):

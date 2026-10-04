@@ -24,7 +24,7 @@ EXPECTED = {
     'diagnostics/native-modern-probe/freeze-before.json': '5c8a196aa77dc06097fbda5c5c5353fb5249c5cbfb598a9aaadb6c9347f2fcb2',
     'diagnostics/native-positive-phase.py': '91fc51d34659bba185be3f8bf9f059c2f15498b8e02f512ec23783a7ef9ce9ee',
     'app/gateway_transport.py': '34efb6c66b7c235bdf680fe3dede69fc55f5df1898d3797a6c468dc3b6cbc659',
-    'app/otlp_export.py': '4375015f54e74a95a30328125d56b5397de64ca74db53f9629ce1d189157527a',
+    'app/otlp_export.py': '0f123143d38f8b093eb0005e1862294ed9c1937bacc4ccc00a970be6b04cc4f3',
     'tests/test_otlp_cleanup_ownership.py': 'f5bbebd291ecfc962cf17973a7dc468c85cc4a2dd1147edc32af94fdf710894b',
     'tests/test_native_deadline_races.py': '9c17afc5131fe26c15fe761d8e0903ff9af6b666135ee1e6dda424a5ee6e0fab',
     'tests/test_otlp_deadlines.py': '1f534ce70b7802666232cc5453ecdd01aa40dd7d8c01638c8ee947e70c040d6d',
