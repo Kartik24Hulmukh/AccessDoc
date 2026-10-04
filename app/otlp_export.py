@@ -148,6 +148,10 @@ class OTLPExporter:
         self._retirement = self._session.call_group() if self._session is not None else None
         if self._session is not None:
             self._session.proxy = None  # collector has no gateway proxy/credential routing
+            # Initialize the reusable native selector/pool as exporter setup,
+            # not inside the first caller's export deadline. This removes the
+            # Darwin-only cold-start charge without changing any I/O deadline.
+            self._session.prepare(time.monotonic() + self.timeout)
         self.exported = self.dropped = self.failed_batches = 0
         self.rejected_spans = self.failed_spans = self.shutdown_dropped = 0
         self.last_error = None
@@ -304,17 +308,9 @@ class OTLPExporter:
     def _flush_until(self, deadline, baseline):
         if not _take(self._sender, deadline):
             return False  # do not cancel the background sender whose lock we lack
+        work_deadline = self._work_cutoff(deadline)
         ok = True
         try:
-            # Pay one-time native selector/pool startup before calculating the
-            # work/retirement split. On slower Darwin runners this preserves a
-            # real response window without widening the caller deadline.
-            try:
-                if self._session is not None:
-                    self._session.prepare(deadline)
-            except Exception:
-                ok = False
-            work_deadline = self._work_cutoff(deadline)
             # A previous bounded failure may still own native cleanup. Empty
             # queues must not return false success or dequeue over that owner.
             if self._retirement is not None:
