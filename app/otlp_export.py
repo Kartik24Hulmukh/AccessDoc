@@ -304,9 +304,17 @@ class OTLPExporter:
     def _flush_until(self, deadline, baseline):
         if not _take(self._sender, deadline):
             return False  # do not cancel the background sender whose lock we lack
-        work_deadline = self._work_cutoff(deadline)
         ok = True
         try:
+            # Pay one-time native selector/pool startup before calculating the
+            # work/retirement split. On slower Darwin runners this preserves a
+            # real response window without widening the caller deadline.
+            try:
+                if self._session is not None:
+                    self._session.prepare(deadline)
+            except Exception:
+                ok = False
+            work_deadline = self._work_cutoff(deadline)
             # A previous bounded failure may still own native cleanup. Empty
             # queues must not return false success or dequeue over that owner.
             if self._retirement is not None:

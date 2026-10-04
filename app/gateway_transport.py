@@ -616,6 +616,20 @@ class PooledSession:
         finally:
             self._lock.release()
 
+    def prepare(self, deadline):
+        """Start and await the shared native selector inside an existing budget.
+
+        Separating one-time pool startup from a request keeps the caller's
+        cleanup reserve available for actual I/O rather than charging Darwin
+        thread/selector startup against the first useful export window.
+        """
+        engine = self._attach(deadline)
+        if not _wait(engine.ready, deadline):
+            raise requests.Timeout("gateway I/O startup deadline exceeded")
+        if engine.start_error:
+            raise requests.ConnectionError("gateway I/O startup failed: " + engine.start_error)
+        return True
+
     @property
     def cleanup_pending(self):
         if not self.closed:
