@@ -7,6 +7,7 @@ resolver executor or detached Requests worker can later transmit a POST.
 import asyncio
 import atexit
 from concurrent.futures import Future, TimeoutError as FutureTimeout
+from .deadline import join as _join, result as _future_result, take as _deadline_take, wait as _wait
 import inspect
 import itertools
 import os
@@ -24,7 +25,7 @@ class CancelledAttempt(requests.RequestException):
 
 def _take(lock, deadline):
     """Every caller-side mutex wait consumes the same absolute budget."""
-    return lock.acquire(timeout=max(0.0, deadline - time.monotonic()))
+    return _deadline_take(lock, deadline)
 
 
 class _Response:
@@ -104,7 +105,7 @@ class _CallGroup:
                 engine.cancel_call(call)
         complete = True
         for _, call in calls:
-            complete = call.done.wait(max(0.0, deadline - time.monotonic())) and complete
+            complete = _wait(call.done, deadline) and complete
         self._calls = tuple(pair for pair in calls if not pair[1].done.is_set())
         return complete and not self._calls
 
@@ -328,7 +329,7 @@ class _Engine:
                 self.condition.release()
             # Condition.wait would implicitly reacquire an unbounded mutex.
             # Wait unlocked, then re-enter through _take(original deadline).
-            if not wake.wait(max(0.0, deadline - time.monotonic())):
+            if not _wait(wake, deadline):
                 raise requests.Timeout("gateway admission deadline exceeded")
 
     def submit(self, call):
@@ -528,7 +529,7 @@ class _Engine:
             except RuntimeError:
                 pass
         if threading.current_thread() is not self.thread:
-            self.thread.join(timeout=2 if deadline is None else max(0.0, deadline - time.monotonic()))
+            self.thread.join(timeout=2) if deadline is None else _join(self.thread, deadline)
 
 
 _ENGINE = None
@@ -604,7 +605,7 @@ class PooledSession:
                 if retiring is not None:
                     # No global lock is held while retirement waits. A completed
                     # cleanup event is not enough: actual thread exit is required.
-                    retiring.thread.join(max(0.0, deadline - time.monotonic()))
+                    _join(retiring.thread, deadline)
                     if retiring.thread.is_alive() or time.monotonic() >= deadline:
                         raise requests.Timeout("gateway retirement deadline exceeded")
                     continue
@@ -639,7 +640,7 @@ class PooledSession:
         # gateway callers retain their historical per-post internal reserve.
         cleanup = 0.0 if call_group is not None else min(0.05, max(0.0, remaining / 3))
         network_deadline = deadline - cleanup
-        if not engine.ready.wait(max(0.0, network_deadline - time.monotonic())):
+        if not _wait(engine.ready, network_deadline):
             raise requests.Timeout("gateway I/O startup deadline exceeded")
         if engine.start_error:
             raise requests.ConnectionError("gateway I/O startup failed: " + engine.start_error)
@@ -650,10 +651,10 @@ class PooledSession:
             call_group.add(engine, call)
         engine.submit(call)
         try:
-            return call.result.result(timeout=max(0.0, network_deadline - time.monotonic()))
+            return _future_result(call.result, network_deadline)
         except FutureTimeout:
             engine.cancel_call(call)
-            drained = call.done.wait(max(0.0, deadline - time.monotonic()))
+            drained = _wait(call.done, deadline)
             error = requests.Timeout("gateway absolute HTTP deadline exceeded")
             error.cleanup_pending = not drained
             raise error from None
@@ -694,11 +695,11 @@ class PooledSession:
             self._lock.release()
         complete = False
         try:
-            complete = self._close_future.result(timeout=max(0.0, end-time.monotonic()))
+            complete = _future_result(self._close_future, end)
         except Exception:
             pass
         if engine.closed and threading.current_thread() is not engine.thread:
-            engine.thread.join(max(0.0, end-time.monotonic()))
+            _join(engine.thread, end)
             complete = complete and not engine.thread.is_alive()
         return bool(complete) if bounded else None
 

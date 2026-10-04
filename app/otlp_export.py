@@ -26,6 +26,7 @@ import urllib.parse
 
 import requests
 from .gateway_transport import PooledSession, _take
+from .deadline import join as _join
 
 _MAX_QUEUE = 2048
 _MAX_BATCH = 256
@@ -301,7 +302,7 @@ class OTLPExporter:
         return deadline - min(0.05, remaining / 3)
 
     def _flush_until(self, deadline, baseline):
-        if not self._sender.acquire(timeout=max(0.0, deadline - time.monotonic())):
+        if not _take(self._sender, deadline):
             return False  # do not cancel the background sender whose lock we lack
         work_deadline = self._work_cutoff(deadline)
         ok = True
@@ -423,7 +424,7 @@ class OTLPExporter:
         self._finalize.set()
         cleaned = self._session.close(deadline=deadline) if self._session is not None else True
         if self._thread is not None and threading.current_thread() is not self._thread:
-            self._thread.join(max(0.0, deadline - time.monotonic()))
+            _join(self._thread, deadline)
             cleaned = not self._thread.is_alive() and cleaned
         return ok and cleaned
 
