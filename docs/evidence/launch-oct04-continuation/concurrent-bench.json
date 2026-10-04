@@ -1,0 +1,37 @@
+{
+  "workers": 100,
+  "requests": 200,
+  "wall_seconds": 13.61,
+  "seed": 7,
+  "throughput_rps": 14.69,
+  "scope": "local self-hosted JSON ingestion; not a production 100x baseline",
+  "transport_attempt_errors": 0,
+  "admission_retries": 0,
+  "recovery_probes": {
+    "/healthz": 200,
+    "/readyz": 200,
+    "/api/bundle": 200
+  },
+  "recovery_latency_ms": {
+    "/healthz": 1.09,
+    "/readyz": 0.99,
+    "/api/bundle": 6.75
+  },
+  "recovery_under_200ms": true,
+  "rss_after_mb": 209.1,
+  "status_histogram": {
+    "200": 134,
+    "422": 33,
+    "413": 33
+  },
+  "unexpected_5xx": 0,
+  "contract_violations": 0,
+  "transport_errors": 0,
+  "latency_p50_ms": 5090.37,
+  "latency_p95_ms": 8930.61,
+  "latency_p99_ms": 9682.87,
+  "latency_max_ms": 9734.84,
+  "rss_floor_mb": 56.9,
+  "rss_ceiling_mb": 304.7,
+  "fault_recovery": "PASS"
+}
