@@ -13,6 +13,7 @@ from unittest.mock import patch
 
 import aiohttp
 from app import otlp_export
+from app.deadline import wait as wait_until
 from app.gateway_transport import PooledSession
 
 
@@ -34,7 +35,7 @@ class Collector(BaseHTTPRequestHandler):
             if s.mode == "hold":
                 s.release.wait(2)
             if s.mode == "multi":
-                s.release.wait(.05)  # deliberate per-response delay
+                wait_until(s.release, time.monotonic() + .05)  # same absolute per-response delay
             if s.mode == "header-trickle":
                 self.connection.sendall(b"HTTP/1.1 200 OK\r\nX-Trickle: ")
                 for _ in range(30):

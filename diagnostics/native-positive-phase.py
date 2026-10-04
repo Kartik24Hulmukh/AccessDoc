@@ -28,7 +28,7 @@ EXPECTED = {
     'app/otlp_export.py': 'bb239429b02622faa5aa8b4d0ebf8bc4aecfe9982cd0707a94f9cb3d72b90da2',
     'tests/test_otlp_cleanup_ownership.py': 'f5bbebd291ecfc962cf17973a7dc468c85cc4a2dd1147edc32af94fdf710894b',
     'tests/test_native_deadline_races.py': '9c17afc5131fe26c15fe761d8e0903ff9af6b666135ee1e6dda424a5ee6e0fab',
-    'tests/test_otlp_deadlines.py': '1f534ce70b7802666232cc5453ecdd01aa40dd7d8c01638c8ee947e70c040d6d',
+    'tests/test_otlp_deadlines.py': '228fc572b4b977abbbf94d60018fe7ef6e9d36ae4ecc85a19225f8c115038e9a',
 }
 CASE = 'test_global_reserve_drains_late_final_batch_retirement'
 LIMIT = 2048

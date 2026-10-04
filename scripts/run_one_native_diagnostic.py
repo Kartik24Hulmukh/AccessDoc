@@ -22,12 +22,12 @@ import zipfile
 EXPECTED = {
     'diagnostics/native-modern-probe/harness.py': 'c4f33ae49b240390ffe7eb2528a9e090331be67574f5e67c9004224a7f557ad0',
     'diagnostics/native-modern-probe/freeze-before.json': '5c8a196aa77dc06097fbda5c5c5353fb5249c5cbfb598a9aaadb6c9347f2fcb2',
-    'diagnostics/native-positive-phase.py': 'e84cae5229f2b2128fa29115251623de3016d798ecc1d2790d6e9d280bca330f',
+    'diagnostics/native-positive-phase.py': '57f741c2af9de59e52d8a19738964bc105f9c08a0aa274dafa96ed76ec8e3596',
     'app/gateway_transport.py': 'e45c6c2a7ad15e94d402c4e82e32d35d5b8fc0292739861ba5b6cd5e7c40c126',
     'app/otlp_export.py': 'bb239429b02622faa5aa8b4d0ebf8bc4aecfe9982cd0707a94f9cb3d72b90da2',
     'tests/test_otlp_cleanup_ownership.py': 'f5bbebd291ecfc962cf17973a7dc468c85cc4a2dd1147edc32af94fdf710894b',
     'tests/test_native_deadline_races.py': '9c17afc5131fe26c15fe761d8e0903ff9af6b666135ee1e6dda424a5ee6e0fab',
-    'tests/test_otlp_deadlines.py': '1f534ce70b7802666232cc5453ecdd01aa40dd7d8c01638c8ee947e70c040d6d',
+    'tests/test_otlp_deadlines.py': '228fc572b4b977abbbf94d60018fe7ef6e9d36ae4ecc85a19225f8c115038e9a',
 }
 WALL_SECONDS = 25
 CPU_SOFT_SECONDS = 10
