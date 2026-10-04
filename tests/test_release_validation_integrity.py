@@ -87,9 +87,10 @@ class ReleaseValidationIntegrityTests(unittest.TestCase):
     def test_bypass_credential_cannot_follow_cross_origin_redirect(self):
         request = Request("https://candidate.vercel.app/healthz",
                           headers={"x-vercel-protection-bypass": "local-test"})
-        with self.assertRaises(HTTPError):
+        with self.assertRaises(HTTPError) as caught:
             SameOriginRedirectHandler().redirect_request(
                 request, None, 302, "Found", {}, "https://other.example/healthz")
+        caught.exception.close()
         redirected = SameOriginRedirectHandler().redirect_request(
             request, None, 302, "Found", {}, "https://candidate.vercel.app/readyz")
         self.assertIsNotNone(redirected)

@@ -47,9 +47,10 @@ class SmokeOriginPortTests(unittest.TestCase):
             "https://user@access-doc.vercel.app/",
             "http://access-doc.vercel.app/"):
             with self.subTest(target=target):
-                with self.assertRaises(urllib.error.HTTPError):
+                with self.assertRaises(urllib.error.HTTPError) as caught:
                     smoke.SameOriginRedirectHandler().redirect_request(
                         req, None, 302, "Found", {}, target)
+                caught.exception.close()
 
     def test_same_origin_explicit_default_port_keeps_headers(self):
         req = urllib.request.Request(

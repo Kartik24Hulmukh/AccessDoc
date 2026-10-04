@@ -11,6 +11,7 @@ import os, sys, unittest
 from http.server import HTTPServer
 from threading import Thread
 from urllib.request import urlopen, Request
+from urllib.error import HTTPError
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from api.handler import handler as serverless_handler
@@ -76,8 +77,9 @@ class HostedMetricsTests(unittest.TestCase):
         try:
             with urlopen(req, timeout=10) as r:
                 status = r.status
-        except Exception as exc:
-            status = getattr(exc, "code", None)
+        except HTTPError as exc:
+            with exc:
+                status = exc.code
         self.assertEqual(status, 400)
         after = _parse(self._get("/metrics")[1].decode())
         self.assertGreater(after["accessdoc_requests_total"], before["accessdoc_requests_total"])
