@@ -179,7 +179,7 @@ class NativeDiagnosticLaunchContracts(unittest.TestCase):
         steps = {row['name']:row for row in job['steps'] if 'name' in row}
         self.assertEqual(steps['Full test suite']['run'], 'python -m pytest tests -q --junitxml=portability-results.xml')
         gate = steps['One bounded first-export phase observation']
-        for phrase in ('!cancelled()', "github.event_name == 'push'", "matrix.os == 'macos-latest'", 'github.run_attempt == 1', '[export-phase-once-oct04]'):
+        for phrase in ('!cancelled()', "github.event_name == 'push'", "matrix.os == 'macos-latest'", 'github.run_attempt == 1', '[export-phase-numeric-once-oct04]'):
             self.assertIn(phrase, gate['if'])
         self.assertEqual(gate['timeout-minutes'], '1')
         self.assertNotIn('continue-on-error', (ROOT / '.github/workflows/ci.yml').read_text())

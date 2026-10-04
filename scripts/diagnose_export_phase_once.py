@@ -2,6 +2,7 @@
 import faulthandler
 import json
 import os
+import socket
 import threading
 import time
 import unittest
@@ -36,11 +37,16 @@ class Case(CleanupOwnershipTests):
         return super().assertGreater(a, b, msg)
     def tearDown(self):
         emit('teardown_begin'); super().tearDown(); emit('teardown_end')
+def numeric_fixture_name(host):
+    # Fixture metadata only: do not let reverse-DNS setup consume the probe.
+    # Network exchange, collector delay, original assertions and bounds stay.
+    return host
+
 if __name__ == '__main__':
     done = threading.Event()
     threading.Thread(target=watchdog, daemon=True).start()
     try:
-        with forward(gt._Engine, '_client'), forward(gt.PooledSession, 'post'), forward(ot.OTLPExporter, '_send'):
+        with patch.object(socket, 'getfqdn', numeric_fixture_name), forward(gt._Engine, '_client'), forward(gt.PooledSession, 'post'), forward(ot.OTLPExporter, '_send'):
             result = unittest.TextTestRunner(verbosity=2).run(Case('test_global_reserve_drains_late_final_batch_retirement'))
         print('EXPORT_PHASE ' + json.dumps(rows), flush=True)
         raise SystemExit(0 if result.wasSuccessful() else 1)

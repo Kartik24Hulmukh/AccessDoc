@@ -106,7 +106,7 @@ jobs:
         run: python scripts/report_test_failures.py portability-results.xml
       # One fresh phase observation; no retry or acceptance override.
       - name: One bounded first-export phase observation
-        if: ${{ !cancelled() && github.event_name == 'push' && matrix.os == 'macos-latest' && github.run_attempt == 1 && contains(github.event.head_commit.message, '[export-phase-once-oct04]') }}
+        if: ${{ !cancelled() && github.event_name == 'push' && matrix.os == 'macos-latest' && github.run_attempt == 1 && contains(github.event.head_commit.message, '[export-phase-numeric-once-oct04]') }}
         timeout-minutes: 1
         shell: bash
         run: PYTHONPATH=. python scripts/diagnose_export_phase_once.py
