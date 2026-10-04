@@ -24,8 +24,8 @@ import unittest
 from unittest.mock import patch
 
 EXPECTED = {
-    'app/gateway_transport.py': 'f3af99890a68eaa697ebf6f81c57292a79c1cdfc69c419f5da5aa1ac8bd5d70f',
-    'app/otlp_export.py': '28ccd03a887bda5683c126b783476a11dacd2862ea77374583b1218bc65b2aaf',
+    'app/gateway_transport.py': 'e45c6c2a7ad15e94d402c4e82e32d35d5b8fc0292739861ba5b6cd5e7c40c126',
+    'app/otlp_export.py': 'bb239429b02622faa5aa8b4d0ebf8bc4aecfe9982cd0707a94f9cb3d72b90da2',
     'tests/test_otlp_cleanup_ownership.py': 'f5bbebd291ecfc962cf17973a7dc468c85cc4a2dd1147edc32af94fdf710894b',
     'tests/test_native_deadline_races.py': '9c17afc5131fe26c15fe761d8e0903ff9af6b666135ee1e6dda424a5ee6e0fab',
     'tests/test_otlp_deadlines.py': '1f534ce70b7802666232cc5453ecdd01aa40dd7d8c01638c8ee947e70c040d6d',

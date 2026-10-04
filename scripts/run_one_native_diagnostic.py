@@ -22,7 +22,7 @@ import zipfile
 EXPECTED = {
     'diagnostics/native-modern-probe/harness.py': 'c4f33ae49b240390ffe7eb2528a9e090331be67574f5e67c9004224a7f557ad0',
     'diagnostics/native-modern-probe/freeze-before.json': '5c8a196aa77dc06097fbda5c5c5353fb5249c5cbfb598a9aaadb6c9347f2fcb2',
-    'diagnostics/native-positive-phase.py': '91fc51d34659bba185be3f8bf9f059c2f15498b8e02f512ec23783a7ef9ce9ee',
+    'diagnostics/native-positive-phase.py': 'e84cae5229f2b2128fa29115251623de3016d798ecc1d2790d6e9d280bca330f',
     'app/gateway_transport.py': 'e45c6c2a7ad15e94d402c4e82e32d35d5b8fc0292739861ba5b6cd5e7c40c126',
     'app/otlp_export.py': 'bb239429b02622faa5aa8b4d0ebf8bc4aecfe9982cd0707a94f9cb3d72b90da2',
     'tests/test_otlp_cleanup_ownership.py': 'f5bbebd291ecfc962cf17973a7dc468c85cc4a2dd1147edc32af94fdf710894b',
