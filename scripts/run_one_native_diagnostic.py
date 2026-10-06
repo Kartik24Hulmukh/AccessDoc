@@ -25,7 +25,7 @@ EXPECTED = {
     'diagnostics/native-positive-phase.py': '57f741c2af9de59e52d8a19738964bc105f9c08a0aa274dafa96ed76ec8e3596',
     'app/gateway_transport.py': 'e45c6c2a7ad15e94d402c4e82e32d35d5b8fc0292739861ba5b6cd5e7c40c126',
     'app/otlp_export.py': 'f5020886ba637616d9ed5c8f17b9247e70878314ab51c40488eb4d286af9877d',
-    'tests/test_otlp_cleanup_ownership.py': 'cbdccdf2d6b6bd6d9be5660515463503c535e3df6dce4217c7d1ee0e477a74f6',
+    'tests/test_otlp_cleanup_ownership.py': 'b7718d15626b275c449de2fe4c0bbde34d731809a1b689147e44271d8f42cc78',
     'tests/test_native_deadline_races.py': '9c17afc5131fe26c15fe761d8e0903ff9af6b666135ee1e6dda424a5ee6e0fab',
     'tests/test_otlp_deadlines.py': '228fc572b4b977abbbf94d60018fe7ef6e9d36ae4ecc85a19225f8c115038e9a',
 }

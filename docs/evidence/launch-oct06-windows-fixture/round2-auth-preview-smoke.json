@@ -1,0 +1,66 @@
+{
+  "expectedCommit": "5290e553976cdb26dc9540656a4ae6ce8826ca3e",
+  "origin": "https://access-m97nkjiw9-atlas16.vercel.app",
+  "results": [
+    {
+      "bytes": 1063,
+      "commit": "5290e553976cdb26dc9540656a4ae6ce8826ca3e",
+      "commit_matches": true,
+      "generation_enabled": true,
+      "ms": 477.4,
+      "path": "/healthz",
+      "readiness_reasons": [],
+      "remediation_enabled": false,
+      "request_id_present": true,
+      "status": 200,
+      "status_value": "ok",
+      "traceparent_present": true
+    },
+    {
+      "bytes": 1063,
+      "commit": "5290e553976cdb26dc9540656a4ae6ce8826ca3e",
+      "commit_matches": true,
+      "generation_enabled": true,
+      "ms": 518.6,
+      "path": "/readyz",
+      "readiness_reasons": [],
+      "remediation_enabled": false,
+      "request_id_present": true,
+      "status": 200,
+      "status_value": "ok",
+      "traceparent_present": true
+    },
+    {
+      "app_auth_required": true,
+      "bytes": 621,
+      "ms": 350.8,
+      "path": "/limits",
+      "request_id_present": true,
+      "status": 200,
+      "traceparent_present": true
+    },
+    {
+      "bytes": 55,
+      "ms": 624.6,
+      "path": "/api/bundle",
+      "request_id_present": true,
+      "status": 401,
+      "traceparent_present": true
+    },
+    {
+      "bytes": 1063,
+      "commit": "5290e553976cdb26dc9540656a4ae6ce8826ca3e",
+      "commit_matches": true,
+      "generation_enabled": true,
+      "ms": 419.3,
+      "path": "/healthz",
+      "readiness_reasons": [],
+      "remediation_enabled": false,
+      "request_id_present": true,
+      "status": 200,
+      "status_value": "ok",
+      "traceparent_present": true
+    }
+  ],
+  "scope": "one bounded authenticated-browser protected-preview synthetic smoke; not production approval"
+}

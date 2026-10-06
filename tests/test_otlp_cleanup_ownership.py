@@ -21,20 +21,20 @@ class CleanupOwnershipTests(unittest.TestCase):
         self.addCleanup(self.fixture.tearDown)
 
     def test_global_reserve_drains_late_final_batch_retirement(self):
-        # Two 50 ms responses can consume the entire 105 ms work window:
-        # stopping between successful batches is valid, but exercises no late
-        # retirement. Make useful batches fast and hold the third real request
-        # so this test necessarily exercises cancellation + delayed retirement.
+        import socket
+        # A 30 ms retirement timer at the 105 ms work cutoff leaves only 5 ms
+        # of scheduler slack. This completed-cleanup case fails the third real
+        # connection earlier; the separate gated case proves late ownership.
         self.fixture.srv.mode = 'ok'
         ex = self.fixture.exporter(timeout=.5)
         self.fixture.record(ex, 10)
         ex.max_batch = 1
         perform = gt._Engine._perform
         attempts = []
-        async def hold_third(engine, call):
+        async def fail_third(engine, call):
             attempts.append(call)
             if len(attempts) == 3:
-                self.fixture.srv.mode = 'hold'
+                call.options['url'] = refused_url
             return await perform(engine, call)
         finish = gt._Engine._finish
         delayed = threading.Event()
@@ -44,8 +44,13 @@ class CleanupOwnershipTests(unittest.TestCase):
                 engine.loop.call_later(.03, finish, engine, call, task)
             else:
                 finish(engine, call, task)
-        with patch.object(gt._Engine, '_perform', hold_third), \
+        # Keep the port reserved but non-listening so no unrelated listener can
+        # turn the intended real connection failure into a successful request.
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as refused, \
+                patch.object(gt._Engine, '_perform', fail_third), \
                 patch.object(gt._Engine, '_finish', delayed_finish):
+            refused.bind(('127.0.0.1', 0))
+            refused_url = 'http://127.0.0.1:%d/v1/traces' % refused.getsockname()[1]
             before = time.monotonic()
             self.assertFalse(ex.flush(.14))
             elapsed = time.monotonic()-before
@@ -59,6 +64,56 @@ class CleanupOwnershipTests(unittest.TestCase):
         self.assertGreater(ex.stats()['queued'], 0)
         self.assertGreater(ex.stats()['exported'], 0, 'must preserve useful exports')
         self.assertLess(self.fixture.srv.received, 10)
+
+    def test_global_budget_keeps_late_retirement_owned_until_release(self):
+        self.fixture.srv.mode = 'hold'
+        ex = self.fixture.exporter(timeout=.5)
+        engine = ex._session._attach()
+        self.assertTrue(engine.ready.wait(1))
+        finish = gt._Engine._finish
+        entered = threading.Event()
+        pending = []
+        def gated_finish(engine, call, task):
+            if task.cancelled() or task.exception() is not None:
+                pending.append((engine, call, task))
+                entered.set()
+            else:
+                finish(engine, call, task)
+        call = gt._Call(ex._session, time.monotonic()+ex.timeout, None,
+                        {'url': self.fixture.endpoint, 'headers': {}, 'json': {},
+                         'timeout': (ex.timeout, ex.timeout)})
+        with patch.object(gt._Engine, '_finish', gated_finish):
+            try:
+                # Establish actual HTTP ownership before the timed drain. The
+                # collector-start barrier excludes cancellation-before-start.
+                engine.acquire(call)
+                ex._retirement.add(engine, call)
+                engine.submit(call)
+                self.assertTrue(self.fixture.srv.started.wait(.2))
+                self.fixture.record(ex, 2)
+                before = time.monotonic()
+                self.assertFalse(ex.flush(.14))
+                self.assertLess(time.monotonic()-before, .24)
+                self.assertTrue(entered.wait(.2))
+                self.assertEqual(ex.stats()['queued'], 2)
+                self.assertEqual(ex.stats()['cleanup_pending'], 1)
+                self.assertEqual(engine.snapshot()['active_calls'], 1)
+                self.assertFalse(ex.flush(.03))
+                self.assertEqual(ex.stats()['queued'], 2)
+                self.assertEqual(ex.stats()['cleanup_pending'], 1)
+                self.assertEqual(engine.snapshot()['active_calls'], 1)
+                self.assertEqual(self.fixture.srv.received, 1)
+            finally:
+                for owner, tracked, task in pending:
+                    owner.loop.call_soon_threadsafe(finish, owner, tracked, task)
+                self.assertTrue(call.done.wait(.5))
+        self.assertTrue(ex._retirement.drain(time.monotonic()+.03))
+        self.assertEqual(ex.stats()['cleanup_pending'], 0)
+        self.assertEqual(engine.snapshot()['active_calls'], 0)
+        self.fixture.srv.release.set()
+        self.assertTrue(ex.flush(.14))
+        self.assertEqual(ex.stats()['exported'], 2)
+        self.assertEqual(ex.stats()['queued'], 0)
 
     def test_work_cutoff_between_successful_batches_needs_no_cancellation(self):
         ex = self.fixture.exporter(timeout=.5)
