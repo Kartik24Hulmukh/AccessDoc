@@ -26,7 +26,7 @@ import urllib.parse
 
 import requests
 from .gateway_transport import PooledSession, _take
-from .deadline import join as _join
+from .deadline import join as _join, wait as _wait
 
 _MAX_QUEUE = 2048
 _MAX_BATCH = 256
@@ -365,7 +365,7 @@ class OTLPExporter:
     def _run(self):
         try:
             while not self._stop.is_set():
-                self._wake.wait(self.flush_interval)
+                _wait(self._wake, time.monotonic() + self.flush_interval)
                 self._wake.clear()
                 if self._stop.is_set():
                     break
@@ -389,7 +389,9 @@ class OTLPExporter:
             # This existing owner must not exit before the bounded shutdown
             # caller has published final accounting/disposal intent. No detached
             # cleanup thread, and no extra grace in the caller's return path.
-            self._finalize.wait()
+            while not self._finalize.is_set():
+                if not _wait(self._finalize, time.monotonic() + 0.05):
+                    break
             with self._sender, self._lock:
                 self._apply_pending()
                 self._discard_pending = True
@@ -432,8 +434,13 @@ class OTLPExporter:
             cleaned = not self._thread.is_alive() and cleaned
         return ok and cleaned
 
-    def stats(self):
-        with self._lock:
+    def stats(self, timeout=None):
+        budget = _budget(0.05 if timeout is None else timeout)
+        sdeadline = time.monotonic() + budget
+        if not _take(self._lock, sdeadline):
+            return {"enabled": self.enabled, "exported": self.exported, "dropped": self.dropped,
+                    "failed_batches": self.failed_batches, "queued": len(self._q), "closing": self._closing}
+        try:
             self._apply_pending()
             return {"enabled": self.enabled, "exported": self.exported, "dropped": self.dropped,
                     "failed_batches": self.failed_batches, "queued": len(self._q),
@@ -443,6 +450,9 @@ class OTLPExporter:
                                            int(bool(self._session and self._session.cleanup_pending))),
                     "closing": self._closing, "last_error": self.last_error,
                     "bootstrap_dropped": _bootstrap_loss_snapshot()}
+        finally:
+            self._lock.release()
+
 
 
 _default = None
