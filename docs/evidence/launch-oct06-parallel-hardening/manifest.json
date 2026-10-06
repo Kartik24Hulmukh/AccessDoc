@@ -1,0 +1,41 @@
+{
+  "validated_source_commit": "10aeb3eef1b423985533bf1b27500166e6827abb",
+  "base_commit": "0cce6ae572d1ac4bdb7d39b2530f9f3d7b037a87",
+  "source_file_sha256": {
+    ".github/workflows/ci.yml": "c96e8c0dfbc1cca42e455e49f6ffefe53f3f8925c2be0223749ab13c543386f6",
+    "app/http_policy.py": "439c99b3f5e112ee2881f1c3bdc36382f0baa01255db150f4238901b10cce72c",
+    "app/otlp_export.py": "f5020886ba637616d9ed5c8f17b9247e70878314ab51c40488eb4d286af9877d",
+    "app/procstats.py": "5938a91dace6d8bd1cfa4fb7afc90d6f0b88d4cf5cc13ba805b8518d7389ea85",
+    "scripts/report_test_failures.py": "297b67d13bccb6e1db4a158d3ecb738a8af9c8a7863ca179cbdb92560dda98bc",
+    "scripts/run_one_native_diagnostic.py": "dbd6ee22483b3b3a84223304e9cfef120663a655f208f490e617c9e61215a215",
+    "scripts/start_zero_spend_pilot.py": "acda5c22a8fa996d2190960ba6d5ed3417c8d7bbb589d315df421ad1503fcd76",
+    "tests/test_auth_configuration_fail_closed.py": "2a06c4bc6d56d5471a7f60a880fd3cba07e944b9b9d117744ed37098a564e734",
+    "tests/test_ci_failure_annotations.py": "905f148ece628d4a7b0b7719c2e6c87776666f0cf2d4f26f2c35ab1887bcfaab",
+    "tests/test_otlp_cleanup_ownership.py": "163ba0ecfb570fe7473770362416d87d18a12031bd6fd8522894e4c13a6b25b9",
+    "tests/test_procstats_darwin.py": "2afb33ce053af657b56d8e84f9261914cd6125314ceab65c85d246e215e02790",
+    "tests/test_zero_spend_pilot_otlp_environment.py": "fcc2379c53777441a6488559470767b1cff097f161f598ceba435c38e0f0f666"
+  },
+  "local_release_gates": 10,
+  "suite": {
+    "passed": 1261,
+    "skipped": 1,
+    "subtests_passed": 510,
+    "seconds": 110.93
+  },
+  "scope": "Linux local source acceptance only; hosted CI and production/human gates not accepted",
+  "evidence_sha256": {
+    "baseline.json": "246a87d060f6293b735f62be8c821dfcc55e91006c8a99851d36eba22d225eda",
+    "baseline-load.json": "4d1e69f8d5a032d8b13043e84d25862a45e7ea8e53caf8046e26a9dc2553ccf0",
+    "after-load.json": "ca0d625363f1ff016b5501b730425481ccaf48f8864784e5e1ec95a16deb9bde",
+    "mixed-100workers.json": "2b33593861d9ce64e226294c604d7a0b14f6089c558637e1992294e435a80e47",
+    "disconnect.json": "780574b20feeda5fb23d2680fcf37c904085dc3312d4731289430e740f5ef885",
+    "soak.json": "ce1b9137c3dbc7503abd0bf1b91c5a635cb450f593c7e87aa126721bac6d1c58",
+    "offline-gateway.json": "31f79632b44dba15c41f7600ba4c49a7b751a1ca954497826f912983a23915da",
+    "torture-receipts.json": "e31c14b5ca44ee3dcc7b366b284bd22e2d03c4889be22d5f3b644b6e2f87ebc5",
+    "release-verifier.json": "8b41f92afd251a2a12f77de229005c1654778c0afb8caadbb7f196d8ede19582",
+    "release-verifier-final.json": "a4e6625731c76380dda738d5ec3b6bc4bc4a24f638ad62ed27652da2d88f6b19",
+    "environment.txt": "78c858a8162b9e85980359c12f2a102ebb3a567bb8ee66a46522fb2cafebe253",
+    "mac-baseline-annotations.json": "056c9e7cadd71d0dca4d5fe3cc4b18729eb6cbc8ce16cb703752df50b73c60a5",
+    "mac-job.json": "afa817b0d053c4de5664bfe4b065a651ccc296d178795ae6816b732f2e50b2b0"
+  }
+}

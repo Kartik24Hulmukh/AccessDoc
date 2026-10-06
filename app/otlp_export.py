@@ -390,8 +390,9 @@ class OTLPExporter:
             # caller has published final accounting/disposal intent. No detached
             # cleanup thread, and no extra grace in the caller's return path.
             while not self._finalize.is_set():
-                if not _wait(self._finalize, time.monotonic() + 0.05):
-                    break
+                # A daemon poll timeout is not disposal intent. The shutdown
+                # caller may still be draining useful work in its own budget.
+                _wait(self._finalize, time.monotonic() + 0.05)
             with self._sender, self._lock:
                 self._apply_pending()
                 self._discard_pending = True

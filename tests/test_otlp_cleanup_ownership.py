@@ -8,6 +8,7 @@ import time
 import unittest
 from unittest.mock import patch
 from app import gateway_transport as gt
+from app import otlp_export as ot
 import tests.test_otlp_deadlines as deadline_fixture
 
 
@@ -20,10 +21,21 @@ class CleanupOwnershipTests(unittest.TestCase):
         self.addCleanup(self.fixture.tearDown)
 
     def test_global_reserve_drains_late_final_batch_retirement(self):
-        self.fixture.srv.mode = 'multi'
+        # Two 50 ms responses can consume the entire 105 ms work window:
+        # stopping between successful batches is valid, but exercises no late
+        # retirement. Make useful batches fast and hold the third real request
+        # so this test necessarily exercises cancellation + delayed retirement.
+        self.fixture.srv.mode = 'ok'
         ex = self.fixture.exporter(timeout=.5)
         self.fixture.record(ex, 10)
         ex.max_batch = 1
+        perform = gt._Engine._perform
+        attempts = []
+        async def hold_third(engine, call):
+            attempts.append(call)
+            if len(attempts) == 3:
+                self.fixture.srv.mode = 'hold'
+            return await perform(engine, call)
         finish = gt._Engine._finish
         delayed = threading.Event()
         def delayed_finish(engine, call, task):
@@ -32,7 +44,8 @@ class CleanupOwnershipTests(unittest.TestCase):
                 engine.loop.call_later(.03, finish, engine, call, task)
             else:
                 finish(engine, call, task)
-        with patch.object(gt._Engine, '_finish', delayed_finish):
+        with patch.object(gt._Engine, '_perform', hold_third), \
+                patch.object(gt._Engine, '_finish', delayed_finish):
             before = time.monotonic()
             self.assertFalse(ex.flush(.14))
             elapsed = time.monotonic()-before
@@ -40,9 +53,101 @@ class CleanupOwnershipTests(unittest.TestCase):
             self.assertTrue(delayed.is_set())
             self.assertEqual(ex._session.snapshot()['active_calls'], 0)
             self.assertEqual(ex.stats().get('cleanup_pending'), 0)
+        self.assertEqual(len(attempts), 3)
+        self.assertEqual(ex.stats()['exported'], 2)
+        self.assertEqual(ex.stats()['failed_spans'], 1)
         self.assertGreater(ex.stats()['queued'], 0)
         self.assertGreater(ex.stats()['exported'], 0, 'must preserve useful exports')
         self.assertLess(self.fixture.srv.received, 10)
+
+    def test_work_cutoff_between_successful_batches_needs_no_cancellation(self):
+        ex = self.fixture.exporter(timeout=.5)
+        self.fixture.record(ex, 2)
+        ex.max_batch = 1
+        send = ex._send
+        completed = []
+        def expire_between_batches(batch, deadline):
+            accepted = send(batch, deadline)
+            completed.append(accepted)
+            # Model descheduling after successful accounting, not a slow or
+            # failed native request. Use the existing work cutoff, no grace.
+            gt._wait(threading.Event(), deadline)
+            return accepted
+        with patch.object(ex, '_send', expire_between_batches):
+            before = time.monotonic()
+            self.assertFalse(ex.flush(.14))
+            self.assertLess(time.monotonic() - before, .24)
+        self.assertEqual(completed, [True])
+        self.assertEqual(ex.stats()['exported'], 1)
+        self.assertEqual(ex.stats()['failed_spans'], 0)
+        self.assertEqual(ex.stats()['failed_batches'], 0)
+        self.assertEqual(ex.stats()['queued'], 1)
+        self.assertEqual(ex.stats()['cleanup_pending'], 0)
+        self.assertEqual(ex._session.snapshot()['active_calls'], 0)
+        self.assertEqual(self.fixture.srv.received, 1)
+
+    def test_shutdown_owner_waits_for_finalize_and_drains_past_first_poll(self):
+        self.fixture.srv.mode = 'multi'
+        ex = self.fixture.exporter(timeout=.5)
+        self.fixture.record(ex, 2)
+        ex.max_batch = 1
+        flush_entered = threading.Event()
+        release_flush = threading.Event()
+        finalize_poll_expired = threading.Event()
+        close_seen = threading.Event()
+        close_intents = []
+        results = []
+        wait = ot._wait
+        flush = ex._flush_until
+        close = ex._session.close
+        def observed_wait(event, deadline):
+            signaled = wait(event, deadline)
+            if event is ex._finalize and not signaled:
+                finalize_poll_expired.set()
+            return signaled
+        def gated_flush(deadline, baseline):
+            flush_entered.set()
+            if not release_flush.wait(1):
+                raise AssertionError('test did not release shutdown flush')
+            return flush(deadline, baseline)
+        def observed_close(*args, **kwargs):
+            close_intents.append(ex._finalize.is_set())
+            close_seen.set()
+            return close(*args, **kwargs)
+        def shutdown():
+            before = time.monotonic()
+            results.append((ex.shutdown(.5), time.monotonic() - before))
+        with patch.object(ot, '_wait', observed_wait), \
+                patch.object(ex, '_flush_until', gated_flush), \
+                patch.object(ex._session, 'close', observed_close):
+            caller = threading.Thread(target=shutdown)
+            caller.start()
+            try:
+                self.assertTrue(flush_entered.wait(1))
+                # Observe a real expired daemon poll before allowing the caller
+                # to flush. It grants no permission to dispose the queue/pool.
+                self.assertTrue(finalize_poll_expired.wait(1))
+                self.assertFalse(close_seen.wait(.03))
+                self.assertFalse(ex._finalize.is_set())
+                self.assertTrue(ex._thread.is_alive())
+                self.assertEqual(ex.stats()['queued'], 2)
+                self.assertEqual(ex.stats()['shutdown_dropped'], 0)
+            finally:
+                release_flush.set()
+                caller.join(1)
+                ex._thread.join(1)
+        self.assertFalse(caller.is_alive())
+        self.assertFalse(ex._thread.is_alive())
+        self.assertEqual(len(results), 1)
+        self.assertTrue(results[0][0])
+        self.assertLess(results[0][1], .5)
+        self.assertGreater(results[0][1], .05)
+        self.assertTrue(close_intents)
+        self.assertTrue(all(close_intents))
+        self.assertEqual(ex.stats()['exported'], 2)
+        self.assertEqual(ex.stats()['shutdown_dropped'], 0)
+        self.assertEqual(ex.stats()['queued'], 0)
+        self.assertEqual(self.fixture.srv.received, 2)
 
     def test_expired_drain_remains_visible_and_next_flush_is_not_false_success(self):
         self.fixture.srv.mode = 'hold'

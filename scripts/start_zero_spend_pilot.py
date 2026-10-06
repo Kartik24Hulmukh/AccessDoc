@@ -13,6 +13,11 @@ if __name__ == '__main__':
     # Never allow inherited upstream credentials to create an accidental charge.
     os.environ.pop('MELIOUS_API_KEY', None)
     os.environ.pop('ACCESSDOC_API_KEYS', None)
+    # No inherited remote collector or collector credential in this local
+    # profile. This is an environment boundary, not full network egress denial.
+    for scope in ('', '_TRACES', '_METRICS', '_LOGS'):
+        for setting in ('ENDPOINT', 'HEADERS'):
+            os.environ.pop('OTEL_EXPORTER_OTLP' + scope + '_' + setting, None)
     os.environ.update(HOST='127.0.0.1', ALLOW_NETWORK_EXPOSURE='false',
                       ACCESSDOC_REQUIRE_AUTH='true',
                       ACCESSDOC_GENERATION_ENABLED='true',

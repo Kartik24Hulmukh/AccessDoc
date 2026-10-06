@@ -111,7 +111,11 @@ jobs:
         shell: bash
         run: PYTHONPATH=. python scripts/diagnose_export_phase_once.py
       - name: Bounded local concurrency and malformed-input contract gate
+        id: portability-load
         run: python scripts/hardening_load.py --output hardening-load-${{ matrix.os }}.json
+      - name: Publish bounded load-failure diagnostics
+        if: ${{ failure() && steps.portability-load.outcome == 'failure' }}
+        run: python scripts/report_test_failures.py --load hardening-load-${{ matrix.os }}.json
       - name: Archive portability load metrics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

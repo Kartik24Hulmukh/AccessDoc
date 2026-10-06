@@ -1,0 +1,22 @@
+[
+  {
+    "name": "after-load",
+    "exit_code": 0,
+    "wall_seconds": 1.918
+  },
+  {
+    "name": "mixed-100workers",
+    "exit_code": 0,
+    "wall_seconds": 17.714
+  },
+  {
+    "name": "disconnect-100workflows",
+    "exit_code": 0,
+    "wall_seconds": 1.073
+  },
+  {
+    "name": "authenticated-soak",
+    "exit_code": 0,
+    "wall_seconds": 31.554
+  }
+]

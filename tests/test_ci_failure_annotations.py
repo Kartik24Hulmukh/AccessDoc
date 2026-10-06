@@ -1,5 +1,6 @@
 """Synthetic report fixtures; diagnostic output never substitutes for test gates."""
 import importlib.util
+import json
 import os
 from pathlib import Path
 import tempfile
@@ -39,3 +40,39 @@ class FailureAnnotationTests(unittest.TestCase):
 
     def test_annotation_control_characters_escaped(self):
         self.assertEqual(module.safe('a%\r\nb'), 'a%25%0D%0Ab')
+
+    def load_report(self, report):
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / 'load.json'
+            p.write_text(json.dumps(report), encoding='utf-8')
+            return module.load_annotations(p)
+
+    def test_load_failure_has_filtered_label_and_allowlisted_memory_only(self):
+        with patch.dict(os.environ, {'SYNTHETIC_API_KEY': 'private-synthetic-canary'}):
+            rows = self.load_report({
+                'pass': False,
+                'failures': ['memory telemetry inconsistent: peak below current RSS',
+                             'private-synthetic-canary Bearer synthetic-value'],
+                'memory': {'ceiling_max_rss_kib': 50000, 'post_load_rss_kib': 51000,
+                           'request_body': 'private evidence'},
+                'request_body': 'private evidence'})
+        self.assertIn('peak below current RSS', rows[0])
+        self.assertIn('50000', rows[-1])
+        self.assertIn('51000', rows[-1])
+        for secret in ('private-synthetic-canary', 'synthetic-value', 'private evidence'):
+            self.assertNotIn(secret, ''.join(rows))
+
+    def test_load_success_no_annotation(self):
+        self.assertEqual(self.load_report({'pass': True, 'failures': []}), [])
+
+    def test_load_failures_bounded_and_unknown_fields_not_rendered(self):
+        rows = self.load_report({'pass': False, 'failures': ['x' * 5000] * 25,
+                                 'memory': {'floor_rss_kib': 'secret', 'threads_after': True}})
+        self.assertEqual(len(rows), 20)
+        self.assertTrue(all(len(x) < 3200 for x in rows))
+
+    def test_malformed_missing_and_false_report_fail_closed(self):
+        self.assertEqual(len(self.load_report([])), 1)
+        self.assertEqual(len(self.load_report({'pass': False, 'failures': []})), 1)
+        self.assertEqual(module.load_annotations('/nonexistent-synthetic-load-report'),
+                         ['::error::Load failure report missing or exceeds diagnostic bound'])

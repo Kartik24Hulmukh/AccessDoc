@@ -1,0 +1,94 @@
+{
+  "scope": "loopback only; 8 workers, 100 requests; not capacity certification",
+  "workers": 8,
+  "requests": 100,
+  "contract": [
+    {
+      "name": "null violations",
+      "expected": 200,
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "name": "missing violations",
+      "expected": 422,
+      "actual": 422,
+      "pass": true
+    },
+    {
+      "name": "malformed description",
+      "expected": 422,
+      "actual": 422,
+      "pass": true
+    },
+    {
+      "name": "wrong metadata type",
+      "expected": 422,
+      "actual": 422,
+      "pass": true
+    },
+    {
+      "name": "wrong boolean type",
+      "expected": 422,
+      "actual": 422,
+      "pass": true
+    },
+    {
+      "name": "string ceiling",
+      "expected": 413,
+      "actual": 413,
+      "pass": true
+    },
+    {
+      "name": "manual CSV ceiling",
+      "expected": 413,
+      "actual": 413,
+      "pass": true
+    },
+    {
+      "name": "content-type lookalike",
+      "expected": 415,
+      "actual": 415,
+      "pass": true
+    },
+    {
+      "name": "deep JSON",
+      "expected": 400,
+      "actual": 400,
+      "pass": true
+    }
+  ],
+  "scale": [
+    {
+      "finding_instances": 1,
+      "seconds": 0.01,
+      "pass": true
+    },
+    {
+      "finding_instances": 100,
+      "seconds": 0.0365,
+      "pass": true
+    }
+  ],
+  "load": {
+    "seconds": 1.0816,
+    "requests_per_second": 92.45,
+    "p50_seconds": 0.0829,
+    "p95_seconds": 0.1214,
+    "p99_seconds": 0.1267,
+    "max_seconds": 0.1369,
+    "status_counts": {
+      "200": 100
+    },
+    "unique_bundle_digests": 1,
+    "all_200": true
+  },
+  "memory": {
+    "floor_rss_kib": 34676,
+    "ceiling_max_rss_kib": 68100,
+    "post_load_rss_kib": 65948,
+    "threads_after": 2
+  },
+  "failures": [],
+  "pass": true
+}

@@ -1,0 +1,162 @@
+{
+  "scope": "Local closed-loop, authenticated 100-instance payload; not production/staging throughput proof",
+  "results": [
+    {
+      "adapter": "api.handler",
+      "seconds": 15.08,
+      "workers": 8,
+      "finding_instances": 100,
+      "attempts": 957,
+      "statuses": {
+        "200": 543,
+        "503": 414
+      },
+      "successful_bundles_per_second": 36.01,
+      "success_p50_ms": 127.990834000002,
+      "success_p95_ms": 175.8509960000083,
+      "success_p99_ms": 198.28022500007592,
+      "cpu_seconds": 16.36,
+      "peak_rss_kib": 66308,
+      "rss_samples": [
+        {
+          "elapsed_s": 1.01,
+          "rss_bytes": 62775296
+        },
+        {
+          "elapsed_s": 2.02,
+          "rss_bytes": 64344064
+        },
+        {
+          "elapsed_s": 3.04,
+          "rss_bytes": 66179072
+        },
+        {
+          "elapsed_s": 4.05,
+          "rss_bytes": 66228224
+        },
+        {
+          "elapsed_s": 5.07,
+          "rss_bytes": 66383872
+        },
+        {
+          "elapsed_s": 6.08,
+          "rss_bytes": 66580480
+        },
+        {
+          "elapsed_s": 7.1,
+          "rss_bytes": 66973696
+        },
+        {
+          "elapsed_s": 8.1,
+          "rss_bytes": 66879488
+        },
+        {
+          "elapsed_s": 9.13,
+          "rss_bytes": 67219456
+        },
+        {
+          "elapsed_s": 10.15,
+          "rss_bytes": 67289088
+        },
+        {
+          "elapsed_s": 11.16,
+          "rss_bytes": 67452928
+        },
+        {
+          "elapsed_s": 12.16,
+          "rss_bytes": 67686400
+        },
+        {
+          "elapsed_s": 13.16,
+          "rss_bytes": 67739648
+        },
+        {
+          "elapsed_s": 14.17,
+          "rss_bytes": 67612672
+        }
+      ],
+      "invalid_or_transport_errors": 0,
+      "recovery_status": 200,
+      "pass": true
+    },
+    {
+      "adapter": "app.main",
+      "seconds": 15.05,
+      "workers": 8,
+      "finding_instances": 100,
+      "attempts": 943,
+      "statuses": {
+        "200": 549,
+        "503": 394
+      },
+      "successful_bundles_per_second": 36.48,
+      "success_p50_ms": 130.7301730000745,
+      "success_p95_ms": 173.53010300007554,
+      "success_p99_ms": 191.56056600002103,
+      "cpu_seconds": 16.36,
+      "peak_rss_kib": 66992,
+      "rss_samples": [
+        {
+          "elapsed_s": 1.01,
+          "rss_bytes": 67624960
+        },
+        {
+          "elapsed_s": 2.03,
+          "rss_bytes": 67870720
+        },
+        {
+          "elapsed_s": 3.05,
+          "rss_bytes": 67891200
+        },
+        {
+          "elapsed_s": 4.06,
+          "rss_bytes": 67952640
+        },
+        {
+          "elapsed_s": 5.07,
+          "rss_bytes": 68046848
+        },
+        {
+          "elapsed_s": 6.08,
+          "rss_bytes": 68308992
+        },
+        {
+          "elapsed_s": 7.09,
+          "rss_bytes": 68358144
+        },
+        {
+          "elapsed_s": 8.11,
+          "rss_bytes": 68419584
+        },
+        {
+          "elapsed_s": 9.12,
+          "rss_bytes": 68308992
+        },
+        {
+          "elapsed_s": 10.15,
+          "rss_bytes": 68435968
+        },
+        {
+          "elapsed_s": 11.17,
+          "rss_bytes": 68444160
+        },
+        {
+          "elapsed_s": 12.18,
+          "rss_bytes": 68468736
+        },
+        {
+          "elapsed_s": 13.18,
+          "rss_bytes": 68521984
+        },
+        {
+          "elapsed_s": 14.19,
+          "rss_bytes": 68702208
+        }
+      ],
+      "invalid_or_transport_errors": 0,
+      "recovery_status": 200,
+      "pass": true
+    }
+  ],
+  "pass": true
+}

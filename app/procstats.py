@@ -49,6 +49,13 @@ def _sanitize(value):
 def _posix_rss_kib():
     """(peak, current) KiB from one Linux status snapshot where available."""
     peak = current = None
+    if sys.platform == "darwin":
+        # Mach supplies both counters in one task_info call. Sampling
+        # getrusage's peak before Mach's current RSS can produce current >
+        # peak when allocations occur between those calls.
+        peak, current = _darwin_rss_kib()
+        if peak is not None and current is not None:
+            return peak, current
     if sys.platform.startswith("linux"):
         try:
             # VmHWM and VmRSS are both resident-memory counters in KiB. Taking
@@ -83,17 +90,15 @@ def _posix_rss_kib():
                         break
         except OSError:
             pass
-    if current is None and sys.platform == "darwin":
-        current = _darwin_current_rss_kib()
     return peak, current
 
 
-def _darwin_current_rss_kib():
-    """Current RSS KiB on macOS via mach ``task_info(MACH_TASK_BASIC_INFO)``.
+def _darwin_rss_kib():
+    """(peak, current) RSS KiB from one MACH_TASK_BASIC_INFO snapshot.
 
     macOS has no ``/proc``, so without this the probes silently dropped
     ``rss_kib`` (caught by the macOS portability CI job). Native syscall, no
-    subprocess; returns None on any failure.
+    subprocess; returns (None, None) on any failure.
     """
     try:
         import ctypes
@@ -126,10 +131,15 @@ def _darwin_current_rss_kib():
         libc.task_info.restype = ctypes.c_int
         MACH_TASK_BASIC_INFO = 20
         if libc.task_info(task, MACH_TASK_BASIC_INFO, ctypes.byref(info), ctypes.byref(count)) != 0:
-            return None
-        return int(info.resident_size) // 1024
+            return None, None
+        return int(info.resident_size_max) // 1024, int(info.resident_size) // 1024
     except Exception:
-        return None
+        return None, None
+
+
+def _darwin_current_rss_kib():
+    """Compatibility helper; public probes use the paired Mach snapshot."""
+    return _darwin_rss_kib()[1]
 
 
 def _windows_rss_kib():

@@ -1,0 +1,46 @@
+{
+  "compile": {
+    "status": "PASS",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "tests": {
+    "status": "FAIL",
+    "exitCode": 1,
+    "stdout": "()\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\ntests/test_native_diagnostic_launch_contract.py:68: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \ntests/test_native_diagnostic_launch_contract.py:38: in _committed_frozen_bytes\n    self.assertEqual(hashlib.sha256(data).hexdigest(), digest, name)\nE   AssertionError: '163ba0ecfb570fe7473770362416d87d18a12031bd6fd8522894e4c13a6b25b9' != 'f5bbebd291ecfc962cf17973a7dc468c85cc4a2dd1147edc32af94fdf710894b'\nE   - 163ba0ecfb570fe7473770362416d87d18a12031bd6fd8522894e4c13a6b25b9\nE   + f5bbebd291ecfc962cf17973a7dc468c85cc4a2dd1147edc32af94fdf710894b\nE    : tests/test_otlp_cleanup_ownership.py\n__ NativeDiagnosticLaunchContracts.test_source_guards_match_the_frozen_inputs __\n\nself = <tests.test_native_diagnostic_launch_contract.NativeDiagnosticLaunchContracts testMethod=test_source_guards_match_the_frozen_inputs>\n\n    def test_source_guards_match_the_frozen_inputs(self):\n>       committed = self._committed_frozen_bytes()\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n\ntests/test_native_diagnostic_launch_contract.py:43: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \ntests/test_native_diagnostic_launch_contract.py:38: in _committed_frozen_bytes\n    self.assertEqual(hashlib.sha256(data).hexdigest(), digest, name)\nE   AssertionError: '163ba0ecfb570fe7473770362416d87d18a12031bd6fd8522894e4c13a6b25b9' != 'f5bbebd291ecfc962cf17973a7dc468c85cc4a2dd1147edc32af94fdf710894b'\nE   - 163ba0ecfb570fe7473770362416d87d18a12031bd6fd8522894e4c13a6b25b9\nE   + f5bbebd291ecfc962cf17973a7dc468c85cc4a2dd1147edc32af94fdf710894b\nE    : tests/test_otlp_cleanup_ownership.py\n=============================== warnings summary ===============================\ntests/test_stress_matrix.py::SecurityStressTests::test_duplicate_zip_paths_rejected\n  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'report.html'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_zip_hardening.py::ZipHardeningTests::test_duplicate_manifest_json\n  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'manifest.json'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_zip_hardening.py::ZipHardeningTests::test_duplicate_report_pdf\n  /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'report.pdf'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ============================\nFAILED tests/test_native_diagnostic_launch_contract.py::NativeDiagnosticLaunchContracts::test_crlf_executable_bytes_are_rejected_without_normalization\nFAILED tests/test_native_diagnostic_launch_contract.py::NativeDiagnosticLaunchContracts::test_source_guards_match_the_frozen_inputs\n2 failed, 1259 passed, 1 skipped, 3 warnings, 510 subtests passed in 108.85s (0:01:48)\n",
+    "stderr": ""
+  },
+  "secret_patterns": {
+    "status": "PASS",
+    "detail": []
+  },
+  "claims": {
+    "status": "PASS",
+    "detail": []
+  },
+  "placeholders": {
+    "status": "PASS",
+    "detail": []
+  },
+  "stale_files": {
+    "status": "PASS",
+    "detail": []
+  },
+  "immutable_action_refs": {
+    "status": "PASS",
+    "detail": []
+  },
+  "non_publishing_workflows": {
+    "status": "PASS",
+    "detail": []
+  },
+  "required_files": {
+    "status": "PASS",
+    "detail": []
+  },
+  "version_consistency": {
+    "status": "PASS",
+    "detail": []
+  }
+}

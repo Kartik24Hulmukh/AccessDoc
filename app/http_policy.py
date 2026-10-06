@@ -16,18 +16,28 @@ PUBLIC_KEYS = (
 )
 
 
+def _require_auth_config():
+    """Absent keeps local compatibility; explicit invalid values deny access."""
+    value = os.getenv("ACCESSDOC_REQUIRE_AUTH", "false").strip().lower()
+    if value not in ("true", "false"):
+        return True, "AUTH_CONFIG_INVALID"
+    return value == "true", None
+
+
 def auth_required():
+    required, _ = _require_auth_config()
     return bool(os.getenv("ACCESSDOC_API_KEY", "") or
                 any(k.strip() for k in os.getenv("ACCESSDOC_API_KEYS", "").split(",")) or
-                os.getenv("ACCESSDOC_REQUIRE_AUTH", "false").lower() == "true")
+                required)
 
 
 def readiness_reasons():
     """Passive, non-secret core configuration checks; no paid provider probe."""
-    required = os.getenv("ACCESSDOC_REQUIRE_AUTH", "false").lower() == "true"
+    required, config_error = _require_auth_config()
     keys = bool(os.getenv("ACCESSDOC_API_KEY", "") or any(
         k.strip() for k in os.getenv("ACCESSDOC_API_KEYS", "").split(",")))
-    reasons = ["AUTH_NOT_CONFIGURED"] if required and not keys else []
+    reasons = ([config_error] if config_error else
+               ["AUTH_NOT_CONFIGURED"] if required and not keys else [])
     state = operation_state()
     reasons.extend(state["configuration_errors"])
     if not state["generation_enabled"] and "GENERATION_CONFIG_INVALID" not in reasons:
@@ -59,8 +69,10 @@ def operation_error(remediation=False):
 
 
 def auth_error(headers):
+    required, config_error = _require_auth_config()
+    if config_error:
+        return 503, config_error
     key = os.getenv("ACCESSDOC_API_KEY", "")
-    required = os.getenv("ACCESSDOC_REQUIRE_AUTH", "false").lower() == "true"
     legacy = [k.strip() for k in os.getenv("ACCESSDOC_API_KEYS", "").split(",") if k.strip()]
     if not key and not legacy:
         return (503, "AUTH_NOT_CONFIGURED") if required else None
