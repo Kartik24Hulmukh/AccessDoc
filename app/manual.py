@@ -1,9 +1,8 @@
 """Merge human (manual) accessibility findings into the automated finding set.
 
-This is the feature that turns AccessDoc from "automated half" into a complete
-audit deliverable: an auditor pastes their manual findings (CSV, Markdown
-table, or a list of dicts) and they are merged, provenance-labeled
-(source="manual"), and attested alongside the automated ones.
+Supplied manual observations (CSV, Markdown table, or a list of dicts) are
+merged and provenance-labeled (source="manual"). This does not authenticate
+their source, establish complete testing, or record reviewer approval.
 
 Accepted input shapes for parse_manual_findings():
   * list[dict]  keys: id, impact, description, help_url?, wcag_scs?, nodes?
@@ -12,10 +11,16 @@ Accepted input shapes for parse_manual_findings():
 """
 import csv
 import io
+import re
 from .models import AuditViolation, SOURCE_MANUAL
+from .limits import MAX_MANUAL_FINDINGS, MAX_NODES_PER_VIOLATION, LimitExceeded
 
 _VALID_IMPACTS = {"critical", "serious", "moderate", "minor"}
 _MANUAL_NO_TARGET = "manual:no-target"
+_ROW_FIELDS = frozenset({
+    "id", "rule", "impact", "description", "desc", "help_url", "helpUrl",
+    "wcag_scs", "wcag", "sc", "nodes", "target", "selector",
+})
 
 
 def _norm_impact(value):
@@ -34,44 +39,129 @@ def _split_scs(value):
     return [p.strip() for p in parts if p.strip()]
 
 
+def _node_count(value):
+    """Optional bounded count: integers or ASCII decimal cells, never bools.
+
+    Test the decimal length before conversion so interpreter integer-string
+    limits cannot leak cell contents or change the public error contract.
+    """
+    if value is None:
+        return 0
+    if isinstance(value, str):
+        value = value.strip()
+        if not value:
+            return 0
+        if not value.isascii() or not value.isdecimal():
+            raise ValueError("Invalid manual finding node count")
+        value = value.lstrip("0") or "0"
+        if len(value) > len(str(MAX_NODES_PER_VIOLATION)):
+            raise LimitExceeded("Manual finding node count exceeds limit",
+                                limit_name="MAX_NODES_PER_VIOLATION",
+                                limit=MAX_NODES_PER_VIOLATION)
+        value = int(value)
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ValueError("Invalid manual finding node count")
+    if value > MAX_NODES_PER_VIOLATION:
+        raise LimitExceeded("Manual finding node count exceeds limit",
+                            limit_name="MAX_NODES_PER_VIOLATION",
+                            limit=MAX_NODES_PER_VIOLATION)
+    return value
+
+
 def _row_to_violation(row):
-    target = str(row.get("target") or row.get("selector") or "").strip()
+    # Preserve sparse, identified findings, but never turn an empty/malformed
+    # observation into an invented default finding or stringify a container.
+    for field in ("id", "rule", "description", "desc", "help_url", "helpUrl",
+                  "target", "selector"):
+        if field in row and row[field] is not None and not isinstance(row[field], str):
+            raise ValueError("manual finding text fields must be strings or null")
+    rule_id = (row.get("id") or row.get("rule") or "").strip()
+    description = (row.get("description") or row.get("desc") or "").strip()
+    if not rule_id and not description:
+        raise ValueError("manual finding requires a nonempty id or description")
+    target = (row.get("target") or row.get("selector") or "").strip()
     if not target:
         target = _MANUAL_NO_TARGET
     return AuditViolation(
-        id=str(row.get("id") or row.get("rule") or "manual-finding").strip(),
+        id=rule_id or "manual-finding",
         impact=_norm_impact(row.get("impact")),
-        description=str(row.get("description") or row.get("desc") or "").strip(),
-        help_url=str(row.get("help_url") or row.get("helpUrl") or "").strip(),
+        description=description,
+        help_url=(row.get("help_url") or row.get("helpUrl") or "").strip(),
         wcag_scs=_split_scs(row.get("wcag_scs") or row.get("wcag") or row.get("sc")),
-        nodes=int(row.get("nodes") or 0) if str(row.get("nodes") or "").strip().isdigit() else 0,
+        nodes=_node_count(row.get("nodes")),
         source=SOURCE_MANUAL,
         target=target,
     )
 
 
+def _column_indexes(header):
+    # Last duplicate header wins, matching DictReader. Ignored columns never
+    # create thousands of padded dictionary entries for each narrow row.
+    indexes = {name: i for i, name in enumerate(header) if name in _ROW_FIELDS}
+    if not indexes.keys() & {"id", "rule", "description", "desc"}:
+        raise ValueError("manual findings require CSV or Markdown headers "
+                         "including id or description; plain prose is unsupported")
+    return indexes
+
+
+def _project_cells(cells, indexes):
+    return {name: cells[i] if i < len(cells) else None
+            for name, i in indexes.items()}
+
+
 def _parse_markdown_table(text):
-    lines = [ln.strip() for ln in text.strip().splitlines() if ln.strip().startswith("|")]
-    if len(lines) < 2:
-        return []
-    header = [c.strip().lower() for c in lines[0].strip("|").split("|")]
-    rows = []
-    for ln in lines[1:]:
-        cells = [c.strip() for c in ln.strip("|").split("|")]
-        if set("".join(cells)) <= set("-: "):  # separator row
+    indexes = None
+    for line in io.StringIO(text, newline=None):
+        ln = line.strip()
+        if not ln.startswith("|"):
             continue
-        if len(cells) < len(header):
-            cells += [""] * (len(header) - len(cells))
-        rows.append(dict(zip(header, cells)))
-    return rows
+        cells = [c.strip() for c in ln.strip("|").split("|")]
+        if indexes is None:
+            indexes = _column_indexes([c.lower() for c in cells])
+            continue
+        if cells and all(re.fullmatch(r":?-{3,}:?", c) for c in cells):
+            # Separator rows, not blank observation rows. Retain compatibility
+            # with sparse tables and explanatory non-table lines.
+            continue
+        yield _project_cells(cells, indexes)
+
+
+def _parse_csv(text):
+    try:
+        reader = csv.reader(io.StringIO(text, newline=None), strict=True)
+        indexes = _column_indexes(next(reader, []))
+        for cells in reader:
+            if cells:  # DictReader ignores blank lines.
+                yield _project_cells(cells, indexes)
+    except csv.Error as exc:
+        # The C parser's implicit field ceiling is a resource boundary too.
+        # Translate both header and lazy-iteration faults into the adapters'
+        # validation contracts; never echo a private cell or raw exception.
+        if "field larger than field limit" in str(exc):
+            raise LimitExceeded("Manual CSV field exceeds parsing limit",
+                                limit_name="CSV_FIELD_SIZE_LIMIT",
+                                limit=csv.field_size_limit()) from None
+        raise ValueError("Invalid manual findings CSV") from None
+
+
+def _bounded_findings(rows):
+    findings = []
+    for index, row in enumerate(rows):
+        if index >= MAX_MANUAL_FINDINGS:
+            raise LimitExceeded("too many manual findings",
+                                limit_name="MAX_MANUAL_FINDINGS",
+                                limit=MAX_MANUAL_FINDINGS, actual=index + 1)
+        findings.append(_row_to_violation(row))
+    if not findings:
+        raise ValueError("nonempty manual findings table has no observations")
+    return findings
 
 
 def parse_manual_findings(data):
     """Parse manual findings from list/CSV/Markdown into AuditViolation list."""
-    if not data:
+    if data is None:
         return []
     if isinstance(data, list):
-        from .limits import MAX_MANUAL_FINDINGS, LimitExceeded
         if len(data) > MAX_MANUAL_FINDINGS:
             raise LimitExceeded("too many manual findings")
         if any(not isinstance(r, dict) for r in data):
@@ -79,11 +169,12 @@ def parse_manual_findings(data):
         return [_row_to_violation(r) for r in data]
     if isinstance(data, str):
         stripped = data.strip()
+        if not stripped:
+            return []
         if stripped.startswith("|"):
-            return parse_manual_findings(_parse_markdown_table(stripped))
+            return _bounded_findings(_parse_markdown_table(stripped))
         # treat as CSV
-        reader = csv.DictReader(io.StringIO(stripped))
-        return parse_manual_findings(list(reader))
+        return _bounded_findings(_parse_csv(stripped))
     raise ValueError("manual_findings must be a list, CSV or Markdown string")
 
 

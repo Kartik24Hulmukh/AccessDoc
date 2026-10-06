@@ -22,7 +22,7 @@ from app.receipt_builder import compute_finding_fingerprint, FINDING_FINGERPRINT
 
 # --- Fixtures ----------------------------------------------------------------
 
-# Bundle A: one finding that will be remediated, one that will persist,
+# Bundle A: one finding not observed in B, one that will persist,
 # and two distinct targets under the same axe rule.
 AXE_A = json.dumps({
     "url": "https://example.com",
@@ -44,7 +44,7 @@ AXE_A = json.dumps({
     ],
 })
 
-# Bundle B: image-alt is gone (remediated), color-contrast persists,
+# Bundle B: image-alt is not observed, color-contrast persists,
 # and a new finding (label) appears.
 AXE_B = json.dumps({
     "url": "https://example.com",
@@ -143,12 +143,12 @@ class TestJourneyB(unittest.TestCase):
         """Both receipts are schema 1.2 with fingerprints, so precision should be target-level."""
         self.assertEqual(self.trend["comparison_precision"], "target-level")
 
-    def test_image_alt_remediated(self):
-        """image-alt was in A but not B -> remediated."""
-        remediated_ids = [f.get("id") for f in self.trend.get("remediated_findings", [])]
-        # image-alt should be in remediated (by fingerprint)
-        # Check rule-level too
-        self.assertIn("image-alt", self.trend["fixed_rules"])
+    def test_image_alt_not_observed_at_end(self):
+        """Supplied absence is an observation difference, not a verified fix."""
+        absent_ids = [f["id"] for f in self.trend["not_observed_findings"]]
+        self.assertIn("image-alt", absent_ids)
+        self.assertIn("image-alt", self.trend["not_observed_rules"])
+        self.assertNotIn("remediated_findings", self.trend)
 
     def test_color_contrast_persists(self):
         """color-contrast was in A and still in B -> persisting."""
@@ -160,13 +160,13 @@ class TestJourneyB(unittest.TestCase):
 
     def test_target_level_findings_present(self):
         """Target-level comparison should have finding-level entries."""
-        self.assertIn("remediated_findings", self.trend)
+        self.assertIn("not_observed_findings", self.trend)
         self.assertIn("persisting_findings", self.trend)
         self.assertIn("introduced_findings", self.trend)
 
-    def test_remediated_count_matches(self):
-        """One finding (image-alt) was remediated."""
-        self.assertEqual(self.trend["remediated_count"], 1)
+    def test_not_observed_count_matches(self):
+        """One supplied finding (image-alt) is not observed at end."""
+        self.assertEqual(self.trend["not_observed_count"], 1)
 
     def test_introduced_count_matches(self):
         """One finding (label) was introduced."""
@@ -211,7 +211,7 @@ class TestJourneyC(unittest.TestCase):
             )
         zip_b, arts_b = _build_bundle(AXE_B, prior_receipt=tampered)
         trend = json.loads(arts_b.trend_json)
-        # The remediated/persisting counts will differ because the fingerprint changed
+        # The not-observed/persisting counts will differ because the fingerprint changed
         self.assertIn("comparison_precision", trend)
 
     def test_fingerprint_tampering_detected(self):
@@ -221,8 +221,10 @@ class TestJourneyC(unittest.TestCase):
             tampered["violations"][0]["finding_fingerprint"] = "a" * 64
         zip_b, arts_b = _build_bundle(AXE_B, prior_receipt=tampered)
         trend = json.loads(arts_b.trend_json)
-        # The original finding will appear as "remediated" since its fingerprint no longer matches
-        self.assertIn("remediated_findings", trend)
+        # Invalid identity must not fabricate target-level disappearance.
+        self.assertEqual(trend["comparison_precision"], "rule-level")
+        self.assertNotIn("not_observed_findings", trend)
+        self.assertTrue(trend["warnings"])
 
     def test_audit_date_tampering(self):
         """Modifying audit_date in prior receipt changes the chain."""

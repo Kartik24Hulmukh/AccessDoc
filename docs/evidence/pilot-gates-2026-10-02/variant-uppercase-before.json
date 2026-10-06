@@ -1,0 +1,12 @@
+{
+  "pass": false,
+  "phase": "readiness",
+  "expected_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "observed_commit": "ABCDEF12ABCDEF12ABCDEF12ABCDEF12ABCDEF12",
+  "target_origin": "http://127.0.0.1:43883",
+  "elapsed_seconds": 0.062,
+  "authenticated_pilot": true,
+  "checks": [],
+  "check_results": [],
+  "failures": []
+}

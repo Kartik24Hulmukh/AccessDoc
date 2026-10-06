@@ -16,15 +16,63 @@ PUBLIC_KEYS = (
 )
 
 
+def _require_auth_config():
+    """Absent keeps local compatibility; explicit invalid values deny access."""
+    value = os.getenv("ACCESSDOC_REQUIRE_AUTH", "false").strip().lower()
+    if value not in ("true", "false"):
+        return True, "AUTH_CONFIG_INVALID"
+    return value == "true", None
+
+
 def auth_required():
+    required, _ = _require_auth_config()
     return bool(os.getenv("ACCESSDOC_API_KEY", "") or
                 any(k.strip() for k in os.getenv("ACCESSDOC_API_KEYS", "").split(",")) or
-                os.getenv("ACCESSDOC_REQUIRE_AUTH", "false").lower() == "true")
+                required)
+
+
+def readiness_reasons():
+    """Passive, non-secret core configuration checks; no paid provider probe."""
+    required, config_error = _require_auth_config()
+    keys = bool(os.getenv("ACCESSDOC_API_KEY", "") or any(
+        k.strip() for k in os.getenv("ACCESSDOC_API_KEYS", "").split(",")))
+    reasons = ([config_error] if config_error else
+               ["AUTH_NOT_CONFIGURED"] if required and not keys else [])
+    state = operation_state()
+    reasons.extend(state["configuration_errors"])
+    if not state["generation_enabled"] and "GENERATION_CONFIG_INVALID" not in reasons:
+        reasons.append("GENERATION_DISABLED")
+    return reasons
+
+
+def operation_state():
+    """Independent, passive process admission controls; never return env values."""
+    result = {"configuration_errors": []}
+    for name, env in (("generation", "ACCESSDOC_GENERATION_ENABLED"),
+                      ("remediation", "ACCESSDOC_REMEDIATION_ENABLED")):
+        value = os.getenv(env, "true").strip().lower()
+        result[name + "_enabled"] = value == "true"
+        if value not in ("true", "false"):
+            result["configuration_errors"].append(name.upper() + "_CONFIG_INVALID")
+    return result
+
+
+def operation_error(remediation=False):
+    """Disable new work, not already accepted jobs or fleet/account spending."""
+    name = "remediation" if remediation else "generation"
+    state = operation_state()
+    if not state[name + "_enabled"]:
+        return 503, (name.upper() + "_CONFIG_INVALID"
+                     if name.upper() + "_CONFIG_INVALID" in state["configuration_errors"]
+                     else name.upper() + "_DISABLED")
+    return None
 
 
 def auth_error(headers):
+    required, config_error = _require_auth_config()
+    if config_error:
+        return 503, config_error
     key = os.getenv("ACCESSDOC_API_KEY", "")
-    required = os.getenv("ACCESSDOC_REQUIRE_AUTH", "false").lower() == "true"
     legacy = [k.strip() for k in os.getenv("ACCESSDOC_API_KEYS", "").split(",") if k.strip()]
     if not key and not legacy:
         return (503, "AUTH_NOT_CONFIGURED") if required else None
@@ -57,12 +105,14 @@ REMEDIATION_KEYS = ("scanner_input", "violations", "client_name", "model")
 
 def remediation_body(body):
     """Boundary for POST /api/remediate: scanner_input (if present) must pass the
-    same axe parser/limits as /api/generate; a bare violations list is bounded by
-    app.remediate. Unknown keys never cross."""
+    same axe parser/limits as /api/generate; bare violations are checked with
+    the same policy before they can reach a model. Unknown keys never cross."""
     if not isinstance(body, dict):
         raise ValueError("Request body must be a JSON object")
     if body.get("scanner_input") is not None:
         parse_axe_json(body.get("scanner_input"), allow_oversized=False)
+    if body.get("violations") is not None:
+        parse_axe_json({"violations": body["violations"]}, allow_oversized=False)
     if "model" in body and body["model"] is not None and not isinstance(body["model"], str):
         raise ValueError("model must be a string")
     return {key: body[key] for key in REMEDIATION_KEYS if key in body}

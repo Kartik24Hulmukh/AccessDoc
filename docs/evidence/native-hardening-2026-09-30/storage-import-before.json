@@ -1,0 +1,5 @@
+{
+  "exit_code": 0,
+  "stdout": "{\"import_succeeded\": true, \"ready\": true, \"store_available\": false, \"store_token\": \"disabled\"}\n",
+  "stderr": ""
+}

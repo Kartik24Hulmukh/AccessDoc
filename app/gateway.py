@@ -3,7 +3,7 @@
 Structural remediation for the gateway-cascade deadlock failure mode:
 * per-model three-state circuit breakers (CLOSED -> OPEN -> HALF_OPEN)
 * ordered zero-loss fallback chain across frontier models
-* dedicated connection pooling (requests.Session + HTTPAdapter)
+* owned aiohttp connection pools and cancellable c-ares DNS
 * immediate failover on HTTP 429 / 5xx; bounded retries on HTTP 408
 * structured JSON telemetry per attempt (latency, tokens, circuit state)
 * bearer credential resolved exclusively from $MELIOUS_API_KEY (never hardcoded)
@@ -16,20 +16,19 @@ import math
 import os
 import random
 import re
-import socket
 import queue
 import threading
 import time
 import weakref
 
 import requests
-import urllib3
-from requests.adapters import HTTPAdapter
+from .gateway_transport import PooledSession, CancelledAttempt
+from .gateway_budget import TokenLedger
 
 from . import telemetry
 
-# Cumulative token ceiling for ONE chat() across every model/retry in the
-# fallback chain. Exhausted budget -> deterministic static-KB (never a 5xx).
+# Cumulative client authorization ceiling for ONE chat(), including
+# conservative prompt bounds and every model/retry in the fallback chain. Exhausted budget -> deterministic static-KB (never a 5xx).
 DEFAULT_TOKEN_BUDGET = 6000
 
 # Every model in the canonical chain needs a read window wider than the 15 s
@@ -138,6 +137,9 @@ class CircuitBreaker:
         self.consecutive_failures = 0
         self._opened_at = 0.0
         self._trials = 0
+        # Admissions carry an epoch: an older in-flight success must not erase
+        # a newer 429 trip, nor impersonate a current half-open recovery probe.
+        self._epoch = 0
         self.successes = 0
         self.failures = 0
 
@@ -155,68 +157,89 @@ class CircuitBreaker:
         return min(math.ldexp(base, cycles), cap)
 
     def allow(self):
+        """Compatibility predicate; production attempts use epoch tickets."""
+        return self.admit() is not None
+
+    def admit(self):
+        """Return an admission epoch, or None while the circuit rejects work."""
         with self._lock:
             if self.state == self.CLOSED:
-                return True
+                return self._epoch
             if self.state == self.OPEN:
                 if self._clock() - self._opened_at >= self.recovery_delay():
                     self.state = self.HALF_OPEN
                     self._trials = 0
                 else:
-                    return False
+                    return None
             if self.state == self.HALF_OPEN:
                 if self._trials < self.half_open_max_trials:
                     self._trials += 1
-                    return True
-                return False
-            return True
+                    return self._epoch
+                return None
+            return self._epoch
 
-    def record_success(self):
+    def abandon(self, ticket):
+        """Release a current recovery trial that never produced an outcome."""
         with self._lock:
+            if ticket == self._epoch and self.state == self.HALF_OPEN:
+                self._trials = max(0, self._trials - 1)
+
+    def record_success(self, ticket=None):
+        with self._lock:
+            self.successes += 1
+            if ticket is not None and ticket != self._epoch:
+                return
+            if self.state == self.HALF_OPEN:
+                # Other probes from this recovery wave are now stale too.
+                self._epoch += 1
             self.state = self.CLOSED
             self.consecutive_failures = 0
             self._trials = 0
             self.open_cycles = 0
-            self.successes += 1
 
-    def record_failure(self):
+    def _failure_locked(self, weight):
+        self.consecutive_failures += weight
+        if (self.state == self.HALF_OPEN or
+                (self.state == self.CLOSED and
+                 self.consecutive_failures >= self.failure_threshold)):
+            self.state = self.OPEN
+            self._opened_at = self._clock()
+            self.open_cycles += 1
+            self._epoch += 1
+
+    def record_failure(self, ticket=None):
         with self._lock:
             self.failures += 1
-            self.consecutive_failures += 1
-            if self.state == self.HALF_OPEN:
-                self.state = self.OPEN
-                self._opened_at = self._clock()
-                self.open_cycles += 1
-            elif self.state == self.CLOSED and                     self.consecutive_failures >= self.failure_threshold:
-                self.state = self.OPEN
-                self._opened_at = self._clock()
-                self.open_cycles += 1
+            if ticket is not None and ticket != self._epoch:
+                return
+            self._failure_locked(1)
 
-    def record_timeout(self):
+    def record_timeout(self, ticket=None):
         """A timeout is one real failure counted with extra weight toward opening."""
         with self._lock:
             self.timeouts += 1
-        for _ in range(self.timeout_weight):
-            self.record_failure()
-        # Only ONE observed failure happened; the weight only accelerates the
-        # threshold. Correct the raw counter so telemetry never fabricates N.
-        with self._lock:
-            self.failures -= self.timeout_weight - 1
+            self.failures += 1
+            if ticket is not None and ticket != self._epoch:
+                return
+            self._failure_locked(self.timeout_weight)
 
     def unhealthy(self):
         """True while the model has unresolved consecutive failures or is not CLOSED."""
         with self._lock:
             return self.state != self.CLOSED or self.consecutive_failures > 0
 
-    def trip(self):
+    def trip(self, ticket=None):
         """Record one failure and open atomically; never synthesize failures."""
         with self._lock:
             self.failures += 1
+            if ticket is not None and ticket != self._epoch:
+                return
             self.consecutive_failures += 1
             self.state = self.OPEN
             self._opened_at = self._clock()
             self._trials = 0
             self.open_cycles += 1
+            self._epoch += 1
 
     def snapshot(self):
         with self._lock:
@@ -282,11 +305,14 @@ class GatewayResult:
         self.attempts = attempts
         self.fallback = fallback
         self.telemetry = telemetry
+        self.token_usage_known = True
+        self.token_budget = None
 
     def as_dict(self):
         return {"model": self.model, "text": self.text, "tokens": self.tokens,
                 "latency_ms": self.latency_ms, "attempts": self.attempts,
-                "fallback": self.fallback}
+                "fallback": self.fallback, "token_usage_known": self.token_usage_known,
+                "token_budget": self.token_budget}
 
 
 class ModelGateway:
@@ -308,8 +334,7 @@ class ModelGateway:
             read_timeout = float(os.getenv("GATEWAY_READ_TIMEOUT_SECONDS", "15"))
         self.timeout = (connect_timeout, read_timeout)
         # Admission deadline shared by models/retries: exhausted -> static-KB.
-        # Requests connect/read inactivity timeouts are NOT strict cancellation
-        # of DNS, connection+read duration, or a slow-drip response body.
+        # The native transport owns cancellation through DNS, headers and body.
         self.budget_seconds = float(budget_seconds if budget_seconds is not None
                                     else os.getenv("GATEWAY_BUDGET_SECONDS", "40"))
         self.token_budget = int(token_budget if token_budget is not None
@@ -317,10 +342,8 @@ class ModelGateway:
         self.max_retries = max_retries
         self.base_backoff = base_backoff
         self.max_sleep = max_sleep
-        self._session = requests.Session()
-        adapter = HTTPAdapter(pool_connections=25, pool_maxsize=100)
-        self._session.mount("https://", adapter)
-        self._session.mount("http://", adapter)
+        self._session = PooledSession(self.max_response_bytes)
+        self._http_context = threading.local()
         weakref.finalize(self, self._session.close)
         # Account-wide credit exhaustion (provider 402, or 429 with
         # code=insufficient_quota / type=billing_error) is NOT a per-model rate
@@ -388,7 +411,11 @@ class ModelGateway:
             raise GatewayError(API_KEY_ENV + " is not set", model=model)
         if remaining is not None and remaining <= 0:
             raise GatewayError("gateway time budget exhausted", status=504, model=model)
-        response_deadline = time.monotonic() + remaining if remaining is not None else None
+        context = getattr(self._http_context, "value", {})
+        response_deadline = context.get("deadline")
+        if response_deadline is None:
+            response_deadline = time.monotonic() + (
+                remaining if remaining is not None else self.budget_seconds)
         resp = self._session.post(
             MELIOUS_BASE_URL + CHAT_PATH,
             headers={"Authorization": "Bearer " + key,
@@ -397,6 +424,8 @@ class ModelGateway:
             json={"model": model, "messages": messages,
                   "max_tokens": int(max_tokens or os.getenv("GATEWAY_MAX_TOKENS", "1024"))},
             stream=True,
+            deadline=response_deadline,
+            cancel=context.get("cancel"),
             timeout=(min(self.timeout[0], remaining) if remaining is not None else self.timeout[0],
                      self.read_timeout_for(model, remaining)))
         try:
@@ -404,12 +433,21 @@ class ModelGateway:
             # Preserve Retry-After while closing the stream in the finally block.
             if resp.status_code != 200:
                 hdrs = dict(resp.headers)
-                if resp.status_code in (402, 429):
+                if resp.status_code == 402:
+                    # Status alone identifies account-wide exhaustion. Reading
+                    # an optional error body only gives a slow provider a new
+                    # opportunity to hold the worker.
+                    hdrs[BILLING_MARKER] = "1"
+                elif resp.status_code == 429:
                     # Bounded 4 KiB peek only to tell billing exhaustion from
-                    # a rate limit; never buffered beyond that.
+                    # a rate limit. It shares the success reader's decoded-byte
+                    # cap and absolute deadline, including slow-drip bodies.
+                    peek_bytes = self._read_bounded(
+                        resp, model, response_deadline,
+                        byte_limit=min(4096, self.max_response_bytes), prefix=True)
                     try:
-                        peek = json.loads(resp.raw.read(4096, decode_content=True) or b"{}")
-                    except Exception:
+                        peek = json.loads(peek_bytes or b"{}")
+                    except (ValueError, RecursionError):
                         peek = {}
                     if self.is_billing_error(resp.status_code, peek):
                         hdrs[BILLING_MARKER] = "1"
@@ -425,72 +463,29 @@ class ModelGateway:
         finally:
             resp.close()
 
-    @staticmethod
-    def _response_socket(resp):
-        """Best-effort handle on the live socket behind a streaming response."""
-        raw = getattr(resp, "raw", None)
-        conn = getattr(raw, "_connection", None)
-        sock = getattr(conn, "sock", None)
-        if sock is None:
-            fp = getattr(getattr(raw, "_fp", None), "fp", None)
-            sock = getattr(getattr(fp, "raw", None), "_sock", None)
-        return sock
+    def _read_bounded(self, resp, model, response_deadline, byte_limit=None,
+                      prefix=False):
+        """Bounded decoded response projection.
 
-    def _read_bounded(self, resp, model, response_deadline):
-        """Strict wall-clock body reader (slow-drip / gzip-bomb safe).
-
-        ``iter_content(chunk_size=N)`` blocks inside http.client until N bytes
-        or EOF, so a provider dripping one byte per interval could hold a
-        worker for N * interval regardless of the admission deadline. Here we
-        (1) re-arm the socket timeout to the *remaining* budget before every
-        read and (2) use ``read1`` so each read returns as soon as any bytes
-        arrive, checking the deadline between reads. Decoded bytes are capped
-        at ``max_response_bytes`` so gzip expansion is bounded too.
+        The native transport already enforces DNS/connect/header/body deadlines
+        and bounded decompression. This projection also validates response
+        adapters without reaching into private urllib3/socket internals.
         """
+        limit = self.max_response_bytes if byte_limit is None else byte_limit
         body = bytearray()
-        raw = getattr(resp, "raw", None)
-        amt = min(16384, self.max_response_bytes + 1)
-        if not isinstance(raw, urllib3.response.HTTPResponse):
-            # Non-urllib3 transports (test doubles, adapters): keep the
-            # chunked contract with the same deadline + decoded-size guards.
-            for chunk in resp.iter_content(chunk_size=amt):
-                if response_deadline is not None and time.monotonic() >= response_deadline:
-                    raise GatewayError("gateway response deadline exceeded", status=504, model=model)
-                if len(body) + len(chunk) > self.max_response_bytes:
+        amt = min(16384, limit if prefix else limit + 1)
+        for chunk in resp.iter_content(chunk_size=amt):
+            if response_deadline is not None and time.monotonic() >= response_deadline:
+                raise GatewayError("gateway response deadline exceeded", status=504, model=model)
+            if prefix:
+                body.extend(chunk[:limit - len(body)])
+                if len(body) >= limit:
+                    return body
+            else:
+                if len(body) + len(chunk) > limit:
                     raise GatewayError("gateway response exceeds decoded byte limit", status=502, model=model)
                 body.extend(chunk)
-            return body
-        read1 = getattr(raw, "read1", None)
-        while True:
-            if response_deadline is not None:
-                remaining = response_deadline - time.monotonic()
-                if remaining <= 0:
-                    raise GatewayError("gateway response deadline exceeded", status=504, model=model)
-                sock = self._response_socket(resp)
-                if sock is not None:
-                    try:
-                        sock.settimeout(max(0.001, min(remaining, self.timeout[1])))
-                    except (OSError, ValueError):
-                        pass
-            try:
-                if read1 is not None:
-                    chunk = read1(amt, decode_content=True)
-                else:
-                    chunk = raw.read(amt, decode_content=True)
-            except (socket.timeout, TimeoutError) as exc:
-                raise requests.Timeout(str(exc) or "gateway read timed out")
-            except requests.RequestException:
-                raise
-            except Exception as exc:  # urllib3 ReadTimeoutError / ProtocolError / DecodeError
-                name = type(exc).__name__
-                if "Timeout" in name or "timed out" in str(exc).lower():
-                    raise requests.Timeout(str(exc))
-                raise requests.ConnectionError(str(exc))
-            if not chunk:
-                return body
-            if len(body) + len(chunk) > self.max_response_bytes:
-                raise GatewayError("gateway response exceeds decoded byte limit", status=502, model=model)
-            body.extend(chunk)
+        return body
 
     @staticmethod
     def _log(**fields):
@@ -562,43 +557,54 @@ class ModelGateway:
             max_inflight = max(1, int(os.getenv("GATEWAY_HEDGE_MAX_INFLIGHT", "2")))
         except ValueError:
             max_inflight = 2
-        per_call = int(os.getenv("GATEWAY_MAX_TOKENS", "1024"))
         results = queue.Queue()
         cancel = threading.Event()
-        state = {"reserved": 0, "inflight": 0, "launched": 0}
+        messages = [{"role": "system", "content": "You are an accessibility remediation engineer."},
+                    {"role": "user", "content": str(prompt)}]
+        ledger = TokenLedger(self.token_budget, messages)
+        state = {"inflight": 0, "launched": 0}
         last_err = None
         token_budget_hit = False
 
+        from . import telemetry
+        parent_trace = telemetry.traceparent_header()
+        threads = []
         def lane(m, tb, remaining, ready):
+            telemetry.start_trace(parent_trace, model=m)
             try:
                 r = self._chat_serial(prompt, m, False, remaining, order=(m,),
-                                      token_budget=tb, cancel=cancel, ready=ready)
+                                      token_budget=tb, cancel=cancel, ready=ready,
+                                      absolute_deadline=deadline, ledger=ledger)
                 results.put((m, r, None))
             except Exception as exc:  # routed to the dispatcher, never lost
                 results.put((m, None, exc))
+            finally:
+                ready.set()  # skipped/failed lane must not consume a hedge timer
+                telemetry.clear()
 
         def launch(reason):
             nonlocal token_budget_hit
             while state["launched"] < len(lanes):
                 remaining = deadline - time.monotonic()
-                if remaining <= 0:
+                if remaining <= 0 or self.billing_exhausted():
                     return False
-                # Bounded spend: every lane reserves its max completion up front,
-                # so concurrent lanes can never exceed the per-chat token ceiling.
-                tb = min(per_call, self.token_budget - state["reserved"])
-                if tb <= 0:
+                # One shared ledger reserves prompt + completion for every
+                # attempt/retry, including losing and cancelled hedge lanes.
+                tb = self.token_budget
+                if not ledger.can_dispatch():
                     token_budget_hit = True
                     return False
                 m = lanes[state["launched"]]
                 state["launched"] += 1
-                state["reserved"] += tb
                 state["inflight"] += 1
                 ready = threading.Event()
-                threading.Thread(target=lane, args=(m, tb, remaining, ready),
-                                 name="gateway-hedge", daemon=True).start()
+                thread = threading.Thread(target=lane, args=(m, tb, remaining, ready),
+                                          name="gateway-hedge", daemon=True)
+                threads.append(thread)
+                thread.start()
                 # Bound the wait: a lane that cannot even open its socket
                 # within the hedge window must not stall the next dispatch.
-                ready.wait(hedge)
+                ready.wait(max(0.0, min(hedge, deadline - time.monotonic())))
                 self._log(event="gateway_dispatch", model=m, reason=reason,
                           lane=state["launched"],
                           since_start_ms=round((time.monotonic() - t_start) * 1000, 3))
@@ -611,16 +617,15 @@ class ModelGateway:
         # dispatcher, and the 150 ms default left only 50 ms of headroom for
         # thread start + connect on loaded macOS runners (213 ms measured in CI).
         next_hedge = time.monotonic() + hedge
-        # Lanes enforce the same strict wall-clock deadline themselves; a short
-        # grace lets them report their terminal status so breaker accounting is
-        # never lost to a dispatcher/lane race at the deadline edge.
-        grace = 0.25
+        # Every lane shares the same absolute deadline; native transport
+        # reserves cancellation drain inside that existing budget.
+        grace = 0.0
         while state["inflight"]:
             remaining = deadline - time.monotonic()
             if remaining + grace <= 0:
                 break
             can_hedge = (remaining > 0 and state["launched"] < len(lanes)
-                         and state["inflight"] < max_inflight)
+                         and state["inflight"] < max_inflight and ledger.can_dispatch())
             try:
                 wait = (max(0.0, min(remaining, next_hedge - time.monotonic()))
                         if can_hedge else remaining + grace)
@@ -633,33 +638,55 @@ class ModelGateway:
             state["inflight"] -= 1
             if r is not None and not r.fallback:
                 cancel.set()
+                self._session.cancel(cancel)
+                for thread in threads:
+                    thread.join(max(0.0, deadline - time.monotonic()))
+                if ledger.contract_violation:
+                    last_err = GatewayError("provider token authorization exceeded")
+                    break
+                r.attempts = ledger.snapshot()["authorized_attempts"]
+                r.tokens = ledger.spent
+                r.token_usage_known = ledger.snapshot()["usage_known"]
+                r.token_budget = ledger.snapshot()
                 self._log(event="gateway_hedge_win", model=m,
                           latency_ms=round((time.monotonic() - t_start) * 1000, 3),
                           lanes_dispatched=state["launched"])
                 return r
             last_err = exc or last_err
+            if self.billing_exhausted():
+                # Account failure is now known: abort speculative siblings,
+                # not just future dispatches, including stalled headers.
+                break
             if state["inflight"] < max_inflight:
                 if launch("failover"):
                     next_hedge = time.monotonic() + hedge
         cancel.set()
+        self._session.cancel(cancel)
+        for thread in threads:
+            thread.join(max(0.0, deadline - time.monotonic()))
         if static_fallback:
             self._log(event="gateway_static_fallback",
                       reason="token_budget_exhausted" if token_budget_hit else
                       ("budget_exhausted" if time.monotonic() >= deadline else "chain_exhausted"))
-            return GatewayResult("static-kb", static_answer(prompt), 0, 0.0,
-                                 0, True, "static-kb")
+            result = GatewayResult("static-kb", static_answer(prompt), ledger.spent, 0.0,
+                                   ledger.snapshot()["authorized_attempts"], True, "static-kb")
+            result.token_usage_known, result.token_budget = ledger.snapshot()["usage_known"], ledger.snapshot()
+            return result
         raise last_err or GatewayError("all models unavailable")
 
     def _chat_serial(self, prompt, model=None, static_fallback=True, budget_seconds=None,
-                     order=None, token_budget=None, cancel=None, ready=None):
+                     order=None, token_budget=None, cancel=None, ready=None,
+                     absolute_deadline=None, ledger=None):
         tb = self.token_budget if token_budget is None else int(token_budget)
-        deadline = time.monotonic() + float(budget_seconds if budget_seconds is not None else self.budget_seconds)
+        deadline = absolute_deadline if absolute_deadline is not None else (
+            time.monotonic() + float(budget_seconds if budget_seconds is not None else self.budget_seconds))
         budget_hit = False
         tokens_spent = 0
         token_budget_hit = False
         messages = [{"role": "system",
                      "content": "You are an accessibility remediation engineer."},
                     {"role": "user", "content": str(prompt)}]
+        ledger = ledger if ledger is not None else TokenLedger(tb, messages)
         wanted = normalize_model(model)
         start = self.chain.index(wanted) if wanted in self.chain else 0
         last_err = None
@@ -669,7 +696,7 @@ class ModelGateway:
                 self._log(event="gateway_budget_exhausted", model=m)
                 last_err = GatewayError("gateway time budget exhausted", status=504, model=m)
                 break
-            if tokens_spent >= tb:
+            if not ledger.can_dispatch():
                 token_budget_hit = True
                 self._log(event="gateway_token_budget_exhausted", model=m,
                           tokens_spent=tokens_spent, token_budget=tb)
@@ -680,11 +707,6 @@ class ModelGateway:
                 last_err = GatewayError("provider credits exhausted", status=402, model=m)
                 break
             breaker = self.breakers[m]
-            if not breaker.allow():
-                self._log(event="gateway_skip", model=m, reason="circuit_open",
-                          state=breaker.state)
-                last_err = GatewayError("circuit open", model=m)
-                continue
             attempt = 0
             while True:
                 # Retries share the same budget as fallback models. Recheck
@@ -693,7 +715,7 @@ class ModelGateway:
                     budget_hit = True
                     last_err = GatewayError("gateway time budget exhausted", status=504, model=m)
                     break
-                if tokens_spent >= tb:
+                if not ledger.can_dispatch():
                     token_budget_hit = True
                     last_err = GatewayError("gateway token budget exhausted", status=429, model=m)
                     break
@@ -701,6 +723,21 @@ class ModelGateway:
                     # A hedged sibling already won: never make another billable call.
                     last_err = GatewayError("hedge cancelled", status=499, model=m)
                     break
+                # Every retry is a new admission too: another request may have
+                # tripped the circuit while this attempt was backing off.
+                ticket = breaker.admit()
+                if ticket is None:
+                    self._log(event="gateway_skip", model=m, reason="circuit_open",
+                              state=breaker.state)
+                    last_err = GatewayError("circuit open", model=m)
+                    break
+                reservation = ledger.reserve(int(os.getenv("GATEWAY_MAX_TOKENS", "1024")))
+                if reservation is None:
+                    breaker.abandon(ticket)
+                    token_budget_hit = True
+                    last_err = GatewayError("gateway token budget exhausted", status=429, model=m)
+                    break
+                reservation_ticket, per_call = reservation
                 if ready is not None:
                     # Hedge clock starts when this lane's request is in flight,
                     # not when its thread was scheduled (see _chat_hedged).
@@ -709,25 +746,42 @@ class ModelGateway:
                 t0 = time.monotonic()
                 status, headers, payload = 0, {}, {}
                 try:
-                    per_call = min(int(os.getenv("GATEWAY_MAX_TOKENS", "1024")),
-                                   tb - tokens_spent)
+                    self._http_context.value = {"deadline": deadline, "cancel": cancel}
                     status, headers, payload = self._post(
                         m, messages, per_call, remaining=deadline - time.monotonic())
+                except CancelledAttempt:
+                    status, payload = 499, {}
                 except requests.Timeout as exc:
                     status, payload = 504, {"error": str(exc)}
                 except requests.RequestException as exc:
                     status, payload = 502, {"error": str(exc)}
                 except GatewayError as exc:
                     if exc.status is None:
+                        breaker.abandon(ticket)
+                        ledger.reconcile(reservation_ticket, {})
                         raise
                     status, payload = exc.status or 502, {'error': str(exc)}
+                except Exception:
+                    breaker.abandon(ticket)
+                    ledger.reconcile(reservation_ticket, {})
+                    raise
+                finally:
+                    self._http_context.value = {}
                 latency = round((time.monotonic() - t0) * 1000, 2)
+                violation = ledger.reconcile(reservation_ticket, payload)
                 # Provider JSON is untrusted, including usage on success.
                 try:
                     tokens = max(0, int(((payload or {}).get("usage") or {}).get("total_tokens") or 0))
                 except (TypeError, ValueError, AttributeError, OverflowError):
                     tokens = 0
-                tokens_spent += tokens
+                tokens_spent = ledger.spent
+                if violation or ledger.contract_violation:
+                    breaker.record_failure(ticket)
+                    self._log(event="gateway_token_contract_violation", model=m,
+                              authorized_ceiling=tb, observed_tokens=ledger.observed_tokens)
+                    last_err = GatewayError("provider exceeded authorized token reservation",
+                                            status=502, model=m)
+                    break
                 text = extract_text(payload) if status == 200 else ""
                 if status == 200 and not text:
                     # Reasoning models can spend the whole completion budget on
@@ -736,14 +790,21 @@ class ModelGateway:
                     status = 502
                     payload = {"error": "empty completion"}
                 if status == 200:
-                    breaker.record_success()
+                    breaker.record_success(ticket)
                     self._log(event="gateway_call", model=m, status=200,
                               latency_ms=latency, tokens=tokens,
                               tokens_spent=tokens_spent,
                               circuit=breaker.state, attempt=attempt + 1)
-                    return GatewayResult(m, text, tokens, latency,
-                                         attempt + 1, False, m)
+                    result = GatewayResult(m, text, ledger.spent, latency,
+                                           ledger.snapshot()["authorized_attempts"], False, m)
+                    result.token_usage_known, result.token_budget = ledger.snapshot()["usage_known"], ledger.snapshot()
+                    return result
+                if status == 499:
+                    breaker.abandon(ticket)
+                    last_err = GatewayError("gateway attempt cancelled", status=499, model=m)
+                    break
                 if status == 402 or (headers or {}).get(BILLING_MARKER) == "1":
+                    breaker.abandon(ticket)
                     self._hold_billing(m)
                     self._log(event="gateway_call", model=m, status=status,
                               latency_ms=latency, reason="billing_exhausted")
@@ -753,19 +814,19 @@ class ModelGateway:
                 if status == 429:
                     # Explicit rate limits atomically stop new admissions without
                     # fabricating failures or racing an unbounded retry loop.
-                    breaker.trip()
+                    breaker.trip(ticket)
                 elif status == 404:
                     # The provider does not serve this model id at all (catalog
                     # rotation / typo). Re-trying it on the next two requests
                     # only buys ~0.3 s of dead latency each; eject at once and
                     # let the exponential half-open probe re-admit it if the
                     # catalog lists it again.
-                    breaker.trip()
+                    breaker.trip(ticket)
                 elif status == 504:
                     # Read timeouts are weighted: they cost a full window each.
-                    breaker.record_timeout()
+                    breaker.record_timeout(ticket)
                 else:
-                    breaker.record_failure()
+                    breaker.record_failure(ticket)
                 self._log(event="gateway_call", model=m, status=status,
                           latency_ms=latency, circuit=breaker.state,
                           attempt=attempt + 1)
@@ -797,20 +858,31 @@ class ModelGateway:
                                 self.base_backoff * (2 ** (attempt - 1)))
                             + random.uniform(0, self.base_backoff),
                             self.max_sleep)
-                time.sleep(max(0.0, delay))
+                if cancel is not None:
+                    cancel.wait(max(0.0, delay))
+                else:
+                    time.sleep(max(0.0, delay))
         if static_fallback:
             self._log(event="gateway_static_fallback",
                       reason="budget_exhausted" if budget_hit else
                       ("token_budget_exhausted" if token_budget_hit else "chain_exhausted"),
                       tokens_spent=tokens_spent)
-            return GatewayResult("static-kb", static_answer(prompt), 0, 0.0,
-                                 0, True, "static-kb")
+            result = GatewayResult("static-kb", static_answer(prompt), ledger.spent, 0.0,
+                                   ledger.snapshot()["authorized_attempts"], True, "static-kb")
+            result.token_usage_known, result.token_budget = ledger.snapshot()["usage_known"], ledger.snapshot()
+            return result
         raise last_err or GatewayError("all models unavailable")
 
     def health(self):
+        # One lock/clock sample keeps the hold flag and retry hint consistent.
+        # This is passive telemetry: never probe a paid provider from readiness.
+        with self._billing_lock:
+            remaining = max(0.0, self._billing_until - time.monotonic())
         return {"chain": list(self.chain),
+                "transport": self._session.snapshot(),
                 "token_budget": self.token_budget,
                 "budget_seconds": self.budget_seconds,
                 "tracing": "opentelemetry" if telemetry.otel_enabled() else "w3c-traceparent",
-                "billing_exhausted": self.billing_exhausted(),
+                "billing_exhausted": remaining > 0,
+                "billing_retry_after_seconds": math.ceil(remaining),
                 "models": {m: b.snapshot() for m, b in self.breakers.items()}}

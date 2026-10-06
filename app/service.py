@@ -115,6 +115,23 @@ def _build_html(summary, violations, client_name, audit_date):
            f'{summary.critical}, serious {summary.serious}, moderate '
            f'{summary.moderate}, minor {summary.minor}, unknown '
            f'{summary.unknown}; total findings {summary.total_violations}.</p>')
+    pending_items = []
+    for index, check in enumerate(summary.pending_checks):
+        pending_items.append(
+            f'<article id="pending-{index}"><h3>{e(check["id"])}</h3><dl>'
+            f'<dt>Affected target</dt><dd><code>{e(check["target"] or "unknown")}</code></dd>'
+            f'<dt>Description</dt><dd>{e(check["description"])}</dd>'
+            f'<dt>Source</dt><dd>{e(check["source"])} (supplied, unverified)</dd>'
+            '<dt>Status</dt><dd>Needs qualified review</dd></dl></article>'
+        )
+    pending = (
+        '<section><h2>Pending checks</h2>'
+        '<p>Supplied unresolved checks are neither violations nor passes. '
+        'Absence of pending checks is not evidence of complete coverage.</p>'
+        f'<p>Supplied incomplete rules: {summary.total_incomplete}; '
+        f'pending target instances: {len(summary.pending_checks)}.</p>'
+        + "".join(pending_items) + '</section>'
+    )
     return (
         f"<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'>"
         f"<meta name='viewport' content='width=device-width, initial-scale=1'>"
@@ -127,11 +144,14 @@ def _build_html(summary, violations, client_name, audit_date):
         "a{color:#0055aa}a:focus-visible{outline:3px solid #172b4d}"
         "h1,h2,h3{line-height:1.3}</style></head><body>"
         f"<main>"
-        f"<h1>WCAG 2.2 Audit: {e(client_name)}</h1>"
+        f"<h1>WCAG 2.2 supplied-evidence handoff: {e(client_name)}</h1>"
+        "<p><strong>DRAFT - unreviewed supplied evidence. "
+        "No reviewer approval is recorded.</strong></p>"
         f"<p>Date: {e(audit_date)} | URL: {e(summary.url)}</p>"
         f"<p>axe-core: {e(summary.engine_version)} | catalog: {e(CATALOG_VERSION)} | AccessDoc: {e(VERSION)}</p>"
         + prov + sev +
         f"<section><h2>Finding instances</h2>" + "".join(items) + f"</section>"
+        + pending +
         f"<p><small>Automated scan detects ~30-57% of WCAG issues (Deque 2022). "
         f"Automated results are insufficient for any conformance or legal "
         f"conclusion; qualified human evaluation and context-specific legal "
@@ -230,7 +250,7 @@ def build_artifacts(body):
         from .timeseries import build_trend
         trend_json = build_trend(prior, receipt, violations)
 
-    # ---- optional: due-diligence record (proof of reasonable steps over time) ----
+    # ---- optional: draft supplied-receipt differences, not verified actions ----
     history = body.get("receipt_history")
     if history:
         if not isinstance(history, list):

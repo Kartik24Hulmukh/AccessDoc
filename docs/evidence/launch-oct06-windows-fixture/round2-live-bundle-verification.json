@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "exit": 0,
+  "checks": {
+    "size": "PASS",
+    "schema_version": "1.1",
+    "structure": "PASS (9 members)",
+    "integrity": "PASS",
+    "content": "PASS",
+    "signature": "DEFERRED",
+    "signature_command": "cosign verify-blob --bundle <bundle.sigstore.json> /data/accessdoc-evidence/round2-live-bundle.zip"
+  }
+}

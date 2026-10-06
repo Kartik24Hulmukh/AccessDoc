@@ -1,0 +1,139 @@
+.F                                                                     [100%]
+=================================== FAILURES ===================================
+_ HTTPBodyDeadlineTests.test_both_adapters_bound_slow_uploads_and_release_capacity (adapter='api.handler') _
+
+self = <tests.test_http_body_deadlines.HTTPBodyDeadlineTests testMethod=test_both_adapters_bound_slow_uploads_and_release_capacity>
+
+    def test_both_adapters_bound_slow_uploads_and_release_capacity(self):
+        import api.handler as hosted
+        import app.main as local
+        for module, handler in ((hosted, hosted.handler), (local, local.Handler)):
+            with self.subTest(adapter=module.__name__):
+>               self._exercise(module, handler)
+
+tests/test_http_body_deadlines.py:96:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/test_http_body_deadlines.py:60: in _exercise
+    response.begin()
+/usr/lib64/python3.13/http/client.py:336: in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+/usr/lib64/python3.13/http/client.py:297: in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <socket.SocketIO object at 0x7fed4b14ac80>
+b = <memory at 0x7fed4b8c74c0>
+
+    def readinto(self, b):
+        """Read up to len(b) bytes into the writable buffer *b* and return
+        the number of bytes read.  If the socket is non-blocking and no bytes
+        are available, None is returned.
+
+        If *b* is non-empty, a 0 return value indicates that the connection
+        was shutdown at the other end.
+        """
+        self._checkClosed()
+        self._checkReadable()
+        if self._timeout_occurred:
+            raise OSError("cannot read from timed out object")
+        try:
+>           return self._sock.recv_into(b)
+                   ^^^^^^^^^^^^^^^^^^^^^^^
+E           TimeoutError: timed out
+
+/usr/lib64/python3.13/socket.py:723: TimeoutError
+_ HTTPBodyDeadlineTests.test_both_adapters_bound_slow_uploads_and_release_capacity (adapter='app.main') _
+
+self = <tests.test_http_body_deadlines.HTTPBodyDeadlineTests testMethod=test_both_adapters_bound_slow_uploads_and_release_capacity>
+
+    def test_both_adapters_bound_slow_uploads_and_release_capacity(self):
+        import api.handler as hosted
+        import app.main as local
+        for module, handler in ((hosted, hosted.handler), (local, local.Handler)):
+            with self.subTest(adapter=module.__name__):
+>               self._exercise(module, handler)
+
+tests/test_http_body_deadlines.py:96:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/test_http_body_deadlines.py:60: in _exercise
+    response.begin()
+/usr/lib64/python3.13/http/client.py:336: in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+/usr/lib64/python3.13/http/client.py:297: in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <socket.SocketIO object at 0x7fed4b14bbb0>
+b = <memory at 0x7fed49fb01c0>
+
+    def readinto(self, b):
+        """Read up to len(b) bytes into the writable buffer *b* and return
+        the number of bytes read.  If the socket is non-blocking and no bytes
+        are available, None is returned.
+
+        If *b* is non-empty, a 0 return value indicates that the connection
+        was shutdown at the other end.
+        """
+        self._checkClosed()
+        self._checkReadable()
+        if self._timeout_occurred:
+            raise OSError("cannot read from timed out object")
+        try:
+>           return self._sock.recv_into(b)
+                   ^^^^^^^^^^^^^^^^^^^^^^^
+E           TimeoutError: timed out
+
+/usr/lib64/python3.13/socket.py:723: TimeoutError
+_______ HTTPBodyDeadlineTests.test_oversized_body_drain_shares_deadline ________
+
+self = <tests.test_http_body_deadlines.HTTPBodyDeadlineTests testMethod=test_oversized_body_drain_shares_deadline>
+
+    def test_oversized_body_drain_shares_deadline(self):
+        import app.main as local
+>       self._exercise(local, local.Handler, MAX_HTTP_BODY_BYTES + 1)
+
+tests/test_http_body_deadlines.py:100:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/test_http_body_deadlines.py:60: in _exercise
+    response.begin()
+/usr/lib64/python3.13/http/client.py:336: in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+/usr/lib64/python3.13/http/client.py:297: in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <socket.SocketIO object at 0x7fed4b14a8f0>
+b = <memory at 0x7fed4b8c7f40>
+
+    def readinto(self, b):
+        """Read up to len(b) bytes into the writable buffer *b* and return
+        the number of bytes read.  If the socket is non-blocking and no bytes
+        are available, None is returned.
+
+        If *b* is non-empty, a 0 return value indicates that the connection
+        was shutdown at the other end.
+        """
+        self._checkClosed()
+        self._checkReadable()
+        if self._timeout_occurred:
+            raise OSError("cannot read from timed out object")
+        try:
+>           return self._sock.recv_into(b)
+                   ^^^^^^^^^^^^^^^^^^^^^^^
+E           TimeoutError: timed out
+
+/usr/lib64/python3.13/socket.py:723: TimeoutError
+----------------------------- Captured stdout call -----------------------------
+{"ts":1790720655.2203407,"level":"info","event":"http_request","trace_id":"1caa159d4087de392f6f1b814f234523","span_id":"be9374268cf92afc","request_id":"16d6056ff07066581a09a86492308442","ip":"127.0.0.1","method":"POST","route":"/api/bundle","status":413,"duration_ms":702.03}
+{"ts":1790720655.2208147,"level":"info","event":"http_request","trace_id":"5bee81761d43d27df207d9caf12c7914","span_id":"1019595ea2e428d5","request_id":"3ae6a87a20ce2849bcda81b8ce4d8574","ip":"127.0.0.1","method":"POST","route":"/api/bundle","status":413,"duration_ms":701.84}
+=========================== short test summary info ============================
+SUBFAILED(adapter='api.handler') tests/test_http_body_deadlines.py::HTTPBodyDeadlineTests::test_both_adapters_bound_slow_uploads_and_release_capacity
+SUBFAILED(adapter='app.main') tests/test_http_body_deadlines.py::HTTPBodyDeadlineTests::test_both_adapters_bound_slow_uploads_and_release_capacity
+FAILED tests/test_http_body_deadlines.py::HTTPBodyDeadlineTests::test_oversized_body_drain_shares_deadline
+3 failed, 1 passed in 2.61s

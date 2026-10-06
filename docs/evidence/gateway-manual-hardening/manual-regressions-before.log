@@ -1,0 +1,42 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_____ ManualStreamingTests.test_wide_csv_rejects_without_large_allocation ______
+
+self = <tests.test_manual_streaming_bounds.ManualStreamingTests testMethod=test_wide_csv_rejects_without_large_allocation>
+
+    def test_wide_csv_rejects_without_large_allocation(self):
+        text = wide_table()
+        tracemalloc.start()
+        try:
+            with self.assertRaises(LimitExceeded):
+                parse_manual_findings(text)
+            _, peak = tracemalloc.get_traced_memory()
+        finally:
+            tracemalloc.stop()
+>       self.assertLess(peak, 20 * 1024 * 1024,
+                        "small CSV expanded before rejection: %d bytes" % peak)
+E       AssertionError: 130394726 not less than 20971520 : small CSV expanded before rejection: 130394726 bytes
+
+tests/test_manual_streaming_bounds.py:29: AssertionError
+___ ManualStreamingTests.test_wide_markdown_rejects_without_large_allocation ___
+
+self = <tests.test_manual_streaming_bounds.ManualStreamingTests testMethod=test_wide_markdown_rejects_without_large_allocation>
+
+    def test_wide_markdown_rejects_without_large_allocation(self):
+        text = wide_table(markdown=True)
+        tracemalloc.start()
+        try:
+            with self.assertRaises(LimitExceeded):
+                parse_manual_findings(text)
+            _, peak = tracemalloc.get_traced_memory()
+        finally:
+            tracemalloc.stop()
+>       self.assertLess(peak, 20 * 1024 * 1024,
+                        "small Markdown expanded before rejection: %d bytes" % peak)
+E       AssertionError: 130638928 not less than 20971520 : small Markdown expanded before rejection: 130638928 bytes
+
+tests/test_manual_streaming_bounds.py:41: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_manual_streaming_bounds.py::ManualStreamingTests::test_wide_csv_rejects_without_large_allocation
+FAILED tests/test_manual_streaming_bounds.py::ManualStreamingTests::test_wide_markdown_rejects_without_large_allocation
+2 failed, 5 deselected in 0.72s

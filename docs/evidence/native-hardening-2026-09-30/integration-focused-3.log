@@ -1,0 +1,57 @@
+........................F.................................................................................................... [ 96%]
+....                                                                   [100%]
+=================================== FAILURES ===================================
+____ LiveHttpBillingTests.test_billing_429_holds_whole_chain_after_one_call ____
+
+self = <tests.test_gateway_billing_exhaustion.LiveHttpBillingTests testMethod=test_billing_429_holds_whole_chain_after_one_call>
+
+    def test_billing_429_holds_whole_chain_after_one_call(self):
+        g = self._gw()
+        r = g.chat("fix alt text")
+        self.assertTrue(r.fallback)
+        self.assertEqual(r.model, "static-kb")
+        self.assertEqual(len(_H.hits), 1, "only one probe may hit a credit-exhausted account: %r" % _H.hits)
+        self.assertTrue(g.health()["billing_exhausted"])
+        t0 = time.monotonic()
+        for _ in range(50):
+>           self.assertEqual(g.chat("again").model, "static-kb")
+                             ^^^^^^^^^^^^^^^
+
+tests/test_gateway_billing_exhaustion.py:78: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+app/gateway.py:539: in chat
+    return self._chat_hedged(prompt, model, static_fallback, budget_seconds, hedge)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <app.gateway.ModelGateway object at 0x7f7d944de690>, prompt = 'again'
+model = None, static_fallback = True, budget_seconds = None, hedge = 0.1
+
+    def _chat_hedged(self, prompt, model, static_fallback, budget_seconds, hedge):
+        if self.billing_exhausted():
+            # Credits are account-wide: no lane can succeed, dispatch nothing.
+            self._log(event="gateway_skip", model=None, reason="billing_exhausted")
+            if static_fallback:
+                self._log(event="gateway_static_fallback", reason="billing_exhausted")
+                return GatewayResult("static-kb", static_answer(prompt), 0, 0.0,
+>                                    ledger.snapshot()["authorized_attempts"], True, "static-kb")
+                                     ^^^^^^
+E               UnboundLocalError: cannot access local variable 'ledger' where it is not associated with a value
+
+app/gateway.py:548: UnboundLocalError
+----------------------------- Captured stdout call -----------------------------
+{"ts":1790795973.540636,"level":"info","event":"gateway_dispatch","trace_id":"5d7726b9879e5c6e2dae2b561c69d561","span_id":"91a647918250d8ce","model":"glm-5.3","reason":"primary","lane":1,"since_start_ms":0.539}
+{"ts":1790795973.544227,"level":"info","event":"gateway_billing_exhausted","trace_id":"5d7726b9879e5c6e2dae2b561c69d561","span_id":"7df910219015f550","model":"glm-5.3","cooldown_s":300.0}
+{"ts":1790795973.5442688,"level":"info","event":"gateway_call","trace_id":"5d7726b9879e5c6e2dae2b561c69d561","span_id":"7df910219015f550","model":"glm-5.3","status":429,"latency_ms":3.94,"reason":"billing_exhausted"}
+{"ts":1790795973.5444357,"level":"info","event":"gateway_skip","trace_id":"5d7726b9879e5c6e2dae2b561c69d561","span_id":"df2fae9d9d43efee","model":"glm-5.3-flash","reason":"billing_exhausted"}
+{"ts":1790795973.6446385,"level":"info","event":"gateway_dispatch","trace_id":"5d7726b9879e5c6e2dae2b561c69d561","span_id":"91a647918250d8ce","model":"glm-5.3-flash","reason":"failover","lane":2,"since_start_ms":104.522}
+{"ts":1790795973.6450536,"level":"info","event":"gateway_skip","trace_id":"5d7726b9879e5c6e2dae2b561c69d561","span_id":"a5911c61f44661ed","model":"qwen3.8-27b","reason":"billing_exhausted"}
+{"ts":1790795973.7452638,"level":"info","event":"gateway_dispatch","trace_id":"5d7726b9879e5c6e2dae2b561c69d561","span_id":"91a647918250d8ce","model":"qwen3.8-27b","reason":"failover","lane":3,"since_start_ms":205.148}
+{"ts":1790795973.7456853,"level":"info","event":"gateway_skip","trace_id":"5d7726b9879e5c6e2dae2b561c69d561","span_id":"f39767396df9498f","model":"kimi-k3","reason":"billing_exhausted"}
+{"ts":1790795973.8459342,"level":"info","event":"gateway_dispatch","trace_id":"5d7726b9879e5c6e2dae2b561c69d561","span_id":"91a647918250d8ce","model":"kimi-k3","reason":"failover","lane":4,"since_start_ms":305.812}
+{"ts":1790795973.8461297,"level":"info","event":"gateway_static_fallback","trace_id":"5d7726b9879e5c6e2dae2b561c69d561","span_id":"91a647918250d8ce","reason":"chain_exhausted"}
+{"ts":1790795973.8463006,"level":"info","event":"gateway_skip","trace_id":"5d7726b9879e5c6e2dae2b561c69d561","span_id":"91a647918250d8ce","model":null,"reason":"billing_exhausted"}
+{"ts":1790795973.8463264,"level":"info","event":"gateway_static_fallback","trace_id":"5d7726b9879e5c6e2dae2b561c69d561","span_id":"91a647918250d8ce","reason":"billing_exhausted"}
+=========================== short test summary info ============================
+FAILED tests/test_gateway_billing_exhaustion.py::LiveHttpBillingTests::test_billing_429_holds_whole_chain_after_one_call
+1 failed, 128 passed, 21 subtests passed in 11.08s

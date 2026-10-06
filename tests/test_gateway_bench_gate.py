@@ -17,7 +17,8 @@ SCRIPT = os.path.join(ROOT, "scripts", "gateway_bench.py")
 
 
 def _load(*names):
-    tree = ast.parse(open(SCRIPT, encoding="utf-8").read())
+    with open(SCRIPT, encoding="utf-8") as source:
+        tree = ast.parse(source.read())
     nodes = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name in names]
     ns = {"os": os, "argparse": __import__("argparse"), "__doc__": "gateway bench", "CANONICAL_CHAIN": CANONICAL_CHAIN}
     exec(compile(ast.Module(body=nodes, type_ignores=[]), SCRIPT, "exec"), ns)

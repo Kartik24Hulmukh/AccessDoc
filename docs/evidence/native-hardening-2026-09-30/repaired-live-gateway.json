@@ -1,0 +1,163 @@
+{
+  "models": {
+    "glm-5.3": {
+      "ok": 3,
+      "n": 3,
+      "p50_ms": 5295.28,
+      "p95_ms": 5715.92,
+      "p99_ms": 5715.92,
+      "latency_scope": "all attempts including failures",
+      "avg_tokens": 1073,
+      "samples": [
+        {
+          "ok": true,
+          "tokens": 1073,
+          "ms": 5715.92
+        },
+        {
+          "ok": true,
+          "tokens": 1073,
+          "ms": 4783.8
+        },
+        {
+          "ok": true,
+          "tokens": 1073,
+          "ms": 5295.28
+        }
+      ],
+      "breaker": {
+        "state": "closed",
+        "consecutive_failures": 0,
+        "successes": 3,
+        "failures": 0,
+        "timeouts": 0,
+        "open_cycles": 0,
+        "recovery_delay": 30.0
+      }
+    },
+    "glm-5.3-flash": {
+      "ok": 3,
+      "n": 3,
+      "p50_ms": 7287.23,
+      "p95_ms": 10920.64,
+      "p99_ms": 10920.64,
+      "latency_scope": "all attempts including failures",
+      "avg_tokens": 1073,
+      "samples": [
+        {
+          "ok": true,
+          "tokens": 1073,
+          "ms": 10920.64
+        },
+        {
+          "ok": true,
+          "tokens": 1073,
+          "ms": 5364.29
+        },
+        {
+          "ok": true,
+          "tokens": 1073,
+          "ms": 7287.23
+        }
+      ],
+      "breaker": {
+        "state": "closed",
+        "consecutive_failures": 0,
+        "successes": 3,
+        "failures": 0,
+        "timeouts": 0,
+        "open_cycles": 0,
+        "recovery_delay": 30.0
+      }
+    },
+    "qwen3.8-27b": {
+      "ok": 3,
+      "n": 3,
+      "p50_ms": 10865.54,
+      "p95_ms": 10983.28,
+      "p99_ms": 10983.28,
+      "latency_scope": "all attempts including failures",
+      "avg_tokens": 1075,
+      "samples": [
+        {
+          "ok": true,
+          "tokens": 1075,
+          "ms": 10983.28
+        },
+        {
+          "ok": true,
+          "tokens": 1075,
+          "ms": 10865.54
+        },
+        {
+          "ok": true,
+          "tokens": 1075,
+          "ms": 10824.92
+        }
+      ],
+      "breaker": {
+        "state": "closed",
+        "consecutive_failures": 0,
+        "successes": 3,
+        "failures": 0,
+        "timeouts": 0,
+        "open_cycles": 0,
+        "recovery_delay": 30.0
+      }
+    },
+    "kimi-k3": {
+      "ok": 3,
+      "n": 3,
+      "p50_ms": 17832.02,
+      "p95_ms": 18483.31,
+      "p99_ms": 18483.31,
+      "latency_scope": "all attempts including failures",
+      "avg_tokens": 1193,
+      "samples": [
+        {
+          "ok": true,
+          "tokens": 1193,
+          "ms": 17690.36
+        },
+        {
+          "ok": true,
+          "tokens": 1193,
+          "ms": 18483.31
+        },
+        {
+          "ok": true,
+          "tokens": 1193,
+          "ms": 17832.02
+        }
+      ],
+      "breaker": {
+        "state": "closed",
+        "consecutive_failures": 0,
+        "successes": 3,
+        "failures": 0,
+        "timeouts": 0,
+        "open_cycles": 0,
+        "recovery_delay": 30.0
+      }
+    }
+  },
+  "resilience": {
+    "429_storm_fallback": {
+      "served_by": "glm-5.3-flash",
+      "attempts": 2,
+      "pass": true
+    },
+    "outage_fail_fast": {
+      "pass": true,
+      "ms": 0.2
+    },
+    "static_kb_last_resort": {
+      "pass": true,
+      "model": "static-kb"
+    }
+  },
+  "verdict": {
+    "exit_code": 0,
+    "probes_only": false
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "sha": "7ab1817c9ef74bcb05abb885308f7ab5e62f32e6",
+  "baseline": "842 passed, 14 skipped, 0 failed, 151 subtests, 55.55s",
+  "log_sha256": "501d9191b7f20db6c70a3a89c9d6db61df9a2f0da07ab3408edaa163bf7f3e94",
+  "scope": "Python 3.14; before source changes; optional browser deps not installed"
+}

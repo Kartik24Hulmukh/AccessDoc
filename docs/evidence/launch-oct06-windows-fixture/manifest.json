@@ -1,0 +1,15 @@
+{
+  "base_published_commit": "5290e553976cdb26dc9540656a4ae6ce8826ca3e",
+  "code_candidate": "2b79b32",
+  "local_tests": 1281,
+  "subtests": 567,
+  "seconds": 109.35,
+  "deployment_skip": 1,
+  "production_source_unchanged": true,
+  "source_sha256": {
+    "tests/test_otlp_cleanup_ownership.py": "b7718d15626b275c449de2fe4c0bbde34d731809a1b689147e44271d8f42cc78",
+    "scripts/run_one_native_diagnostic.py": "4e3a31f2ca25f76d79f75809122a82e191728cbbd24e60fcd3518bcdf0f772c8",
+    "app/otlp_export.py": "f5020886ba637616d9ed5c8f17b9247e70878314ab51c40488eb4d286af9877d"
+  },
+  "private_values_included": false
+}

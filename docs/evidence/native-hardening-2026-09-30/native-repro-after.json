@@ -1,0 +1,65 @@
+[
+  {
+    "case": "open_circuit_hedge_wait",
+    "budget_seconds": 0.03,
+    "elapsed_seconds": 0.0007,
+    "fallback": true,
+    "transport": {
+      "capacity": 8,
+      "inflight": 0,
+      "peak_inflight": 0,
+      "active_calls": 0,
+      "loop_alive": false
+    }
+  },
+  {
+    "case": "408_backoff_winner_cancellation",
+    "budget_seconds": 3.0,
+    "elapsed_seconds": 0.0381,
+    "returned_model": "glm-5.3-flash",
+    "arrivals": [
+      [
+        "glm-5.3",
+        0.0049
+      ],
+      [
+        "glm-5.3-flash",
+        0.0363
+      ]
+    ],
+    "hedge_threads_at_return": 0,
+    "transport": {
+      "capacity": 8,
+      "inflight": 0,
+      "peak_inflight": 1,
+      "active_calls": 0,
+      "loop_alive": true
+    },
+    "hedge_threads_80ms_later": 0
+  },
+  {
+    "case": "408_backoff_winner_cancellation",
+    "budget_seconds": 0.2,
+    "elapsed_seconds": 0.0509,
+    "returned_model": "glm-5.3-flash",
+    "arrivals": [
+      [
+        "glm-5.3",
+        0.0069
+      ],
+      [
+        "glm-5.3-flash",
+        0.0474
+      ]
+    ],
+    "hedge_threads_at_return": 0,
+    "transport": {
+      "capacity": 8,
+      "inflight": 0,
+      "peak_inflight": 1,
+      "active_calls": 0,
+      "loop_alive": true
+    },
+    "hedge_threads_80ms_later": 0
+  }
+]

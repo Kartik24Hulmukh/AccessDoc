@@ -1,0 +1,14 @@
+{
+  "pass": false,
+  "phase": "authorization",
+  "expected_commit": "caed24c37b04bf738dae6594aa316850fd615158",
+  "observed_commit": null,
+  "target_origin": "https://access-4hilaq97t-atlas16.vercel.app",
+  "elapsed_seconds": 0.067,
+  "authenticated_pilot": false,
+  "checks": [],
+  "check_results": [],
+  "failures": [
+    "Deployment authorization required"
+  ]
+}

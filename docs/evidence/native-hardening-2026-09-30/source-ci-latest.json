@@ -1,0 +1,82 @@
+{
+  "head": "5c43b01b0c1ff27d06ff3d5b5664b4e0d437ee42",
+  "draft": true,
+  "auto_merge": false,
+  "checks": [
+    [
+      "Vercel Preview Comments",
+      "success"
+    ],
+    [
+      "GitGuardian Security Checks",
+      "success"
+    ],
+    [
+      "lint",
+      "success"
+    ],
+    [
+      "portability (windows-latest)",
+      "failure"
+    ],
+    [
+      "test",
+      null
+    ],
+    [
+      "accessdoc-evidence",
+      "failure"
+    ],
+    [
+      "dependency-security",
+      "success"
+    ],
+    [
+      "portability (macos-latest)",
+      null
+    ],
+    [
+      "portability (windows-latest)",
+      "success"
+    ],
+    [
+      "test",
+      null
+    ],
+    [
+      "portability (macos-latest)",
+      null
+    ],
+    [
+      "dependency-security",
+      "success"
+    ],
+    [
+      "lint",
+      "success"
+    ]
+  ],
+  "statuses": [
+    [
+      "Vercel",
+      "success"
+    ],
+    [
+      "accessdoc/local-release-verifier",
+      "pending"
+    ],
+    [
+      "accessdoc/live-gateway",
+      "pending"
+    ],
+    [
+      "accessdoc/exact-target-smoke",
+      "pending"
+    ],
+    [
+      "accessdoc/human-release-approvals",
+      "pending"
+    ]
+  ],
+  "action_secrets_count": 0
+}

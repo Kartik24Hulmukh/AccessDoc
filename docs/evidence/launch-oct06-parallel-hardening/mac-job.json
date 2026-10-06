@@ -1,0 +1,140 @@
+{
+  "id": 112319982525,
+  "run_id": 37478447257,
+  "workflow_name": "accessdoc-ci",
+  "head_branch": "harden/accessdoc-v1-launch",
+  "run_url": "https://api.github.com/repos/Kartik24Hulmukh/AccessDoc/actions/runs/37478447257",
+  "run_attempt": 1,
+  "node_id": "CR_kwDOTfcIos8AAAAaJsrrvQ",
+  "head_sha": "0cce6ae572d1ac4bdb7d39b2530f9f3d7b037a87",
+  "url": "https://api.github.com/repos/Kartik24Hulmukh/AccessDoc/actions/jobs/112319982525",
+  "html_url": "https://github.com/Kartik24Hulmukh/AccessDoc/actions/runs/37478447257/job/112319982525",
+  "status": "completed",
+  "conclusion": "failure",
+  "created_at": "2026-10-06T14:22:45Z",
+  "started_at": "2026-10-06T14:22:56Z",
+  "completed_at": "2026-10-06T14:26:32Z",
+  "name": "portability (macos-latest)",
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 1,
+      "started_at": "2026-10-06T14:22:57Z",
+      "completed_at": "2026-10-06T14:22:59Z"
+    },
+    {
+      "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 2,
+      "started_at": "2026-10-06T14:22:59Z",
+      "completed_at": "2026-10-06T14:23:02Z"
+    },
+    {
+      "name": "Run actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 3,
+      "started_at": "2026-10-06T14:23:02Z",
+      "completed_at": "2026-10-06T14:23:06Z"
+    },
+    {
+      "name": "Run pip install --requirement requirements-dev.txt",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 4,
+      "started_at": "2026-10-06T14:23:06Z",
+      "completed_at": "2026-10-06T14:23:13Z"
+    },
+    {
+      "name": "Run python -m compileall -q app api tests",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 5,
+      "started_at": "2026-10-06T14:23:13Z",
+      "completed_at": "2026-10-06T14:23:13Z"
+    },
+    {
+      "name": "Application imports cleanly on this platform",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 6,
+      "started_at": "2026-10-06T14:23:13Z",
+      "completed_at": "2026-10-06T14:23:14Z"
+    },
+    {
+      "name": "Full test suite",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 7,
+      "started_at": "2026-10-06T14:23:14Z",
+      "completed_at": "2026-10-06T14:25:49Z"
+    },
+    {
+      "name": "Publish bounded failed-test diagnostics",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 8,
+      "started_at": "2026-10-06T14:25:49Z",
+      "completed_at": "2026-10-06T14:25:49Z"
+    },
+    {
+      "name": "One bounded first-export phase observation",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 9,
+      "started_at": "2026-10-06T14:25:49Z",
+      "completed_at": "2026-10-06T14:25:49Z"
+    },
+    {
+      "name": "Bounded local concurrency and malformed-input contract gate",
+      "status": "completed",
+      "conclusion": "failure",
+      "number": 10,
+      "started_at": "2026-10-06T14:25:49Z",
+      "completed_at": "2026-10-06T14:26:25Z"
+    },
+    {
+      "name": "Archive portability load metrics",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 11,
+      "started_at": "2026-10-06T14:26:25Z",
+      "completed_at": "2026-10-06T14:26:27Z"
+    },
+    {
+      "name": "Post Run actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97",
+      "status": "completed",
+      "conclusion": "skipped",
+      "number": 21,
+      "started_at": "2026-10-06T14:26:27Z",
+      "completed_at": "2026-10-06T14:26:27Z"
+    },
+    {
+      "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 22,
+      "started_at": "2026-10-06T14:26:27Z",
+      "completed_at": "2026-10-06T14:26:27Z"
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 23,
+      "started_at": "2026-10-06T14:26:27Z",
+      "completed_at": "2026-10-06T14:26:29Z"
+    }
+  ],
+  "check_run_url": "https://api.github.com/repos/Kartik24Hulmukh/AccessDoc/check-runs/112319982525",
+  "labels": [
+    "macos-latest"
+  ],
+  "runner_id": 1000027628,
+  "runner_name": "GitHub Actions 1000027628",
+  "runner_group_id": 0,
+  "runner_group_name": "GitHub Actions"
+}

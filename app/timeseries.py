@@ -1,14 +1,8 @@
-"""Time-series / regression tracking for accessibility posture.
+"""Limited observation differences between supplied receipts.
 
-Given a prior receipt and the current receipt, compute the delta (new, fixed,
-persisting rules) and produce a trend object that chains to the prior receipt
-by its sha256. This is what buyers show lawyers and regulators: "posture over
-time", with a tamper-evident chain.
-
-Schema 1.2: supports backward-compatible comparison precision levels.
-- 'aggregate-only': only counts exist, cannot classify individual findings
-- 'rule-level': rule_ids exist but target fingerprints do not
-- 'target-level': compatible fingerprint version and finding fingerprints exist
+Matching metadata does not authenticate origin, browser state, completeness,
+knowledge, remediation, review or legal conformance. Digests identify supplied
+bytes; this module does not verify an attestation or a receipt chain.
 """
 import hashlib
 import json
@@ -16,7 +10,7 @@ from .models import VERSION
 
 
 def _sha256_of_receipt(receipt):
-    """Stable digest of a receipt dict/str (sorted keys, compact)."""
+    """Stable digest of supplied receipt data, not verification of its truth."""
     if isinstance(receipt, (bytes, bytearray)):
         return hashlib.sha256(bytes(receipt)).hexdigest()
     if isinstance(receipt, str):
@@ -28,203 +22,177 @@ def _sha256_of_receipt(receipt):
     return hashlib.sha256(payload).hexdigest()
 
 
-def _rule_set(violations):
-    return {v.id for v in violations}
+def _as_receipt(receipt):
+    if isinstance(receipt, str):
+        try:
+            receipt = json.loads(receipt)
+        except ValueError:
+            return {}
+    return receipt if isinstance(receipt, dict) else {}
+
+
+def _summary(receipt):
+    summary = _as_receipt(receipt).get('summary')
+    return summary if isinstance(summary, dict) else {}
+
+
+def _count(value):
+    # bool is an int in Python, but is not a supplied count.
+    return value if type(value) is int and value >= 0 else None
+
+
+def _valid_rules(receipt):
+    rules = receipt.get('rule_ids')
+    return isinstance(rules, list) and all(isinstance(r, str) and r.strip() for r in rules)
 
 
 def _detect_precision(receipt):
-    """Detect the comparison precision level of a receipt.
-
-    Returns one of: 'target-level', 'rule-level', 'aggregate-only'
-    """
-    if isinstance(receipt, str):
-        try:
-            receipt = json.loads(receipt)
-        except ValueError:
-            return "aggregate-only"
-    if not isinstance(receipt, dict):
-        return "aggregate-only"
-
-    violations = receipt.get("violations")
-    if isinstance(violations, list) and violations:
-        # Check if violations have finding_fingerprint and target
-        has_fingerprints = all(
-            isinstance(v, dict) and v.get("finding_fingerprint")
-            for v in violations if isinstance(v, dict)
+    """Infer usable identity precision, including explicit empty schema-1.2 lists."""
+    receipt = _as_receipt(receipt)
+    violations = receipt.get('violations')
+    if (receipt.get('schema_version') == '1.2'
+            and receipt.get('finding_fingerprint_version') == '1'
+            and isinstance(violations, list)):
+        from .receipt_builder import compute_finding_fingerprint
+        valid = all(
+            isinstance(v, dict)
+            and all(isinstance(v.get(k), str) and v[k].strip() for k in ('id', 'source', 'target'))
+            and v.get('finding_fingerprint') == compute_finding_fingerprint(v['id'], v['source'], v['target'])
+            for v in violations
         )
-        has_targets = all(
-            isinstance(v, dict) and v.get("target") is not None
-            for v in violations if isinstance(v, dict)
-        )
-        if has_fingerprints and has_targets:
-            return "target-level"
-
-    rule_ids = receipt.get("rule_ids")
-    if isinstance(rule_ids, list) and rule_ids:
-        return "rule-level"
-
-    return "aggregate-only"
-
-
-def _extract_fingerprints(receipt):
-    """Extract finding fingerprints from a receipt's violations.
-
-    Returns a set of finding_fingerprint strings, or empty set if not available.
-    """
-    if isinstance(receipt, str):
-        try:
-            receipt = json.loads(receipt)
-        except ValueError:
-            return set()
-    if not isinstance(receipt, dict):
-        return set()
-    fps = set()
-    for v in (receipt.get("violations") or []):
-        if isinstance(v, dict) and v.get("finding_fingerprint"):
-            fps.add(v["finding_fingerprint"])
-    return fps
+        if (valid and _valid_rules(receipt)
+                and set(receipt['rule_ids']) == {v['id'] for v in violations}):
+            return 'target-level'
+    if _valid_rules(receipt):
+        return 'rule-level'
+    return 'aggregate-only'
 
 
 def _extract_rule_ids(receipt):
-    """Extract rule_ids from a receipt."""
-    if isinstance(receipt, str):
-        try:
-            receipt = json.loads(receipt)
-        except ValueError:
-            return set()
-    if not isinstance(receipt, dict):
-        return set()
-    return set(receipt.get("rule_ids") or [])
+    receipt = _as_receipt(receipt)
+    return set(receipt['rule_ids']) if _valid_rules(receipt) else set()
 
 
-def _prior_rule_set(prior_receipt):
-    """Best-effort extraction of the prior rule id set from a stored receipt."""
-    if isinstance(prior_receipt, str):
-        try:
-            prior_receipt = json.loads(prior_receipt)
-        except ValueError:
-            return set(), {}
-    rule_ids = prior_receipt.get("rule_ids") or []
-    summary = prior_receipt.get("summary", {})
-    return set(rule_ids), summary
+def _finding_map(receipt):
+    """Only call after target-level validation; canonical identity includes source."""
+    return {v['finding_fingerprint']: {
+        'finding_fingerprint': v['finding_fingerprint'], 'id': v['id'],
+        'source': v['source'], 'target': v['target'], 'impact': v.get('impact'),
+    } for v in receipt['violations']}
+
+
+def _valid_pending(value):
+    # A supplied unresolved check needs an identity, not an inferred outcome.
+    return isinstance(value, list) and all(
+        isinstance(check, dict)
+        and isinstance(check.get('id'), str) and check['id'].strip()
+        and isinstance(check.get('target'), str)
+        for check in value
+    )
+
+
+def _comparison_context(prior, current):
+    """Conservative compatibility of supplied metadata, never authenticated scope."""
+    prior, current = _as_receipt(prior), _as_receipt(current)
+    warnings = [
+        'Comparison uses supplied metadata only. Matching URL/client/tool metadata '
+        'does not authenticate browser state, tested scope, origin or completeness. '
+        'Absence is not verified remediation; presence does not establish knowledge '
+        'or reviewer approval.'
+    ]
+    compatible = True
+    for receipt in (prior, current):
+        if receipt.get('schema_version') not in ('1.1', '1.2'):
+            warnings.append('Missing or unsupported receipt schema; comparison suppressed.')
+            compatible = False
+            break
+    for key in ('url', 'client_name', 'engine_version', 'catalog_version'):
+        a, b = prior.get(key), current.get(key)
+        if not (isinstance(a, str) and a.strip() and isinstance(b, str) and b.strip()):
+            warnings.append(f'Missing or invalid supplied {key}; comparison suppressed.')
+            compatible = False
+        elif a != b:
+            warnings.append(f'Supplied {key} differs; comparison suppressed.')
+            compatible = False
+    # These optional fields are checked if present, not invented or authenticated.
+    for key in ('axe_core_verified_version', 'scope', 'state', 'viewport',
+                'exclusions', 'authentication_context'):
+        if key in prior or key in current:
+            if (key not in prior or key not in current or prior[key] is None
+                    or current[key] is None or type(prior[key]) is not type(current[key])
+                    or prior[key] != current[key]):
+                warnings.append(f'Supplied {key} differs or is unavailable; comparison suppressed.')
+                compatible = False
+    if 'pending_checks' not in prior and 'pending_checks' not in current:
+        warnings.append('Pending-check coverage is unknown in legacy supplied receipts; '
+                        'missing fields are not evidence of a clean or complete scan.')
+    elif (not _valid_pending(prior.get('pending_checks'))
+          or not _valid_pending(current.get('pending_checks'))
+          or prior['pending_checks'] != current['pending_checks']):
+        compatible = False
+        warnings.append('Supplied pending-check coverage differs or is unknown/invalid; '
+                        'comparison suppressed. Missing is not equivalent to empty.')
+    elif prior['pending_checks']:
+        warnings.append('Matching supplied pending checks remain unresolved, not passes '
+                        'or evidence of complete coverage.')
+    pp, cp = _detect_precision(prior), _detect_precision(current)
+    order = {'aggregate-only': 1, 'rule-level': 2, 'target-level': 3}
+    precision = min((pp, cp), key=order.get)
+    if pp != cp:
+        warnings.append(f'Precision differs ({pp} / {cp}); using {precision}.')
+    if precision != 'target-level':
+        warnings.append('Target identity unavailable or invalid (schema, fingerprint version, '
+                        'source, target or fingerprint); no finding-level classifications.')
+    if precision == 'rule-level':
+        warnings.append('Rule-level differences do not identify individual targets or source-specific findings.')
+    if precision == 'aggregate-only':
+        warnings.append('Aggregate-only evidence cannot classify rules or individual findings.')
+    return compatible, precision, pp, cp, warnings
 
 
 def build_trend(prior_receipt, current_receipt, current_violations):
-    """Return a trend.json string chaining current state to the prior receipt.
+    """Return neutral supplied-observation differences, suppressing incompatible scope.
 
-    Supports backward-compatible comparison precision:
-    - If both receipts have target-level precision, compare by finding fingerprint
-    - If either is rule-level or aggregate-only, use the lowest shared precision
-    - Never invent target-level remediation claims from aggregate-only data
+    current_violations is retained for call compatibility; identity and counts are
+    read from the supplied current receipt, not reconstructed from another list.
     """
-    prior_precision = _detect_precision(prior_receipt)
-    current_precision = _detect_precision(current_receipt)
-
-    # Use the lowest defensible shared precision.
-    precision_order = {"target-level": 3, "rule-level": 2, "aggregate-only": 1}
-    shared_precision = (
-        prior_precision if precision_order[prior_precision] <= precision_order[current_precision]
-        else current_precision
-    )
-
-    warnings = []
-
-    if prior_precision != current_precision:
-        warnings.append(
-            f"Prior receipt precision ({prior_precision}) differs from current "
-            f"({current_precision}). Using lowest shared precision: {shared_precision}."
-        )
-
-    if shared_precision == "aggregate-only":
-        warnings.append(
-            "Prior receipt has aggregate-only precision (counts only). "
-            "Individual findings cannot be classified as remediated, persisting, "
-            "or introduced. All trend classifications are at aggregate count level only."
-        )
-
-    prior_rules, prior_summary = _prior_rule_set(prior_receipt)
-    current_rules = _rule_set(current_violations)
-
-    new_rules = sorted(current_rules - prior_rules)
-    fixed_rules = sorted(prior_rules - current_rules)
-    persisting = sorted(current_rules & prior_rules)
-
-    # Target-level comparison if both receipts support it.
-    remediated_findings = []
-    persisting_findings = []
-    introduced_findings = []
-    if shared_precision == "target-level":
-        prior_fps = _extract_fingerprints(prior_receipt)
-        # Build current fingerprints from current_violations.
-        from .receipt_builder import compute_finding_fingerprint
-        current_fps = set()
-        current_fp_map = {}
-        for v in current_violations:
-            fp = compute_finding_fingerprint(v.id, v.source, v.target)
-            current_fps.add(fp)
-            current_fp_map[fp] = v
-
-        remediated_fps = sorted(prior_fps - current_fps)
-        persisting_fps = sorted(prior_fps & current_fps)
-        introduced_fps = sorted(current_fps - prior_fps)
-
-        for fp in remediated_fps:
-            remediated_findings.append({"finding_fingerprint": fp})
-        for fp in persisting_fps:
-            v = current_fp_map.get(fp)
-            if v:
-                persisting_findings.append({
-                    "finding_fingerprint": fp,
-                    "id": v.id,
-                    "target": v.target,
-                })
-        for fp in introduced_fps:
-            v = current_fp_map.get(fp)
-            if v:
-                introduced_findings.append({
-                    "finding_fingerprint": fp,
-                    "id": v.id,
-                    "target": v.target,
-                })
-
-    cur_summary = current_receipt.get("summary", {})
-    prior_total = prior_summary.get("total_violations")
-    cur_total = cur_summary.get("total_violations")
-    delta_total = None
-    if isinstance(prior_total, int) and isinstance(cur_total, int):
-        delta_total = cur_total - prior_total
-
+    prior, current = _as_receipt(prior_receipt), _as_receipt(current_receipt)
+    compatible, precision, pp, cp, warnings = _comparison_context(prior, current)
+    prior_summary, current_summary = _summary(prior), _summary(current)
+    ptotal = _count(prior_summary.get('total_violations'))
+    ctotal = _count(current_summary.get('total_violations'))
+    delta = ctotal - ptotal if compatible and ptotal is not None and ctotal is not None else None
+    new, absent, shared = [], [], []
+    if compatible and precision != 'aggregate-only':
+        p, c = _extract_rule_ids(prior), _extract_rule_ids(current)
+        new, absent, shared = sorted(c - p), sorted(p - c), sorted(p & c)
     trend = {
-        "schema_version": "1.1",
-        "generator": {"name": "accessdoc", "version": VERSION},
-        "prev_receipt_sha256": _sha256_of_receipt(prior_receipt),
-        "comparison_precision": shared_precision,
-        "prior_precision": prior_precision,
-        "current_precision": current_precision,
-        "prior_summary": prior_summary,
-        "current_summary": cur_summary,
-        "delta_total_violations": delta_total,
-        "new_rules": new_rules,
-        "fixed_rules": fixed_rules,
-        "persisting_rules": persisting,
-        "regressed": len(new_rules) > 0,
-        "improved": len(fixed_rules) > 0,
-        "note": "Rule-level trend. Absence of a rule means it was not detected "
-                "by the automated scan, not that it is necessarily resolved.",
-        "warnings": warnings,
+        'schema_version': '1.3',
+        'generator': {'name': 'accessdoc', 'version': VERSION},
+        'prev_receipt_sha256': _sha256_of_receipt(prior_receipt),
+        'comparison_status': 'limited' if compatible else 'not-comparable',
+        'comparison_basis': 'supplied-metadata-only',
+        'comparison_precision': precision, 'prior_precision': pp, 'current_precision': cp,
+        'prior_summary': prior_summary, 'current_summary': current_summary,
+        'delta_total_violations': delta, 'new_rules': new,
+        'not_observed_rules': absent, 'persisting_rules': shared,
+        'note': 'Differences describe supplied observations only, not verified fixes, '
+                'regressions, reasonable steps, awareness or conformance. Digests '
+                'identify supplied receipt data; no signature or chain verification is performed.',
+        'warnings': warnings,
     }
-
-    if shared_precision == "target-level":
-        trend["remediated_findings"] = remediated_findings
-        trend["persisting_findings"] = persisting_findings
-        trend["introduced_findings"] = introduced_findings
-        trend["remediated_count"] = len(remediated_findings)
-        trend["persisting_count"] = len(persisting_findings)
-        trend["introduced_count"] = len(introduced_findings)
-
+    if compatible and precision == 'target-level':
+        p, c = _finding_map(prior), _finding_map(current)
+        for label, keys, entries in (
+            ('not_observed', set(p) - set(c), p),
+            ('persisting', set(p) & set(c), c),
+            ('introduced', set(c) - set(p), c),
+        ):
+            trend[label + '_findings'] = [entries[k] for k in sorted(keys)]
+            trend[label + '_count'] = len(keys)
     return json.dumps(trend, indent=2)
 
 
 def rule_ids_for_receipt(violations):
-    """Helper to embed rule ids in a receipt so future trends are precise."""
+    """Embed supplied rule IDs; IDs alone cannot establish target-level precision."""
     return sorted({v.id for v in violations})

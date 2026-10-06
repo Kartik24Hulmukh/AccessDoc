@@ -1,0 +1,79 @@
+{
+  "scope": "loopback only; 3 samples/adapter; two continuously dripping clients; 200ms configured absolute budget; fixed 350ms observation",
+  "rows": {
+    "api.handler": {
+      "samples": [
+        {
+          "observation_ms": 350,
+          "probe_status": 400,
+          "probe_ms": 1.153,
+          "slow_upload_statuses": [
+            408,
+            408
+          ],
+          "clients_voluntarily_stopped": false
+        },
+        {
+          "observation_ms": 350,
+          "probe_status": 400,
+          "probe_ms": 1.15,
+          "slow_upload_statuses": [
+            408,
+            408
+          ],
+          "clients_voluntarily_stopped": false
+        },
+        {
+          "observation_ms": 350,
+          "probe_status": 400,
+          "probe_ms": 1.094,
+          "slow_upload_statuses": [
+            408,
+            408
+          ],
+          "clients_voluntarily_stopped": false
+        }
+      ],
+      "probe_p50_ms": 1.15,
+      "probe_p95_ms": 1.153,
+      "probe_p99_ms": 1.153
+    },
+    "app.main": {
+      "samples": [
+        {
+          "observation_ms": 350,
+          "probe_status": 422,
+          "probe_ms": 1.332,
+          "slow_upload_statuses": [
+            408,
+            408
+          ],
+          "clients_voluntarily_stopped": false
+        },
+        {
+          "observation_ms": 350,
+          "probe_status": 422,
+          "probe_ms": 1.429,
+          "slow_upload_statuses": [
+            408,
+            408
+          ],
+          "clients_voluntarily_stopped": false
+        },
+        {
+          "observation_ms": 350,
+          "probe_status": 422,
+          "probe_ms": 1.205,
+          "slow_upload_statuses": [
+            408,
+            408
+          ],
+          "clients_voluntarily_stopped": false
+        }
+      ],
+      "probe_p50_ms": 1.332,
+      "probe_p95_ms": 1.429,
+      "probe_p99_ms": 1.429
+    }
+  }
+}

@@ -6,7 +6,7 @@ and newlines). This prevents YAML-injection via client_name, url, etc.
 """
 from __future__ import annotations
 import datetime
-from .models import VERSION
+from .models import VERSION, SOURCE_AUTOMATED, SOURCE_MANUAL
 from .wcag_levels import chapter_for, WCAG_LEVELS
 
 EN_301_549_MAP = {
@@ -39,6 +39,37 @@ def _yq(value):
     return s
 
 
+def _source_notes(violations, limit=5):
+    """Source-aware draft evidence labels, not authenticated observations."""
+    labels = (
+        (SOURCE_AUTOMATED, "Automated axe-core rules"),
+        (SOURCE_MANUAL, "Supplied manual findings (unreviewed)"),
+        (None, "Other supplied findings (unreviewed)"),
+    )
+    parts = []
+    for source, label in labels:
+        ids = sorted({v.id for v in violations
+                      if (v.source == source if source is not None else
+                          v.source not in (SOURCE_AUTOMATED, SOURCE_MANUAL))})
+        if ids:
+            shown = ", ".join(ids[:limit])
+            if len(ids) > limit:
+                shown += f" (and {len(ids) - limit} more)"
+            parts.append(f"{label}: {shown}")
+    return "; ".join(parts)
+
+
+def _evaluation_methods(summary, violations):
+    # The shared pipeline always receives supplied automated scanner input,
+    # even when it contains zero failures and all listed findings are manual.
+    method = f"Automated (axe-core {summary.engine_version or 'version unknown'})"
+    if any(v.source == SOURCE_MANUAL for v in violations):
+        method += "; supplied manual observations (not independently verified)"
+    if any(v.source not in (SOURCE_AUTOMATED, SOURCE_MANUAL) for v in violations):
+        method += "; other supplied observations (not independently verified)"
+    return method
+
+
 def generate_openacr_yaml(
     summary,
     violations,
@@ -58,7 +89,7 @@ def generate_openacr_yaml(
     failing_scs = {}
     for v in violations:
         for sc in v.wcag_scs:
-            failing_scs.setdefault(sc, []).append(v.id)
+            failing_scs.setdefault(sc, []).append(v)
 
     chapters_dict = {
         "success_criteria_level_a": [],
@@ -67,8 +98,8 @@ def generate_openacr_yaml(
     }
     unmapped_scs = []
 
-    for sc, rules in sorted(failing_scs.items()):
-        rule_str = ", ".join(rules[:5])
+    for sc, findings in sorted(failing_scs.items()):
+        source_note = _source_notes(findings)
         ch = chapter_for(sc)
         if ch in chapters_dict:
             crit_block = (
@@ -77,14 +108,15 @@ def generate_openacr_yaml(
                 f"          - name: \"web\"\n"
                 f"            adherence:\n"
                 f"              level: \"does-not-support\"\n"
-                f"              notes: \"axe-core rules: {_yq(rule_str)}\"\n"
+                f"              notes: \"{_yq(source_note)}. Draft classification "
+                "from supplied findings; qualified review required.\"\n"
             )
             chapters_dict[ch].append(crit_block)
         else:
-            unmapped_scs.append(f"{sc} (rules: {rule_str})")
+            unmapped_scs.append(f"{sc} ({source_note})")
 
-    engine = _yq(summary.engine_version or "version unknown")
-    disclaimer_note = "Criteria with zero automated failures are marked disabled rather than 'Supports': absence of automated findings is not evidence of conformance."
+    method = _yq(_evaluation_methods(summary, violations))
+    disclaimer_note = "Criteria with no supplied findings are marked disabled rather than 'Supports': absence of findings is not evidence of conformance."
 
     chapters_lines = ["chapters:\n"]
 
@@ -132,15 +164,17 @@ def generate_openacr_yaml(
     chapters_block = "".join(chapters_lines)
 
     notes_text = (
-        "  Automated scan only. axe-core detects ~30-57% of WCAG issues.\n"
-        "  Manual testing required for legal compliance.\n"
+        "  DRAFT - unreviewed supplied evidence. No reviewer approval is recorded.\n"
+        "  Source labels describe submitted observations, not verified testing or identity.\n"
+        "  axe-core detects ~30-57% of WCAG issues; automated findings are insufficient for conformance.\n"
+        "  Qualified review and relevant manual/assistive-technology testing remain required.\n"
     )
     if unmapped_scs:
-        notes_text += f"  Unmapped criteria (not in standard WCAG levels): {', '.join(unmapped_scs)}\n"
+        notes_text += f"  Unmapped criteria (not in standard WCAG levels): {_yq(', '.join(unmapped_scs))}\n"
 
     return (
         f"---\n"
-        f"title: \"[{_yq(client_name)}] Accessibility Conformance Report\"\n"
+        f"title: \"DRAFT - [{_yq(client_name)}] Accessibility Conformance Report (unreviewed)\"\n"
         f"product:\n"
         f"  name: \"{_yq(client_name)}\"\n"
         f"  version: \"audited {_yq(today)}\"\n"
@@ -151,9 +185,9 @@ def generate_openacr_yaml(
         f"  email: \"{_yq(auth_mail)}\"\n"
         f"  website: \"https://github.com/Kartik24Hulmukh/AccessDoc\"\n"
         f"report_date: \"{_yq(today)}\"\n"
-        f"evaluation_methods_used: \"Automated (axe-core {engine})\"\n"
+        f"evaluation_methods_used: \"{method}\"\n"
         f"notes: |\n"
         f"{notes_text}"
-        f"legal_disclaimer: \"Automated scan evidence only. AccessDoc does not provide legal advice or guarantee conformance.\"\n"
+        f"legal_disclaimer: \"Unreviewed supplied evidence only. AccessDoc does not provide legal advice, authenticate testing or approval, or guarantee conformance.\"\n"
         f"{chapters_block}"
     )

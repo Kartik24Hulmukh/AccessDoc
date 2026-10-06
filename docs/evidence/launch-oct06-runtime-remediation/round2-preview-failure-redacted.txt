@@ -1,0 +1,39 @@
+2026-10-06 17:45:04.603 [info] Exception occurred during processing of request from ('127.0.0.1', 38360)
+2026-10-06 17:45:04.603 [info] Traceback (most recent call last):
+2026-10-06 17:45:04.604 [info] File "/var/lang/lib/python3.13/socketserver.py", line 697, in process_request_thread
+    self.finish_request(request, client_address)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-06 17:45:04.604 [info] File "/var/lang/lib/python3.13/socketserver.py", line 362, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-06 17:45:04.604 [info] File "/var/lang/lib/python3.13/socketserver.py", line 766, in __init__
+    self.handle()
+    ~~~~~~~~~~~^^
+2026-10-06 17:45:04.604 [info] File "/var/lang/lib/python3.13/http/server.py", line 451, in handle
+    self.handle_one_request()
+    ~~~~~~~~~~~~~~~~~~~~~~~^^
+2026-10-06 17:45:04.604 [info] File "/var/task/_vendor/vercel_runtime/vc_init.py", line 1082, in handle_one_request
+    self.handle_request()  # type: ignore[attr-defined]
+    ~~~~~~~~~~~~~~~~~~~^^
+2026-10-06 17:45:04.604 [info] File "/var/task/_vendor/vercel_runtime/vc_init.py", line 1122, in handle_request
+    method()
+    ~~~~~~^^
+2026-10-06 17:45:04.604 [info] File "/var/task/api/handler.py", line 530, in do_GET
+    if path == "/" and _wants_html(self.headers.get("Accept")) and self._send_static("/index.html"):
+                                                                   ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+2026-10-06 17:45:04.604 [info] File "/var/task/api/handler.py", line 489, in _send_static
+    self.send_header("X-Request-ID", self.request_id)
+                                     ^^^^^^^^^^^^^^^
+2026-10-06 17:45:04.604 [info] AttributeError: 'Handler' object has no attribute 'request_id'. Did you mean: 'request'?
+2026-10-06 17:45:04.604 [info] ----------------------------------------
+
+17:45:04.603
+Traceback (most recent call last):
+17:45:04.604
+File "/var/lang/lib/python3.13/socketserver.py", line 697, in process_request_thread
+File "/var/lang/lib/python3.13/socketserver.py", line 362, in finish_request
+File "/var/lang/lib/python3.13/socketserver.py", line 766, in __init__
+File "/var/lang/lib/python3.13/http/server.py", line 451, in handle
+File "/var/task/_vendor/vercel_runtime/vc_init.py", line 1082, in handle_one_request
+File "/var/task/_vendor/vercel_runtime/vc_init.py", line 1122, in handle_request
+File "/var/task/api/handler.py", line 530, in do_GET

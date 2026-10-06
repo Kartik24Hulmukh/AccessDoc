@@ -1,0 +1,66 @@
+{
+  "head": "1a00934c4c07c2144cf8f91b57830928eedf7563",
+  "draft": true,
+  "auto_merge": false,
+  "checks": [
+    [
+      "Vercel Preview Comments",
+      "success"
+    ],
+    [
+      "accessdoc-evidence",
+      null
+    ],
+    [
+      "dependency-security",
+      "success"
+    ],
+    [
+      "lint",
+      "success"
+    ],
+    [
+      "test",
+      null
+    ],
+    [
+      "portability (windows-latest)",
+      "success"
+    ],
+    [
+      "portability (macos-latest)",
+      null
+    ],
+    [
+      "GitGuardian Security Checks",
+      "success"
+    ],
+    [
+      "lint",
+      "success"
+    ],
+    [
+      "portability (windows-latest)",
+      "failure"
+    ],
+    [
+      "test",
+      null
+    ],
+    [
+      "portability (macos-latest)",
+      null
+    ],
+    [
+      "dependency-security",
+      "success"
+    ]
+  ],
+  "statuses": [
+    [
+      "Vercel",
+      "success"
+    ]
+  ],
+  "action_secrets_count": 0
+}

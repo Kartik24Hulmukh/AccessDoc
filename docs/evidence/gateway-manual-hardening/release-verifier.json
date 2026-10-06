@@ -1,0 +1,46 @@
+{
+  "compile": {
+    "status": "PASS",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "tests": {
+    "status": "PASS",
+    "exitCode": 0,
+    "stdout": "d\":\"dff4710b48244c4ced5d884709ec0903\",\"span_id\":\"2bafc109545e0da6\",\"request_id\":\"c2c71b0615837b3f156739a1fe69b27c\",\"ip\":\"127.0.0.1\",\"method\":\"POST\",\"route\":\"/api/remediate\",\"status\":422,\"duration_ms\":0.44}\n{\"ts\":1790719874.2521513,\"level\":\"info\",\"event\":\"http_request\",\"trace_id\":\"0fa2941bda6966fde251ccac7d3e1449\",\"span_id\":\"4b1d0ac1421b8d50\",\"request_id\":\"7bd1333b7f5feb864ab225488839e1f6\",\"ip\":\"127.0.0.1\",\"method\":\"POST\",\"route\":\"/api/remediate\",\"status\":422,\"duration_ms\":0.41}\n{\"ts\":1790719874.2530334,\"level\":\"info\",\"event\":\"http_request\",\"trace_id\":\"8e3772f1673b654a654adce538348584\",\"span_id\":\"b649c1921e7a39be\",\"request_id\":\"b1099c95df70553f3688f0c8ef44aca9\",\"ip\":\"127.0.0.1\",\"method\":\"POST\",\"route\":\"/api/remediate\",\"status\":413,\"duration_ms\":0.48}\n{\"ts\":1790719874.2538285,\"level\":\"info\",\"event\":\"http_request\",\"trace_id\":\"78a62681ce0437507bdcb48b93beea15\",\"span_id\":\"6e6ec734045982d3\",\"request_id\":\"5dee0a27ef1e0d99d3c53c1e30556061\",\"ip\":\"127.0.0.1\",\"method\":\"POST\",\"route\":\"/api/remediate\",\"status\":422,\"duration_ms\":0.41}\n{\"ts\":1790719874.254545,\"level\":\"info\",\"event\":\"http_request\",\"trace_id\":\"6a2caa9a31786077c569cb3e6faf5b9d\",\"span_id\":\"11136df9376ee821\",\"request_id\":\"77762c16f902c254abe0539e211dc3f1\",\"ip\":\"127.0.0.1\",\"method\":\"POST\",\"route\":\"/api/remediate\",\"status\":422,\"duration_ms\":0.33}\n{\"ts\":1790719874.2555223,\"level\":\"info\",\"event\":\"http_request\",\"trace_id\":\"ea7af9d1a76a94d20cbc312bec320b0c\",\"span_id\":\"4e3f13fdcc3735ce\",\"request_id\":\"006ec27032b24f6d598a39e3e8ac4693\",\"ip\":\"127.0.0.1\",\"method\":\"POST\",\"route\":\"/api/remediate\",\"status\":200,\"duration_ms\":0.46}\n  10k violations: 4.50s, 1,319,239 bytes\n{\"event\": \"request\", \"request_id\": \"cbc4f2b649b2\", \"method\": \"POST\", \"status\": 422, \"duration_ms\": 0.59}\n{\"event\": \"request\", \"request_id\": \"3674ffd47370\", \"method\": \"POST\", \"status\": 200, \"duration_ms\": 0.31}\n{\"event\": \"request\", \"request_id\": \"60b298cfd653\", \"method\": \"POST\", \"status\": 503, \"duration_ms\": 0.41}\n{\"event\": \"request\", \"request_id\": \"c6ef3edd1652\", \"method\": \"POST\", \"status\": 422, \"duration_ms\": 0.33}\n{\"event\": \"request\", \"request_id\": \"b3eaf994efb7\", \"method\": \"POST\", \"status\": 200, \"duration_ms\": 0.31}\n{\"event\": \"request\", \"request_id\": \"524d9d297431\", \"method\": \"POST\", \"status\": 422, \"duration_ms\": 0.35}\n{\"event\": \"request\", \"request_id\": \"e6d503be2121\", \"method\": \"POST\", \"status\": 200, \"duration_ms\": 0.37}\n  PERF: 1000 violations -> 0.19s, 143,857 bytes\n  PERF: standard fixture -> 5,981 bytes\n{\"ts\":1790719886.761531,\"level\":\"info\",\"event\":\"http_request\",\"trace_id\":\"e287c6ffe89ec1df459095095e7703e6\",\"span_id\":\"c700cb5da6331f8a\",\"request_id\":\"2b489ebdf9fabceea3ba90bcee702b42\",\"ip\":\"127.0.0.1\",\"method\":\"POST\",\"route\":\"/api/bundle\",\"status\":200,\"duration_ms\":5.44}\n{\"ts\":1790719886.7679954,\"level\":\"info\",\"event\":\"http_request\",\"trace_id\":\"71e5412eb332db18e450d127def8b00c\",\"span_id\":\"5d95cfab541b2459\",\"request_id\":\"21125fe77f07b708c9025ae2027afcd4\",\"ip\":\"127.0.0.1\",\"method\":\"POST\",\"route\":\"/api/bundle\",\"status\":200,\"duration_ms\":5.7}\n",
+    "stderr": "backslash in its path must be rejected. ... ok\ntest_directory_entry (test_zip_hardening.ZipHardeningTests.test_directory_entry)\nA directory entry must be rejected. ... ok\ntest_dotdot_traversal (test_zip_hardening.ZipHardeningTests.test_dotdot_traversal)\nA member with ../ in its path must be rejected. ... ok\ntest_duplicate_manifest_json (test_zip_hardening.ZipHardeningTests.test_duplicate_manifest_json)\nDuplicate manifest.json must be rejected. ... /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'manifest.json'\n  return self._open_to_write(zinfo, force_zip64=force_zip64)\nok\ntest_duplicate_manifest_paths (test_zip_hardening.ZipHardeningTests.test_duplicate_manifest_paths)\nManifest listing the same path twice must be rejected. ... ok\ntest_duplicate_report_pdf (test_zip_hardening.ZipHardeningTests.test_duplicate_report_pdf)\nDuplicate report.pdf entry must be rejected. ... /usr/lib64/python3.13/zipfile/__init__.py:1661: UserWarning: Duplicate name: 'report.pdf'\n  return self._open_to_write(zinfo, force_zip64=force_zip64)\nok\ntest_encrypted_entry (test_zip_hardening.ZipHardeningTests.test_encrypted_entry)\nAn encrypted ZIP entry must be rejected. ... ok\ntest_extra_attestation_subject (test_zip_hardening.ZipHardeningTests.test_extra_attestation_subject)\nAn attestation with an extra subject must be rejected. ... ok\ntest_high_compression_ratio (test_zip_hardening.ZipHardeningTests.test_high_compression_ratio)\nA member with ratio > 100:1 must be rejected even if total size is OK. ... ok\ntest_malformed_digest (test_zip_hardening.ZipHardeningTests.test_malformed_digest)\nA manifest entry with a non-hex sha256 must be rejected. ... ok\ntest_missing_attestation_subject (test_zip_hardening.ZipHardeningTests.test_missing_attestation_subject)\nAn attestation missing a subject must be rejected. ... ok\ntest_missing_required_file (test_zip_hardening.ZipHardeningTests.test_missing_required_file)\nA bundle missing a required member must be rejected. ... ok\ntest_oversized_member (test_zip_hardening.ZipHardeningTests.test_oversized_member)\nA member exceeding MAX_MEMBER_EXPANDED_BYTES must be rejected. ... ok\ntest_too_many_members (test_zip_hardening.ZipHardeningTests.test_too_many_members)\nA ZIP with more than MAX_MEMBER_COUNT entries must be rejected. ... ok\ntest_unknown_file (test_zip_hardening.ZipHardeningTests.test_unknown_file)\nA member with an unknown name must be rejected. ... ok\ntest_valid_bundle_passes (test_zip_hardening.ZipHardeningTests.test_valid_bundle_passes)\nA real bundle built by build_bundle must still validate. ... ok\ntest_wrong_manifest_schema (test_zip_hardening.ZipHardeningTests.test_wrong_manifest_schema)\nA manifest with an unsupported schema_version must be rejected. ... ok\ntest_zip_bomb (test_zip_hardening.ZipHardeningTests.test_zip_bomb)\nA small compressed input that expands enormously must be rejected. ... ok\n\n----------------------------------------------------------------------\nRan 868 tests in 65.856s\n\nOK (skipped=1)\n"
+  },
+  "secret_patterns": {
+    "status": "PASS",
+    "detail": []
+  },
+  "claims": {
+    "status": "PASS",
+    "detail": []
+  },
+  "placeholders": {
+    "status": "PASS",
+    "detail": []
+  },
+  "stale_files": {
+    "status": "PASS",
+    "detail": []
+  },
+  "immutable_action_refs": {
+    "status": "PASS",
+    "detail": []
+  },
+  "non_publishing_workflows": {
+    "status": "PASS",
+    "detail": []
+  },
+  "required_files": {
+    "status": "PASS",
+    "detail": []
+  },
+  "version_consistency": {
+    "status": "PASS",
+    "detail": []
+  }
+}

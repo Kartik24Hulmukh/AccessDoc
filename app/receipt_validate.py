@@ -149,6 +149,36 @@ def validate_receipt(receipt, strict=True):
             errors.append("rule_ids must be a list")
 
     violations = receipt.get("violations")
+    # Additive pending evidence is optional for legacy schema 1.2 receipts.
+    # When supplied, validate it independently, never as a finding or pass.
+    summary = receipt.get("summary")
+    if isinstance(summary, dict):
+        for field in ("total_incomplete", "pending_instances", "finding_groups",
+                      "unmapped_findings"):
+            if field in summary and (type(summary[field]) is not int or summary[field] < 0):
+                errors.append(f"summary.{field} must be a nonnegative integer")
+    if "pending_checks" in receipt:
+        pending = receipt["pending_checks"]
+        if not isinstance(pending, list):
+            errors.append("pending_checks must be a list")
+        else:
+            if (isinstance(summary, dict) and "pending_instances" in summary and
+                    summary["pending_instances"] != len(pending)):
+                errors.append("summary.pending_instances does not agree with pending_checks")
+            for index, check in enumerate(pending):
+                where = f"pending_checks[{index}]"
+                if not isinstance(check, dict):
+                    errors.append(f"{where} must be an object")
+                    continue
+                for field in ("id", "description", "help_url", "target", "source"):
+                    if not isinstance(check.get(field), str):
+                        errors.append(f"{where}.{field} must be a string")
+                if not check.get("id") or check.get("source") != "automated":
+                    errors.append(f"{where} must identify a supplied automated check")
+                if check.get("status") != "needs-review":
+                    errors.append(f"{where}.status must be needs-review")
+                if type(check.get("nodes")) is not int or check["nodes"] < 0:
+                    errors.append(f"{where}.nodes must be a nonnegative integer")
     if violations is None:
         if is_1_2 and strict:
             errors.append("schema 1.2 receipt has no violations list")

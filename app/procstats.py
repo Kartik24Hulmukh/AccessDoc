@@ -10,7 +10,8 @@ non-POSIX runtime, not a cosmetic one.
 
 This module is the one implementation both runtimes call:
 
-* ``max_rss_kib`` -- peak resident set since process start (monotonic).
+* ``max_rss_kib`` -- peak resident set since process start (monotonic on
+  platforms that provide a peak counter).
 * ``rss_kib``     -- current resident set.
 * ``threads``     -- live thread count.
 
@@ -18,8 +19,8 @@ Everything is a bounded non-negative integer, no PII. Every probe is
 best-effort: a missing primitive omits its key rather than raising.
 
 Windows uses ``psapi!GetProcessMemoryInfo`` via ctypes (WorkingSetSize /
-PeakWorkingSetSize). POSIX keeps the original primitives so existing
-behaviour on Linux/macOS is byte-identical.
+PeakWorkingSetSize). Linux reads VmHWM and VmRSS from one /proc snapshot;
+other POSIX systems retain resource.getrusage and platform-specific RSS.
 """
 
 from __future__ import annotations
@@ -46,36 +47,58 @@ def _sanitize(value):
 
 
 def _posix_rss_kib():
-    """(peak, current) KiB from POSIX primitives; either element may be None."""
+    """(peak, current) KiB from one Linux status snapshot where available."""
     peak = current = None
+    if sys.platform == "darwin":
+        # Mach supplies both counters in one task_info call. Sampling
+        # getrusage's peak before Mach's current RSS can produce current >
+        # peak when allocations occur between those calls.
+        peak, current = _darwin_rss_kib()
+        if peak is not None and current is not None:
+            return peak, current
+    if sys.platform.startswith("linux"):
+        try:
+            # VmHWM and VmRSS are both resident-memory counters in KiB. Taking
+            # them from the same snapshot avoids comparing ru_maxrss with a
+            # later /proc RSS reading (which can report current > peak).
+            with open("/proc/self/status", "rb") as fh:
+                for line in fh:
+                    if line.startswith(b"VmHWM:"):
+                        peak = int(line.split()[1])
+                    elif line.startswith(b"VmRSS:"):
+                        current = int(line.split()[1])
+            if peak is not None and current is not None:
+                return peak, current
+        except (OSError, ValueError, IndexError):
+            pass
     try:
         import resource
 
-        peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        if peak is None:
+            peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         # Linux reports KiB; macOS reports bytes. Normalise to KiB.
         if sys.platform == "darwin":
             peak = int(peak) // 1024
     except Exception:
         peak = None
-    try:
-        with open("/proc/self/status", "rb") as fh:
-            for line in fh:
-                if line.startswith(b"VmRSS:"):
-                    current = int(line.split()[1])
-                    break
-    except Exception:
-        current = None
-    if current is None and sys.platform == "darwin":
-        current = _darwin_current_rss_kib()
+    if current is None:
+        try:
+            with open("/proc/self/status", "rb") as fh:
+                for line in fh:
+                    if line.startswith(b"VmRSS:"):
+                        current = int(line.split()[1])
+                        break
+        except OSError:
+            pass
     return peak, current
 
 
-def _darwin_current_rss_kib():
-    """Current RSS KiB on macOS via mach ``task_info(MACH_TASK_BASIC_INFO)``.
+def _darwin_rss_kib():
+    """(peak, current) RSS KiB from one MACH_TASK_BASIC_INFO snapshot.
 
     macOS has no ``/proc``, so without this the probes silently dropped
     ``rss_kib`` (caught by the macOS portability CI job). Native syscall, no
-    subprocess; returns None on any failure.
+    subprocess; returns (None, None) on any failure.
     """
     try:
         import ctypes
@@ -108,10 +131,15 @@ def _darwin_current_rss_kib():
         libc.task_info.restype = ctypes.c_int
         MACH_TASK_BASIC_INFO = 20
         if libc.task_info(task, MACH_TASK_BASIC_INFO, ctypes.byref(info), ctypes.byref(count)) != 0:
-            return None
-        return int(info.resident_size) // 1024
+            return None, None
+        return int(info.resident_size_max) // 1024, int(info.resident_size) // 1024
     except Exception:
-        return None
+        return None, None
+
+
+def _darwin_current_rss_kib():
+    """Compatibility helper; public probes use the paired Mach snapshot."""
+    return _darwin_rss_kib()[1]
 
 
 def _windows_rss_kib():
@@ -177,10 +205,14 @@ def process_stats():
     bounded positive integers when present.
     """
     out = {}
-    peak = peak_rss_kib()
+    if os.name == "nt":
+        peak, current = _windows_rss_kib()
+    else:
+        peak, current = _posix_rss_kib()
+    peak = _sanitize(peak)
+    current = _sanitize(current)
     if peak is not None:
         out["max_rss_kib"] = peak
-    current = current_rss_kib()
     if current is not None:
         out["rss_kib"] = current
     try:

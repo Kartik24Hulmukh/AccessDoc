@@ -1,0 +1,35 @@
+{
+  "health": 200,
+  "checks": [
+    {
+      "endpoint": "/api/bundle",
+      "credential": "missing",
+      "status": 401,
+      "expected": 401,
+      "pass": true
+    },
+    {
+      "endpoint": "/api/bundle",
+      "credential": "wrong",
+      "status": 401,
+      "expected": 401,
+      "pass": true
+    },
+    {
+      "endpoint": "/api/bundle",
+      "credential": "correct",
+      "status": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "endpoint": "/api/remediate",
+      "credential": "correct",
+      "status": 503,
+      "expected": 503,
+      "pass": true
+    }
+  ],
+  "scope": "real local launcher; synthetic inputs; no model traffic",
+  "pass": true
+}

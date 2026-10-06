@@ -17,6 +17,7 @@ import re
 import secrets
 import threading
 import time
+from urllib.parse import urlsplit
 
 _TP = re.compile(r"^([0-9a-f]{2})-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$")
 _local = threading.local()
@@ -136,6 +137,35 @@ def otel_enabled():
     return _tracer is not None
 
 
+def http_method(method):
+    return method if method in {
+        "GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "TRACE", "CONNECT"
+    } else "_OTHER"
+
+
+def http_route(target):
+    """Finite route vocabulary: never export queries or arbitrary client paths."""
+    if not target:
+        return "/[unmatched]"
+    try:
+        parsed = urlsplit(target)
+        if parsed.scheme or parsed.netloc:
+            return "/[unmatched]"
+        path = parsed.path.rstrip("/") or "/"
+    except ValueError:
+        return "/[unmatched]"
+    if path.startswith(("/download/", "/download-html/", "/download-receipt/")):
+        return "/download/[token]"
+    known = {"/", "/index.html", "/health", "/healthz", "/livez", "/health/live",
+             "/readyz", "/health/ready", "/version", "/metrics", "/limits",
+             "/api/generate", "/api/v1/generate", "/api/bundle",
+             "/api/remediate", "/api/v1/remediate", "/api/sample",
+             "/docs", "/docs/index.html", "/openapi.json",
+             "/static/app.js", "/static/app.css", "/static/report.css",
+             "/sample/axe-sample.json"}
+    return path if path in known else "/[unmatched]"
+
+
 def record_server_span(ctx, method, route, status, start_ns, end_ns):
     """Emit the SERVER span for one HTTP request (parent = inbound traceparent)."""
     try:
@@ -145,7 +175,7 @@ def record_server_span(ctx, method, route, status, start_ns, end_ns):
             start_ns, end_ns,
             {"http.request.method": str(method), "http.route": str(route),
              "http.response.status_code": int(status), "request_id": ctx.get("request_id", "")},
-            status_ok=int(status) < 500)
+            status_ok=int(status) < 500, kind=2)
     except Exception:
         return False
 

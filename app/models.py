@@ -22,8 +22,8 @@ DISCLAIMER_COMPACT = (
 )
 
 # Provenance labels applied to every finding so a reader can always tell
-# which findings are machine-detected vs. human-verified. This is core to
-# the AccessDoc trust model.
+# which findings are scanner-labeled vs. supplied manual observations.
+# A source label does not authenticate testing or establish human approval.
 SOURCE_AUTOMATED = "automated"
 SOURCE_MANUAL = "manual"
 
@@ -53,3 +53,6 @@ class AuditSummary:
     url: str = ""
     engine_version: str = ""
     manual_findings: int = 0
+    # Supplied axe incomplete checks, kept separate from violations and passes.
+    # total_incomplete counts supplied rules; this list preserves target instances.
+    pending_checks: List[dict] = field(default_factory=list)

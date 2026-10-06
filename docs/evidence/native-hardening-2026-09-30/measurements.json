@@ -1,0 +1,93 @@
+{
+  "F1": {
+    "chats": [
+      {
+        "model": "glm-5.3-flash",
+        "elapsed_ms": 40.47
+      },
+      {
+        "model": "glm-5.3-flash",
+        "elapsed_ms": 33.54
+      },
+      {
+        "model": "glm-5.3-flash",
+        "elapsed_ms": 36.69
+      },
+      {
+        "model": "glm-5.3-flash",
+        "elapsed_ms": 39.26
+      }
+    ],
+    "arrivals_before_release": [
+      "glm-5.3-flash",
+      "glm-5.3-flash",
+      "glm-5.3-flash",
+      "glm-5.3-flash"
+    ],
+    "hedge_threads_after_deadlines": 4,
+    "late_primary_arrivals": [
+      {
+        "model": "glm-5.3",
+        "after_last_return_ms": 402.0
+      },
+      {
+        "model": "glm-5.3",
+        "after_last_return_ms": 403.1
+      },
+      {
+        "model": "glm-5.3",
+        "after_last_return_ms": 404.26
+      },
+      {
+        "model": "glm-5.3",
+        "after_last_return_ms": 404.7
+      }
+    ],
+    "threads_after_cleanup": 0,
+    "pool_maxsize": 100,
+    "pool_block": false
+  },
+  "F2": [
+    {
+      "mode": "serial",
+      "budget_ms": 150,
+      "elapsed_ms": 614.35,
+      "fallback": true,
+      "threads_at_return": 0,
+      "threads_after_cleanup": 0
+    },
+    {
+      "mode": "hedged",
+      "budget_ms": 150,
+      "elapsed_ms": 400.46,
+      "fallback": true,
+      "threads_at_return": 1,
+      "threads_after_cleanup": 0
+    }
+  ],
+  "F3_missing_usage": {
+    "token_budget": 100,
+    "dispatched_max_tokens": [
+      100,
+      100
+    ],
+    "sum_completion_authorizations": 200,
+    "success": true,
+    "reported_tokens": 0
+  },
+  "F3_total_usage": {
+    "token_budget": 100,
+    "max_tokens": 100,
+    "provider_total_tokens": 101,
+    "success": true,
+    "model": "glm-5.3"
+  },
+  "readiness_observation": {
+    "configured": false,
+    "status": "degraded",
+    "reasons": [
+      "not_configured"
+    ],
+    "injected_transport_success": true
+  }
+}

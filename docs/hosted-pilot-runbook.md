@@ -91,3 +91,13 @@ Bearer key takes precedence; the legacy header cannot bypass it. The browser
 pilot field uses Bearer auth, so configure the single-key mode for that UI.
 Missing credentials with REQUIRE_AUTH always fail closed. No existing auth
 configuration is silently removed. Final integration needs fresh CI.
+
+## Current admission and correlation addendum
+
+The earlier "nonblocking" serverless admission description is historical: current
+admission uses a bounded handoff wait before 503. Both adapters now support
+independent generation/remediation admission switches described in
+`docs/VERCEL_DEPLOYMENT.md`. Hosted completion logging covers every actual request,
+not POST alone, with matching request/trace headers and SERVER spans. The local
+checks exercise these changes; deployed configuration, global quotas, alert
+collection, rollback and human approval remain separate unverified gates.

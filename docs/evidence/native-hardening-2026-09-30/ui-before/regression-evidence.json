@@ -1,0 +1,21 @@
+{
+  "scope": "Synthetic intercepted loopback UI baseline; ZIP bytes not real bundles",
+  "observations": {
+    "file_only_remediation_error": "Report not generated\n\nPaste or upload scanner evidence before requesting a remediation plan.",
+    "file_only_remediation_posts": 0,
+    "sample_bundle_evidence_id": "image-alt",
+    "sample_selected_filename": "synthetic-a.json",
+    "remediation_evidence_id": "label",
+    "old_remediation_visible_after_regeneration": true,
+    "download_href_before_bad_retry": true,
+    "download_href_after_bad_retry": null,
+    "result_visible_after_bad_retry": false,
+    "pending_bundle_requests": 1,
+    "generate_disabled_while_pending": true,
+    "cancel_or_reset_controls": 0,
+    "sample_enabled_while_pending": true,
+    "submitted_client": "Synthetic Pending Client",
+    "visible_client_during_pending": "Northstar Community Bank",
+    "old_response_shown_after_input_change": true
+  }
+}

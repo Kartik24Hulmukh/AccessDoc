@@ -1,0 +1,109 @@
+{
+  "source_sha": "0cce6ae572d1ac4bdb7d39b2530f9f3d7b037a87",
+  "platform": "Linux-6.18.49-x86_64-with-glibc2.34",
+  "python": "3.13.14",
+  "baseline_suite": {
+    "failed": 1,
+    "passed": 1220,
+    "skipped": 23,
+    "subtests_passed": 436,
+    "seconds": 69.66
+  },
+  "failure": "test_global_reserve_drains_late_final_batch_retirement",
+  "hosted_failed_stage": "Bounded local concurrency and malformed-input contract gate",
+  "hosted_failure_check": 112319982525,
+  "baseline_load": {
+    "scope": "loopback only; 8 workers, 100 requests; not capacity certification",
+    "workers": 8,
+    "requests": 100,
+    "contract": [
+      {
+        "name": "null violations",
+        "expected": 200,
+        "actual": 200,
+        "pass": true
+      },
+      {
+        "name": "missing violations",
+        "expected": 422,
+        "actual": 422,
+        "pass": true
+      },
+      {
+        "name": "malformed description",
+        "expected": 422,
+        "actual": 422,
+        "pass": true
+      },
+      {
+        "name": "wrong metadata type",
+        "expected": 422,
+        "actual": 422,
+        "pass": true
+      },
+      {
+        "name": "wrong boolean type",
+        "expected": 422,
+        "actual": 422,
+        "pass": true
+      },
+      {
+        "name": "string ceiling",
+        "expected": 413,
+        "actual": 413,
+        "pass": true
+      },
+      {
+        "name": "manual CSV ceiling",
+        "expected": 413,
+        "actual": 413,
+        "pass": true
+      },
+      {
+        "name": "content-type lookalike",
+        "expected": 415,
+        "actual": 415,
+        "pass": true
+      },
+      {
+        "name": "deep JSON",
+        "expected": 400,
+        "actual": 400,
+        "pass": true
+      }
+    ],
+    "scale": [
+      {
+        "finding_instances": 1,
+        "seconds": 0.0065,
+        "pass": true
+      },
+      {
+        "finding_instances": 100,
+        "seconds": 0.0217,
+        "pass": true
+      }
+    ],
+    "load": {
+      "seconds": 0.8315,
+      "requests_per_second": 120.26,
+      "p50_seconds": 0.0636,
+      "p95_seconds": 0.0875,
+      "p99_seconds": 0.0975,
+      "max_seconds": 0.0994,
+      "status_counts": {
+        "200": 100
+      },
+      "unique_bundle_digests": 1,
+      "all_200": true
+    },
+    "memory": {
+      "floor_rss_kib": 34780,
+      "ceiling_max_rss_kib": 68108,
+      "post_load_rss_kib": 66016,
+      "threads_after": 2
+    },
+    "failures": [],
+    "pass": true
+  }
+}

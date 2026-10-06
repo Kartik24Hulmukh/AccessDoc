@@ -1,0 +1,123 @@
+{
+  "frozen_at": "2026-10-04T18:06:33.118274+00:00",
+  "sha": "11c2214ed90308db5a4cc974ab8c5dc6de547681",
+  "checks": [
+    {
+      "name": "Vercel Preview Comments",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://vercel.com/github",
+      "head_sha": "11c2214ed90308db5a4cc974ab8c5dc6de547681"
+    },
+    {
+      "name": "accessdoc-evidence",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/Kartik24Hulmukh/AccessDoc/actions/runs/37222416985/job/111495272091",
+      "head_sha": "11c2214ed90308db5a4cc974ab8c5dc6de547681"
+    },
+    {
+      "name": "portability (macos-latest)",
+      "status": "completed",
+      "conclusion": "failure",
+      "details_url": "https://github.com/Kartik24Hulmukh/AccessDoc/actions/runs/37222416945/job/111495272067",
+      "head_sha": "11c2214ed90308db5a4cc974ab8c5dc6de547681"
+    },
+    {
+      "name": "dependency-security (runtime)",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/Kartik24Hulmukh/AccessDoc/actions/runs/37222416945/job/111495272057",
+      "head_sha": "11c2214ed90308db5a4cc974ab8c5dc6de547681"
+    },
+    {
+      "name": "dependency-security (dev)",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/Kartik24Hulmukh/AccessDoc/actions/runs/37222416945/job/111495272053",
+      "head_sha": "11c2214ed90308db5a4cc974ab8c5dc6de547681"
+    },
+    {
+      "name": "portability (windows-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/Kartik24Hulmukh/AccessDoc/actions/runs/37222416945/job/111495272021",
+      "head_sha": "11c2214ed90308db5a4cc974ab8c5dc6de547681"
+    },
+    {
+      "name": "lint",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/Kartik24Hulmukh/AccessDoc/actions/runs/37222416965/job/111495271988",
+      "head_sha": "11c2214ed90308db5a4cc974ab8c5dc6de547681"
+    },
+    {
+      "name": "test",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/Kartik24Hulmukh/AccessDoc/actions/runs/37222416945/job/111495271934",
+      "head_sha": "11c2214ed90308db5a4cc974ab8c5dc6de547681"
+    },
+    {
+      "name": "GitGuardian Security Checks",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://dashboard.gitguardian.com",
+      "head_sha": "11c2214ed90308db5a4cc974ab8c5dc6de547681"
+    },
+    {
+      "name": "portability (macos-latest)",
+      "status": "completed",
+      "conclusion": "failure",
+      "details_url": "https://github.com/Kartik24Hulmukh/AccessDoc/actions/runs/37222413346/job/111495261591",
+      "head_sha": "11c2214ed90308db5a4cc974ab8c5dc6de547681"
+    },
+    {
+      "name": "dependency-security (dev)",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/Kartik24Hulmukh/AccessDoc/actions/runs/37222413346/job/111495261565",
+      "head_sha": "11c2214ed90308db5a4cc974ab8c5dc6de547681"
+    },
+    {
+      "name": "dependency-security (runtime)",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/Kartik24Hulmukh/AccessDoc/actions/runs/37222413346/job/111495261560",
+      "head_sha": "11c2214ed90308db5a4cc974ab8c5dc6de547681"
+    },
+    {
+      "name": "portability (windows-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/Kartik24Hulmukh/AccessDoc/actions/runs/37222413346/job/111495261553",
+      "head_sha": "11c2214ed90308db5a4cc974ab8c5dc6de547681"
+    },
+    {
+      "name": "lint",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/Kartik24Hulmukh/AccessDoc/actions/runs/37222413325/job/111495261413",
+      "head_sha": "11c2214ed90308db5a4cc974ab8c5dc6de547681"
+    },
+    {
+      "name": "test",
+      "status": "completed",
+      "conclusion": "success",
+      "details_url": "https://github.com/Kartik24Hulmukh/AccessDoc/actions/runs/37222413346/job/111495261389",
+      "head_sha": "11c2214ed90308db5a4cc974ab8c5dc6de547681"
+    }
+  ],
+  "hosted_macos": {
+    "failed": 1,
+    "passed": 1218,
+    "skipped": 23,
+    "subtests": 436,
+    "seconds": 142.16
+  },
+  "source_hashes": {
+    "app/gateway_transport.py": "e45c6c2a7ad15e94d402c4e82e32d35d5b8fc0292739861ba5b6cd5e7c40c126",
+    "app/otlp_export.py": "bb239429b02622faa5aa8b4d0ebf8bc4aecfe9982cd0707a94f9cb3d72b90da2",
+    "tests/test_otlp_cleanup_ownership.py": "f5bbebd291ecfc962cf17973a7dc468c85cc4a2dd1147edc32af94fdf710894b"
+  }
+}

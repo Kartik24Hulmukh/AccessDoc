@@ -16,6 +16,8 @@ import uuid
 import platform
 import threading
 import time
+from contextlib import contextmanager
+from functools import wraps
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -23,8 +25,9 @@ from http.server import BaseHTTPRequestHandler
 from app.service import build_artifacts
 from app.bundle import build_bundle
 from app.models import VERSION
-from app.http_policy import auth_error, auth_required, public_body
+from app.http_policy import auth_error, auth_required, public_body, remediation_body, readiness_reasons, operation_state, operation_error
 from app import telemetry
+from app.http_body import BodyDeadlineExceeded, DRAIN_MAX_BYTES, body_deadline, read_body
 
 READ_CHUNK_BYTES = 64 * 1024
 from app.limits import (
@@ -154,6 +157,7 @@ _STATIC_FILES = {
     "/docs": ("docs.html", "text/html; charset=utf-8"),
     "/docs/index.html": ("docs.html", "text/html; charset=utf-8"),
     "/openapi.json": ("openapi.json", "application/json; charset=utf-8"),
+    "/static/favicon.svg": ("static/favicon.svg", "image/svg+xml"),
     "/static/app.css": ("static/app.css", "text/css; charset=utf-8"),
     "/static/app.js": ("static/app.js", "text/javascript; charset=utf-8"),
     "/static/report.css": ("static/report.css", "text/css; charset=utf-8"),
@@ -200,6 +204,15 @@ def _wants_html(accept):
     return True
 
 
+def _http_request_scope(method):
+    """Own request lifecycle at dispatch, even when the runtime replaces parsing."""
+    @wraps(method)
+    def scoped(self, *args, **kwargs):
+        with self._request_scope():
+            return method(self, *args, **kwargs)
+    return scoped
+
+
 class handler(BaseHTTPRequestHandler):
     """Bounded HTTP handler for AccessDoc bundle generation.
 
@@ -219,6 +232,88 @@ class handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         pass
 
+    @contextmanager
+    def _request_scope(self, reset_parse=False):
+        """Exactly one owner for parser envelope, method dispatch and nested HEAD.
+
+        Stdlib owns the outer scope before parsing so malformed/unsupported
+        requests and idle EOF retain their existing accounting. Vercel may
+        replace that envelope: the dispatched method then owns the scope using
+        already-parsed request fields. Nested calls never reset or finalize it.
+        """
+        if getattr(self, "_request_scope_active", False):
+            yield
+            return
+        self._request_scope_active = True
+        if reset_parse:
+            self.raw_requestline = b""
+            self.command = None
+            self.path = ""
+            self.headers = None
+        elif getattr(self, "command", None) is None:
+            # A runtime-owned parser can call send_error before assigning path
+            # or headers. Do not reuse either from a prior keep-alive request.
+            self.command = None
+            self.path = ""
+            self.headers = None
+        self.request_id = uuid.uuid4().hex[:12]
+        self._trace_ctx = None
+        self._status = 500
+        self._headers_sent = False
+        telemetry.clear()
+        start, start_ns = time.monotonic(), time.time_ns()
+        try:
+            yield
+        except (TimeoutError, ConnectionError, OSError):
+            self.close_connection = True
+            _bump("client_disconnects_total")
+        except Exception:
+            self.close_connection = True
+            self._status = 500
+            if not self._headers_sent:
+                try:
+                    self._error(500, "Internal error")
+                except Exception:
+                    pass
+        finally:
+            try:
+                if getattr(self, "raw_requestline", b"") or getattr(self, "command", None):
+                    _bump("requests_total")
+                    if self._status >= 400:
+                        _bump("errors_total")
+                    ctx = self._trace()
+                    method, route = telemetry.http_method(self.command), telemetry.http_route(self.path)
+                    telemetry.log_event("http_request", request_id=self.request_id,
+                        method=method, route=route, status=self._status,
+                        duration_ms=round((time.monotonic() - start) * 1000, 2))
+                    telemetry.record_server_span(ctx, method, route, self._status,
+                                                 start_ns, time.time_ns())
+            finally:
+                telemetry.clear()
+                self._trace_ctx = None
+                self._request_scope_active = False
+
+    def handle_one_request(self):
+        """Preserve stdlib parse rejection/idle accounting; methods share ownership."""
+        with self._request_scope(reset_parse=True):
+            super().handle_one_request()
+
+    def send_response(self, code, message=None):
+        self._status = code
+        super().send_response(code, message)
+
+    def end_headers(self):
+        """Direct ZIP/HEAD/OPTIONS writers share the same correlation headers."""
+        if not getattr(self, "request_id", None):
+            self.request_id = uuid.uuid4().hex[:12]
+        buffered = getattr(self, "_headers_buffer", [])
+        if not any(line.lower().startswith(b"x-request-id:") for line in buffered):
+            self.send_header("X-Request-ID", self.request_id)
+        if not any(line.lower().startswith(b"traceparent:") for line in buffered):
+            self.send_header("traceparent", telemetry.traceparent_header(self._trace()))
+        super().end_headers()
+        self._headers_sent = True
+
     # ------------------------------------------------------------------ #
     # Helpers
     # ------------------------------------------------------------------ #
@@ -227,9 +322,6 @@ class handler(BaseHTTPRequestHandler):
         """Send a JSON response with security headers. Never renders HTML."""
         body = json.dumps(payload).encode("utf-8")
         self._status = status
-        _bump("requests_total")
-        if status >= 400:
-            _bump("errors_total")
         self.send_response(status)
         if hasattr(self, "request_id"):
             self.send_header("X-Request-ID", self.request_id)
@@ -243,7 +335,8 @@ class handler(BaseHTTPRequestHandler):
                 self.send_header(k, v)
         self.end_headers()
         try:
-            self.wfile.write(body)
+            if self.command != "HEAD":
+                self.wfile.write(body)
         except (BrokenPipeError, ConnectionResetError):
             _bump("client_disconnects_total")
 
@@ -256,6 +349,7 @@ class handler(BaseHTTPRequestHandler):
             self._trace_ctx = ctx
         return ctx
 
+    @_http_request_scope
     def send_error(self, code, message=None, explain=None):
         """Stdlib parse failures (400/414/431/501) must honour the JSON contract.
 
@@ -264,11 +358,18 @@ class handler(BaseHTTPRequestHandler):
         X-Request-ID. Route it through the bounded JSON error path instead and
         never echo client-supplied text.
         """
+        # A runtime-owned parser can assign command/path, then reject before
+        # replacing self.headers (e.g. parse_headers raises on 101 headers).
+        # Only a fully parsed request may supply inbound tracing. These stdlib
+        # parser errors must discard both prior and partially parsed headers;
+        # keep 501's fully parsed current inbound context for unsupported verbs.
+        if code in (400, 414, 431, 505):
+            self.headers = None
+            self._trace_ctx = None
+            telemetry.clear()
         self.close_connection = True
         if not hasattr(self, "request_id"):
             self.request_id = uuid.uuid4().hex[:12]
-        self._trace_ctx = None
-        self._trace()
         short = self.responses.get(code, ("Request rejected",))[0]
         self._send_json(code, {"error": short, "request_id": self.request_id},
                         {"Connection": "close"})
@@ -276,7 +377,8 @@ class handler(BaseHTTPRequestHandler):
     def _error(self, status, message, request_id=None):
         """Send a bounded error response. No exception detail leakage."""
         if request_id is None:
-            request_id = uuid.uuid4().hex[:12]
+            request_id = getattr(self, "request_id", None) or uuid.uuid4().hex[:12]
+        self.request_id = request_id
         self._send_json(status, {
             "error": message,
             "request_id": request_id,
@@ -307,6 +409,18 @@ class handler(BaseHTTPRequestHandler):
             return None, 400, "Negative Content-Length"
 
         if length > MAX_HTTP_BODY_BYTES:
+            # A bounded deadline-aware drain delivers 413 instead of resetting
+            # a client still sending a small over-limit request. Never buffer
+            # rejected bytes or spend an unbounded interval draining them.
+            try:
+                read_body(self.rfile, getattr(self, "connection", None),
+                          min(length, DRAIN_MAX_BYTES), READ_CHUNK_BYTES,
+                          body_deadline(), collect=False)
+            except BodyDeadlineExceeded:
+                # The declared size already establishes the 413 contract.
+                # Deadline expiry stops draining; it does not reclassify a
+                # known over-limit request or begin a second drain.
+                pass
             return None, 413, "Request body too large"
 
         # Read exactly the declared number of bytes.
@@ -314,15 +428,13 @@ class handler(BaseHTTPRequestHandler):
         # but we already required it above for POST.
         # Chunked streaming read (64 KiB slices): no single oversized allocation,
         # early abort on client disconnect.
-        buf = bytearray()
-        remaining = length
-        while remaining > 0:
-            chunk = self.rfile.read(min(remaining, READ_CHUNK_BYTES))
-            if not chunk:
-                break
-            buf += chunk
-            remaining -= len(chunk)
-        raw = bytes(buf)
+        try:
+            raw, remaining = read_body(
+                self.rfile, getattr(self, "connection", None), length,
+                READ_CHUNK_BYTES, body_deadline())
+        except BodyDeadlineExceeded:
+            self.close_connection = True
+            return None, 408, "Request body deadline exceeded"
         if len(raw) < length:
             # Client disconnected early; treat as malformed.
             return None, 400, "Request body shorter than Content-Length"
@@ -420,7 +532,6 @@ class handler(BaseHTTPRequestHandler):
         if loaded is None:
             return False
         body, ctype = loaded
-        _bump("requests_total")
         self._status = 200
         self.send_response(200)
         self.send_header("X-Request-ID", self.request_id)
@@ -433,7 +544,7 @@ class handler(BaseHTTPRequestHandler):
                 v = _PAGE_CSP
             self.send_header(k, v)
         self.end_headers()
-        if not head_only:
+        if not head_only and self.command != "HEAD":
             try:
                 self.wfile.write(body)
             except (BrokenPipeError, ConnectionResetError):
@@ -443,7 +554,6 @@ class handler(BaseHTTPRequestHandler):
     def _send_text_metrics(self):
         """Prometheus exposition format on the hosted adapter; HEAD-safe."""
         body = _metrics_text().encode("utf-8")
-        _bump("requests_total")
         self._status = 200
         self.send_response(200)
         self.send_header("X-Request-ID", self.request_id)
@@ -460,11 +570,10 @@ class handler(BaseHTTPRequestHandler):
                 _bump("client_disconnects_total")
         return True
 
+    @_http_request_scope
     def do_GET(self):
         """Hosted UI on '/' (browsers) and '/index.html'; JSON health on '/' (API clients),
         '/readyz', '/healthz'; ceilings on '/limits'; docs on '/docs' + '/openapi.json'."""
-        self.request_id = uuid.uuid4().hex[:12]
-        self._trace_ctx = None
         commit_sha = os.environ.get("VERCEL_GIT_COMMIT_SHA", "unknown")
         path = self.path.split("?")[0].rstrip("/") or "/"
         if path == "/" and _wants_html(self.headers.get("Accept")) and self._send_static("/index.html"):
@@ -472,15 +581,19 @@ class handler(BaseHTTPRequestHandler):
         if path in _STATIC_FILES and self._send_static(path):
             return
         if path in ("/", "/readyz", "/healthz", "/health"):
-            self._send_json(200, {
+            reasons = readiness_reasons() if path == "/readyz" else []
+            self._send_json(503 if reasons else 200, {
                 "service": "AccessDoc",
                 "adapter_version": ADAPTER_VERSION,
-                "status": "ok",
+                "status": "not_ready" if reasons else "ok",
+                "readiness_reasons": reasons,
                 "commit": commit_sha,
                 "api_note": "Bounded ReportLab demo API. See docs for limitations.",
                 "endpoints": ["/api/bundle", "/api/remediate", "/limits", "/docs", "/openapi.json"],
                 "ui": "/index.html",
                 "gateway": self._gateway_snapshot(),
+                "operations": operation_state(),
+                "tracing": telemetry.export_status(),
                 "process": _process_stats(),
                 "runtime": {"python": platform.python_version(), "uptime_seconds": round(time.monotonic() - _STARTED_MONO, 1)},
             })
@@ -492,6 +605,7 @@ class handler(BaseHTTPRequestHandler):
             limits = dict(limits_summary())
             limits.update({
                 "api_key_required": auth_required(),
+                "operations": operation_state(),
                 "rate_limit_per_minute": None,
                 "max_concurrent_requests_per_process": int(os.getenv("MAX_CONCURRENT_REQUESTS", "2")),
                 "note": "Per-process admission only; provider/WAF quotas are still required.",
@@ -525,13 +639,11 @@ class handler(BaseHTTPRequestHandler):
             return
         self._error(404, "Not found")
 
+    @_http_request_scope
     def do_POST(self):
         self.close_connection = True
-        self.request_id = uuid.uuid4().hex[:12]
-        self._trace_ctx = None
         self._trace()
         self._status = 500
-        start = time.monotonic()
         _p = self.path.split("?")[0].rstrip("/") or "/"
         _rem = _p in _REMEDIATE_PATHS
         pool = REMEDIATION_CAPACITY if _rem else GENERATION_CAPACITY
@@ -539,11 +651,27 @@ class handler(BaseHTTPRequestHandler):
         # admission queue before shedding. Generation gets a bounded handoff
         # wait: response bytes can reach a client before the previous handler
         # releases its slot. Keep the slot through writes to bound live memory.
-        if _rem:
-            acquired = pool.acquire(timeout=REMEDIATION_QUEUE_TIMEOUT)
-        else:
-            acquired = pool.acquire(timeout=GENERATION_QUEUE_TIMEOUT)
+        acquired = False
+        attempted = False
         try:
+            denied = auth_error(self.headers)
+            if denied:
+                self._error(*denied, request_id=self.request_id)
+                return
+            if _p in _GENERATE_ALIASES:
+                self._error(404, _GENERATE_HINT)
+                return
+            if _p not in ("/", "/api/bundle") + _REMEDIATE_PATHS:
+                self._error(404, "Not found")
+                return
+            disabled = operation_error(_rem)
+            if disabled:
+                self._send_json(disabled[0], {"error": disabled[1],
+                    "request_id": self.request_id}, {"Retry-After": "30"})
+                return
+            attempted = True
+            acquired = pool.acquire(timeout=REMEDIATION_QUEUE_TIMEOUT
+                                    if _rem else GENERATION_QUEUE_TIMEOUT)
             if not acquired:
                 self._send_json(503, {"error": "Generation capacity exhausted", "request_id": self.request_id}, {"Retry-After": "1"})
                 return
@@ -551,13 +679,10 @@ class handler(BaseHTTPRequestHandler):
         finally:
             if acquired:
                 pool.release()
-            if not acquired:
+            if attempted and not acquired:
                 _bump("overload_rejections_total")
             elif self._status == 200 and not _rem:
                 _bump("reports_total")
-            print(json.dumps({"event": "request", "request_id": self.request_id,
-                              "method": "POST", "status": self._status,
-                              "duration_ms": round((time.monotonic() - start) * 1000, 2)}), flush=True)
 
     def _post(self):
         """Generate an evidence ZIP from axe-core JSON."""
@@ -648,7 +773,6 @@ class handler(BaseHTTPRequestHandler):
             return
 
         # 9. Send the ZIP.
-        _bump("requests_total")
         self._status = 200
         self.send_response(200)
         self.send_header("X-Request-ID", request_id)
@@ -664,9 +788,10 @@ class handler(BaseHTTPRequestHandler):
             except Exception:
                 _sum = {}
             _sev = {k: int(_sum.get(k, 0) or 0) for k in ("critical", "serious", "moderate", "minor", "unknown")}
-            self.send_header("X-AccessDoc-Finding-Count", str(_sev["critical"] + _sev["serious"] + _sev["moderate"] + _sev["minor"] + _sev["unknown"]))
+            self.send_header("X-AccessDoc-Finding-Count", str(int(_sum.get("finding_groups", sum(_sev.values())))))
             self.send_header("X-AccessDoc-Instance-Count", str(int(_sum.get("total_violations", 0) or 0)))
-            self.send_header("X-AccessDoc-Unmapped-Count", str(_sev["unknown"]))
+            self.send_header("X-AccessDoc-Unmapped-Count", str(int(_sum.get("unmapped_findings", _sev["unknown"]))))
+            self.send_header("X-AccessDoc-Pending-Count", str(int(_sum.get("pending_instances", 0))))
         self.send_header("Content-Length", str(len(zip_bytes)))
         for k, v in _SECURITY_HEADERS.items():
             self.send_header(k, v)
@@ -684,6 +809,14 @@ class handler(BaseHTTPRequestHandler):
         degrade through the ordered model chain to the static knowledge base;
         a missing credential is an explicit 503 with Retry-After, never a 500.
         """
+        try:
+            body = remediation_body(body)
+        except LimitExceeded:
+            self._error(413, "Input exceeds resource limits", request_id)
+            return
+        except (ValueError, RecursionError):
+            self._error(422, "Invalid axe-core data", request_id)
+            return
         try:
             from app import remediate as remediation
             from app.gateway import GatewayError
@@ -722,36 +855,23 @@ class handler(BaseHTTPRequestHandler):
         out["adapter"] = "serverless"
         self._send_json(200, out)
 
+    @_http_request_scope
     def do_PUT(self):
         self._error(405, "Method not allowed")
 
+    @_http_request_scope
     def do_DELETE(self):
         self._error(405, "Method not allowed")
 
+    @_http_request_scope
     def do_PATCH(self):
         self._error(405, "Method not allowed")
 
+    @_http_request_scope
     def do_HEAD(self):
-        self.request_id = uuid.uuid4().hex[:12]
-        self._trace_ctx = None
-        path = self.path.split("?")[0].rstrip("/") or "/"
-        if path == "/" and _wants_html(self.headers.get("Accept")) and self._send_static("/index.html", head_only=True):
-            return
-        if path in _STATIC_FILES and self._send_static(path, head_only=True):
-            return
-        if path == "/metrics":
-            self._send_text_metrics()
-            return
-        if path not in ("/", "/readyz", "/healthz", "/health", "/api/bundle", "/limits") + _REMEDIATE_PATHS:
-            self._error(404, "Not found")
-            return
-        self.send_response(200)
-        self.send_header("X-Request-ID", self.request_id)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        for k, v in _SECURITY_HEADERS.items():
-            self.send_header(k, v)
-        self.end_headers()
+        self.do_GET()
 
+    @_http_request_scope
     def do_OPTIONS(self):
         """CORS preflight. Conservative: only GET and POST."""
         self.send_response(204)

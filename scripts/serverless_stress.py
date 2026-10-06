@@ -8,7 +8,7 @@ from app.service import build_artifacts
 from app.procstats import peak_rss_kib
 SOURCE=(ROOT/'fixtures/axe-sample.json').read_text()
 def payload(i:int):
- return {'client_name':f'STRESS-{i:04d}','audit_date':'2026-07-21','agency_name':'Stress QA','primary_color':'#185ABD','format_hint':'axe','scanner_input':SOURCE,'manual_findings':f'Keyboard review marker {i:04d}.','source_filename':f'fixture-{i:04d}.json'}
+ return {'client_name':f'STRESS-{i:04d}','audit_date':'2026-07-21','agency_name':'Stress QA','primary_color':'#185ABD','format_hint':'axe','scanner_input':SOURCE,'manual_findings':[{'id':'keyboard-review-marker','impact':'moderate','description':f'Keyboard review marker {i:04d}.','wcag_scs':['2.1.1'],'target':f'#manual-{i:04d}'}],'source_filename':f'fixture-{i:04d}.json'}
 def one(i:int):
  started=time.perf_counter();data=build_bundle(build_artifacts(payload(i)));elapsed=(time.perf_counter()-started)*1000
  with zipfile.ZipFile(io.BytesIO(data)) as z:
@@ -17,7 +17,11 @@ def one(i:int):
   assert validate_bundle(data)['valid']
   assert receipt['client_name']==f'STRESS-{i:04d}'
   assert f'STRESS-{i:04d}'.encode() in html
-  assert receipt['summary']['total_violations']==sum(max(1, len(v.get('nodes') or [])) for v in json.loads(SOURCE)['violations'])
+  assert receipt['summary']['total_violations']==sum(max(1, len(v.get('nodes') or [])) for v in json.loads(SOURCE)['violations'])+1
+  assert receipt['summary']['manual_findings']==1
+  manual=[v for v in receipt['violations'] if v['source']=='manual']
+  assert len(manual)==1 and manual[0]['target']==f'#manual-{i:04d}'
+  assert f'Keyboard review marker {i:04d}.'.encode() in html
  return elapsed,len(data),hashlib.sha256(data).hexdigest()
 def percentile(values,p):
  values=sorted(values);return values[min(len(values)-1,max(0,int((len(values)-1)*p)))]

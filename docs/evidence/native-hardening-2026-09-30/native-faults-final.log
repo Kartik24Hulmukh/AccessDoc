@@ -1,0 +1,106 @@
+{
+  "F1": {
+    "scope": "equivalent async DNS await; synthetic resolver, not real DNS-network fault certification",
+    "chats": [
+      {
+        "model": "glm-5.3-flash",
+        "elapsed_ms": 35.56
+      },
+      {
+        "model": "glm-5.3-flash",
+        "elapsed_ms": 33.9
+      },
+      {
+        "model": "glm-5.3-flash",
+        "elapsed_ms": 33.12
+      },
+      {
+        "model": "glm-5.3-flash",
+        "elapsed_ms": 33.23
+      }
+    ],
+    "arrivals_before_release": [
+      "glm-5.3-flash",
+      "glm-5.3-flash",
+      "glm-5.3-flash",
+      "glm-5.3-flash"
+    ],
+    "hedge_threads_after_deadlines": 0,
+    "cancelled_resolver_futures": 4,
+    "late_primary_arrivals": [],
+    "transport": {
+      "capacity": 8,
+      "inflight": 0,
+      "peak_inflight": 2,
+      "active_calls": 0,
+      "loop_alive": true
+    }
+  },
+  "F2": [
+    {
+      "mode": "serial",
+      "budget_ms": 150,
+      "elapsed_ms": 101.07,
+      "fallback": true,
+      "threads_at_return": 0,
+      "transport": {
+        "capacity": 8,
+        "inflight": 0,
+        "peak_inflight": 1,
+        "active_calls": 0,
+        "loop_alive": true
+      }
+    },
+    {
+      "mode": "hedged",
+      "budget_ms": 150,
+      "elapsed_ms": 101.22,
+      "fallback": true,
+      "threads_at_return": 0,
+      "transport": {
+        "capacity": 8,
+        "inflight": 0,
+        "peak_inflight": 1,
+        "active_calls": 0,
+        "loop_alive": true
+      }
+    }
+  ],
+  "F3_missing_usage": {
+    "token_budget": 100,
+    "dispatched_max_tokens": [],
+    "sum_completion_authorizations": 0,
+    "success": false,
+    "committed_upper_tokens": 0,
+    "token_budget_metadata": {
+      "ceiling": 100,
+      "prompt_bound": 139,
+      "authorized_attempts": 0,
+      "committed_upper_tokens": 0,
+      "peak_reserved_tokens": 0,
+      "usage_known": true,
+      "observed_tokens": 0,
+      "contract_violation": false
+    }
+  },
+  "F3_missing_usage_prompt_inclusive": {
+    "token_budget": 239,
+    "dispatched_max_tokens": [
+      100
+    ],
+    "sum_completion_authorizations": 100,
+    "success": false,
+    "committed_upper_tokens": 239,
+    "token_budget_metadata": {
+      "ceiling": 239,
+      "prompt_bound": 139,
+      "authorized_attempts": 1,
+      "committed_upper_tokens": 239,
+      "peak_reserved_tokens": 239,
+      "usage_known": false,
+      "observed_tokens": 0,
+      "contract_violation": false
+    }
+  },
+  "measured_source_commit": "01c74db4613239c5c171a55fc7395be90c54751c"
+}

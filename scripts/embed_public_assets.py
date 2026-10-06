@@ -22,6 +22,7 @@ ASSET_FILES = (
     "openapi.json",
     "static/app.css",
     "static/app.js",
+    "static/favicon.svg",
     "static/report.css",
     "sample/axe-sample.json",
 )

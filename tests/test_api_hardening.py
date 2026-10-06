@@ -19,6 +19,7 @@ from threading import Thread
 from urllib.request import urlopen, Request
 from urllib.error import HTTPError
 from io import BytesIO
+from unittest.mock import patch
 from app.bundle import MEMBERS
 
 SAMPLE_AXE = json.dumps({
@@ -77,7 +78,8 @@ class ApiHardeningTests(unittest.TestCase):
                      "Content-Length": str(3 * 1024 * 1024)},
             method="POST",
         )
-        with self.assertRaises(HTTPError) as ctx:
+        with patch.dict("os.environ", {"BODY_TIMEOUT_SECONDS": "0.1"}), \
+             self.assertRaises(HTTPError) as ctx:
             urlopen(req)
         self.addCleanup(ctx.exception.close)
         self.assertEqual(ctx.exception.code, 413)

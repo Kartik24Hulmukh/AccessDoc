@@ -1,0 +1,18 @@
+{
+  "source_candidate": "01c74db4613239c5c171a55fc7395be90c54751c",
+  "before_source": "78736f2ef9d10e4b37243a52be27b999e2c0c26e",
+  "first_native_candidate": "5c43b01b0c1ff27d06ff3d5b5664b4e0d437ee42",
+  "billing_dependency_repair": "1a00934c4c07c2144cf8f91b57830928eedf7563",
+  "final_suite": {
+    "passed": 936,
+    "skipped": 1,
+    "subtests": 207,
+    "local_gates_passed": 10
+  },
+  "provider_samples_final": 12,
+  "provider_spotcheck_runs_this_turn": 4,
+  "provider_samples_this_turn": 48,
+  "hosted_source_checks": 13,
+  "scope": "local synthetic/loopback and bounded live model spotchecks; no human evaluation or exact-preview functional success",
+  "attribution": "Frozen baseline receipts precede code edits; intermediate receipts retain their named candidate and failures. Final native faults/load/chaos/live/verifier and latest source CI are scoped to source_candidate. Evidence-only successor changes report/receipts, not tested application code. Latest final delivery check receipt is supplied separately in the downloadable archive."
+}

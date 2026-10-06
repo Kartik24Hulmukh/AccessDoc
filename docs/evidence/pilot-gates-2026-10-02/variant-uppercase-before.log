@@ -1,0 +1,7 @@
+=== Waiting for Vercel deployment at http://127.0.0.1:43883 ===
+    Expected version: test
+    Target commit: aaaaaaa
+    Poll interval: 0.02s, max wait: 0.05s, req timeout: 30s
+  Attempt 1: status=200, adapter_version='test', status_field='ok', commit='ABCDEF12ABCDEF12ABCDEF12ABCDEF12ABCDEF12'
+  Attempt 2: status=200, adapter_version='test', status_field='ok', commit='ABCDEF12ABCDEF12ABCDEF12ABCDEF12ABCDEF12'
+FAIL: Vercel deployment not ready after 0.05s (2 attempts). Last observed commit: 'ABCDEF12ABCDEF12ABCDEF12ABCDEF12ABCDEF12'
