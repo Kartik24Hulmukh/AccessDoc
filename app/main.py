@@ -144,7 +144,10 @@ class Handler(BaseHTTPRequestHandler):
             READ_CHUNK_BYTES,body_deadline() if deadline is None else deadline,
             collect=False)
   if n>DRAIN_MAX_BYTES:self.close_connection=True
- def _read(self,limit):
+ def _validate_body_headers(self,limit,require_json=False):
+  # Header-only rejection stays in the bounded connection pool, not the
+  # scarce render pool. Valid bodies are still read only after admission.
+  if require_json and self.headers.get_content_type()!='application/json':raise ValueError('Content-Type must be application/json')
   if self.headers.get('Transfer-Encoding'):raise ValueError('Transfer-Encoding is not supported')
   if self.headers.get('Content-Encoding'):raise ValueError('Content-Encoding is not supported')
   vals=self.headers.get_all('Content-Length') or []
@@ -157,14 +160,16 @@ class Handler(BaseHTTPRequestHandler):
    except BodyDeadlineExceeded:pass
    raise LimitExceeded('Request body exceeds limit',limit_name='MAX_HTTP_BODY_BYTES',limit=limit,actual=n)
   if n<=0:raise ValueError('Invalid Content-Length')
+  return n,deadline
+ def _read(self,limit,require_json=False):
+  n,deadline=self._validate_body_headers(limit,require_json)
   # Chunked streaming read: bounded 64 KiB slices, abort on short read, never a single oversized allocation.
   raw,remaining=read_body(self.rfile,getattr(self,'connection',None),n,
                           READ_CHUNK_BYTES,deadline)
   if remaining:raise TruncatedBodyError('Truncated request body')
   return bytes(raw)
  def _read_json(self):
-  if self.headers.get_content_type()!='application/json':raise ValueError('Content-Type must be application/json')
-  raw=self._read(MAX_BODY)
+  raw=self._read(MAX_BODY,require_json=True)
   try:return json.loads(raw,parse_constant=lambda x:(_ for _ in ()).throw(ValueError('Non-finite JSON number')))
   except json.JSONDecodeError:raise ValueError('Invalid JSON request')
  def handle_one_request(self):
@@ -249,6 +254,13 @@ class Handler(BaseHTTPRequestHandler):
   if not _ok:
    metric('rate_limited_total')
    return self._json(429,{'error':{'code':'RATE_LIMITED','message':'Too many requests. Try again shortly.'}},{'Retry-After':str(_retry)})
+  # Preserve all policy denials above before inspecting body framing.
+  # Oversize drains retain the original absolute deadline and byte cap.
+  try:self._validate_body_headers(MAX_BODY,require_json=True)
+  except LimitExceeded:return self._json(413,{'error':{'code':'INPUT_TOO_LARGE','message':'Input exceeds resource limits'}})
+  except ValueError:return self._json(422,{'error':{'code':'INVALID_INPUT','message':'Invalid input'}})
+  except (TimeoutError,ConnectionError,BrokenPipeError,OSError):
+   self.close_connection=True;metric('client_disconnects_total');return
   capacity=REMEDIATION_CAPACITY if path=='/api/remediate' else GENERATION_CAPACITY
   if not capacity.acquire(timeout=float(os.getenv('GENERATION_QUEUE_TIMEOUT_SECONDS','0.05'))):
    metric('overload_rejections_total');return self._send(503,b'{"error":{"code":"BUSY","message":"Report generation is at capacity"}}','application/json; charset=utf-8',{'Retry-After':'1'})

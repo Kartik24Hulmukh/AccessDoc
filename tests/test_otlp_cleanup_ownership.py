@@ -212,10 +212,10 @@ class CleanupOwnershipTests(unittest.TestCase):
         ex = self.fixture.exporter(timeout=.5)
         engine = ex._session._attach()
         self.assertTrue(engine.ready.wait(1))
-        self.fixture.record(ex)
+        entered = threading.Event()
         cancelling = threading.Event(); recancelled = threading.Event(); gate=[]
         async def perform(call):
-            release=asyncio.Event();gate.append(release)
+            release=asyncio.Event();gate.append(release);entered.set()
             try:
                 await asyncio.Event().wait()
             finally:
@@ -227,6 +227,12 @@ class CleanupOwnershipTests(unittest.TestCase):
                     raise
         try:
             with patch.object(engine,'_perform',perform):
+                # Establish a real tracked native owner before measuring drain
+                # behavior. A flush may expire before a submitted coroutine ever
+                # starts; that valid path has no finalizer to assert about.
+                call=gt._Call(ex._session,time.monotonic()+ex.timeout,None,{})
+                engine.acquire(call);ex._retirement.add(engine,call);engine.submit(call)
+                self.assertTrue(entered.wait(.2))
                 self.assertFalse(ex.flush(.08))
                 self.assertTrue(cancelling.wait(.2))
                 self.assertFalse(recancelled.is_set(), 'must not interrupt an owned native finalizer')
@@ -238,6 +244,39 @@ class CleanupOwnershipTests(unittest.TestCase):
             if gate:engine.loop.call_soon_threadsafe(gate[0].set)
             if ex._retirement is not None:ex._retirement.drain(time.monotonic()+.5)
         self.assertEqual(ex.stats()['cleanup_pending'],0)
+
+    def test_retirement_before_native_start_does_not_enter_a_finalizer(self):
+        ex = self.fixture.exporter(timeout=.5)
+        engine = ex._session._attach()
+        self.assertTrue(engine.ready.wait(1))
+        entered = threading.Event()
+        callbacks = []
+        async def perform(call):
+            entered.set()
+            raise AssertionError('cancelled-before-start call must not execute')
+        def defer(callback):
+            callbacks.append(callback)
+            return True
+        call = gt._Call(ex._session, time.monotonic()+ex.timeout, None, {})
+        with patch.object(engine, '_perform', perform):
+            try:
+                with patch.object(engine, '_schedule', defer):
+                    engine.acquire(call)
+                    ex._retirement.add(engine, call)
+                    engine.submit(call)
+                    self.assertFalse(ex._retirement.drain(time.monotonic()+.03))
+                    self.assertIsNone(call.task)
+                    self.assertTrue(call.cancel_requested)
+                    self.assertEqual(ex.stats()['cleanup_pending'], 1)
+            finally:
+                for callback in callbacks:
+                    engine.loop.call_soon_threadsafe(callback)
+                self.assertTrue(call.done.wait(.2))
+        self.assertFalse(entered.is_set())
+        self.assertIsNone(call.task)
+        self.assertTrue(ex._retirement.drain(time.monotonic()+.03))
+        self.assertEqual(ex.stats()['cleanup_pending'], 0)
+        self.assertEqual(engine.snapshot()['inflight'], 0)
 
     def test_group_drain_and_shutdown_do_not_repeat_native_cancellation(self):
         import asyncio

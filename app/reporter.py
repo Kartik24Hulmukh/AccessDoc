@@ -30,6 +30,16 @@ _PENDING_DISPLAY_LIMIT = 50
 _PENDING_FIELD_LIMIT = 1000
 
 
+def _table_display(value):
+    """Escape and line-fold PDF finding cells, never canonical evidence.
+
+    Plain-string Table cells treat newlines as height; an otherwise small
+    field can make an unsplittable row taller than a page. Keep safe_text's
+    existing display bound/escaping, but make these cells single-line.
+    """
+    return safe_text(value).replace("\n", " ").replace("\t", " ")
+
+
 def _pending_display(value, fallback):
     raw = str(value or fallback)
     shortened = len(raw) > _PENDING_FIELD_LIMIT
@@ -214,12 +224,12 @@ def generate_pdf_report(summary, violations, client_name="Client", agency_name="
         vd = [["Rule ID", "Impact", "Nodes", "WCAG SC", "Description"]]
         order = {"critical":0,"serious":1,"moderate":2,"minor":3}
         for v in sorted(violations, key=lambda x: order.get(x.impact, 4)):
-            s_id = safe_text(v.id)
-            s_impact = safe_text(v.impact)
-            s_desc_full = safe_text(v.description)
+            s_id = _table_display(v.id)
+            s_impact = _table_display(v.impact)
+            s_desc_full = _table_display(v.description)
             s_desc = s_desc_full[:70] + ("..." if len(s_desc_full) > 70 else "")
-            s_wcag = safe_text(", ".join(v.wcag_scs) or "-")
-            s_source = safe_text(v.source)
+            s_wcag = _table_display(", ".join(v.wcag_scs) or "-")
+            s_source = _table_display(v.source)
             # Combine WCAG SC and source label for the table cell.
             wcag_cell = s_wcag
             if s_source and s_source != "automated":

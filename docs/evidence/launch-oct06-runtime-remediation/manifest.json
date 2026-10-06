@@ -1,0 +1,39 @@
+{
+  "baseline_commit": "3519ab789ea3e8fd7077078f07bda4332cfe1b85",
+  "source_commit": "3f925d865380d0512c0944f10b514c00c059177f",
+  "source_sha256": {
+    "api/handler.py": "6a989175e13c82f23cd15502134a3671a7b36bfa16870e7a682f6438d50fbbe0",
+    "app/main.py": "b453fdd98196234c7864a41ee9dcfe5c7d3641ce2862cd77ca36169c09db6b16",
+    "app/reporter.py": "5e6383f366a42adb9d56eacf985d6a27954642b3fffa15f6910ea8a38edaf892",
+    "scripts/run_one_native_diagnostic.py": "2cee162433cf07db4390ed866529202d11003ce9d21cebeeadf99cbc36ca3c2e",
+    "tests/test_main_header_admission.py": "7681bbef4533e9bd5413565383e3626a7a371a3b5b8f3ae990e5ab3a471be0e5",
+    "tests/test_otlp_cleanup_ownership.py": "cbdccdf2d6b6bd6d9be5660515463503c535e3df6dce4217c7d1ee0e477a74f6",
+    "tests/test_reporter_table_linefold.py": "f9d76916873ab56cb5daa4164d07b5b985d01353ba1c7e951b56e2421ad2a910",
+    "tests/test_vercel_parser_rejection_lifecycle.py": "980289f38ba44f9a5f9d484e54c3eb71a276e0f360ddebb18d3a6d23889e561d",
+    "tests/test_vercel_runtime_lifecycle.py": "7c6324e7238ad756a2330791bbb95df2fc9ebfecfb5da115fad1f381e4ec702e"
+  },
+  "local_verifier": {
+    "gates_passed": 10,
+    "tests_passed": 1280,
+    "subtests_passed": 567,
+    "skipped": 1,
+    "seconds": 109.83
+  },
+  "scope": "tested source worktree; parser regression was present during the full run and subsequently tracked unchanged; hosted candidate acceptance pending",
+  "evidence_sha256": {
+    "round2-preview-failure-redacted.txt": "527a75f50979987887ec755508f5ed1400590d514b5a9ab343ed5d8e4da9e06c",
+    "round2-mac-failure.json": "4a825527c788fe08454d3d54bdabfac640a4fe469cd109b3d40492bad0490e56",
+    "round2-mac-job.json": "787c2a4990b14d6a9e072615e7034decf4eb073860841b3890bf5e54ce4fde36",
+    "round2-checks-final.json": "16870a5296e341e0f1e2b8277f06a817bb42959af7acc48e814bd1a5791bf947",
+    "round2-release-verifier.json": "b209691c20ed4be0b9c2d3076265b3c2fe574a068788e8ddd5ef055956259838",
+    "round2-release-verifier-final.json": "e0458eedf52df53c8c0b919147b8e5f143ed4ce2050c8a849426d2a55d0f0626",
+    "round2-guard-final.txt": "cbee9c0722fd6a09c9cc31d458a52e1ef59156c120e1c47c8ca9ed985131253a",
+    "round2-parser-committed-guard.txt": "0f1c1dd198353c6e583012475497c13a2c76b94ae010d54ab64dd103c4f87562",
+    "round2-lifecycle-handoff.md": "a869581e0847f515c1f99f1087774ce48c15cd7e61cdba32b59a4affe8fa7cff",
+    "round2-parser-fix-handoff.md": "3a55c8299385b4d7715f0d924791b5ed75d63e11586737e75d3807dd848656b9",
+    "accessdoc-round2-linefold-fix.md": "6082092f51649c63ceeb5065850b9ee0b65bcbc4b90c049803ac1393bdf2efad",
+    "accessdoc-round2-admission-fix.md": "0c454ba2e4c596d597b5c5dea55273883f7689e59a4e944b8bd76e8651aee02d",
+    "accessdoc-round2-native-fix.md": "0ff8bcfe1f15b82348e430a7ec7af4e39913a1d668293d3502f8f4b7e0587ef1",
+    "accessdoc-round2-integration-review.md": "09da5a4dfd20a4833d845b43ef682fe1fb244d218a40dffb03cad923c5f421f1"
+  }
+}

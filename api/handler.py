@@ -16,6 +16,8 @@ import uuid
 import platform
 import threading
 import time
+from contextlib import contextmanager
+from functools import wraps
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -202,6 +204,15 @@ def _wants_html(accept):
     return True
 
 
+def _http_request_scope(method):
+    """Own request lifecycle at dispatch, even when the runtime replaces parsing."""
+    @wraps(method)
+    def scoped(self, *args, **kwargs):
+        with self._request_scope():
+            return method(self, *args, **kwargs)
+    return scoped
+
+
 class handler(BaseHTTPRequestHandler):
     """Bounded HTTP handler for AccessDoc bundle generation.
 
@@ -221,12 +232,30 @@ class handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         pass
 
-    def handle_one_request(self):
-        """One context/log/SERVER span per actual request, including rejections."""
-        self.raw_requestline = b""
-        self.command = None
-        self.path = ""
-        self.headers = None
+    @contextmanager
+    def _request_scope(self, reset_parse=False):
+        """Exactly one owner for parser envelope, method dispatch and nested HEAD.
+
+        Stdlib owns the outer scope before parsing so malformed/unsupported
+        requests and idle EOF retain their existing accounting. Vercel may
+        replace that envelope: the dispatched method then owns the scope using
+        already-parsed request fields. Nested calls never reset or finalize it.
+        """
+        if getattr(self, "_request_scope_active", False):
+            yield
+            return
+        self._request_scope_active = True
+        if reset_parse:
+            self.raw_requestline = b""
+            self.command = None
+            self.path = ""
+            self.headers = None
+        elif getattr(self, "command", None) is None:
+            # A runtime-owned parser can call send_error before assigning path
+            # or headers. Do not reuse either from a prior keep-alive request.
+            self.command = None
+            self.path = ""
+            self.headers = None
         self.request_id = uuid.uuid4().hex[:12]
         self._trace_ctx = None
         self._status = 500
@@ -234,7 +263,7 @@ class handler(BaseHTTPRequestHandler):
         telemetry.clear()
         start, start_ns = time.monotonic(), time.time_ns()
         try:
-            super().handle_one_request()
+            yield
         except (TimeoutError, ConnectionError, OSError):
             self.close_connection = True
             _bump("client_disconnects_total")
@@ -247,18 +276,27 @@ class handler(BaseHTTPRequestHandler):
                 except Exception:
                     pass
         finally:
-            if self.raw_requestline:
-                _bump("requests_total")
-                if self._status >= 400:
-                    _bump("errors_total")
-                ctx = self._trace()
-                method, route = telemetry.http_method(self.command), telemetry.http_route(self.path)
-                telemetry.log_event("http_request", request_id=self.request_id,
-                    method=method, route=route, status=self._status,
-                    duration_ms=round((time.monotonic() - start) * 1000, 2))
-                telemetry.record_server_span(ctx, method, route, self._status,
-                                             start_ns, time.time_ns())
-            telemetry.clear()
+            try:
+                if getattr(self, "raw_requestline", b"") or getattr(self, "command", None):
+                    _bump("requests_total")
+                    if self._status >= 400:
+                        _bump("errors_total")
+                    ctx = self._trace()
+                    method, route = telemetry.http_method(self.command), telemetry.http_route(self.path)
+                    telemetry.log_event("http_request", request_id=self.request_id,
+                        method=method, route=route, status=self._status,
+                        duration_ms=round((time.monotonic() - start) * 1000, 2))
+                    telemetry.record_server_span(ctx, method, route, self._status,
+                                                 start_ns, time.time_ns())
+            finally:
+                telemetry.clear()
+                self._trace_ctx = None
+                self._request_scope_active = False
+
+    def handle_one_request(self):
+        """Preserve stdlib parse rejection/idle accounting; methods share ownership."""
+        with self._request_scope(reset_parse=True):
+            super().handle_one_request()
 
     def send_response(self, code, message=None):
         self._status = code
@@ -311,6 +349,7 @@ class handler(BaseHTTPRequestHandler):
             self._trace_ctx = ctx
         return ctx
 
+    @_http_request_scope
     def send_error(self, code, message=None, explain=None):
         """Stdlib parse failures (400/414/431/501) must honour the JSON contract.
 
@@ -319,6 +358,15 @@ class handler(BaseHTTPRequestHandler):
         X-Request-ID. Route it through the bounded JSON error path instead and
         never echo client-supplied text.
         """
+        # A runtime-owned parser can assign command/path, then reject before
+        # replacing self.headers (e.g. parse_headers raises on 101 headers).
+        # Only a fully parsed request may supply inbound tracing. These stdlib
+        # parser errors must discard both prior and partially parsed headers;
+        # keep 501's fully parsed current inbound context for unsupported verbs.
+        if code in (400, 414, 431, 505):
+            self.headers = None
+            self._trace_ctx = None
+            telemetry.clear()
         self.close_connection = True
         if not hasattr(self, "request_id"):
             self.request_id = uuid.uuid4().hex[:12]
@@ -522,6 +570,7 @@ class handler(BaseHTTPRequestHandler):
                 _bump("client_disconnects_total")
         return True
 
+    @_http_request_scope
     def do_GET(self):
         """Hosted UI on '/' (browsers) and '/index.html'; JSON health on '/' (API clients),
         '/readyz', '/healthz'; ceilings on '/limits'; docs on '/docs' + '/openapi.json'."""
@@ -590,6 +639,7 @@ class handler(BaseHTTPRequestHandler):
             return
         self._error(404, "Not found")
 
+    @_http_request_scope
     def do_POST(self):
         self.close_connection = True
         self._trace()
@@ -805,18 +855,23 @@ class handler(BaseHTTPRequestHandler):
         out["adapter"] = "serverless"
         self._send_json(200, out)
 
+    @_http_request_scope
     def do_PUT(self):
         self._error(405, "Method not allowed")
 
+    @_http_request_scope
     def do_DELETE(self):
         self._error(405, "Method not allowed")
 
+    @_http_request_scope
     def do_PATCH(self):
         self._error(405, "Method not allowed")
 
+    @_http_request_scope
     def do_HEAD(self):
         self.do_GET()
 
+    @_http_request_scope
     def do_OPTIONS(self):
         """CORS preflight. Conservative: only GET and POST."""
         self.send_response(204)
