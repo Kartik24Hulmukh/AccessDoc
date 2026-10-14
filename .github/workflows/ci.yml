@@ -22,7 +22,7 @@ jobs:
       - name: Run axe-core self-audit against AccessDoc HTML outputs
         run: python scripts/self_audit.py
       - name: Archive axe-core self-audit JSON report
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: axe-self-audit
@@ -52,13 +52,13 @@ jobs:
         run: python scripts/gateway_bench.py --probes-only --output gateway-probes.json
       - name: Archive hosted soak metrics
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: hosted-soak
           path: hosted-soak.json
       - name: Archive local hardening metrics
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: hardening-load
           path: hardening-load.json
@@ -102,7 +102,7 @@ jobs:
         run: python scripts/hardening_load.py --output hardening-load-${{ matrix.os }}.json
       - name: Archive portability load metrics
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: hardening-load-${{ matrix.os }}
           path: hardening-load-${{ matrix.os }}.json
